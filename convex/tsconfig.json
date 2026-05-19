@@ -7,7 +7,7 @@
     "moduleResolution": "bundler",
     "moduleDetection": "force",
     "jsx": "react-jsx",
-    "types": [],
+    "types": ["node"],
 
     "allowJs": true,
     "verbatimModuleSyntax": true,

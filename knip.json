@@ -1,7 +1,7 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
-  "entry": ["src/main.tsx", "src/routes/**/*.{ts,tsx}", "convex/**/*.ts"],
+  "entry": ["src/routes/**/*.{ts,tsx}", "convex/**/*.ts"],
   "project": ["src/**/*.{ts,tsx}", "convex/**/*.ts"],
-  "ignore": ["src/routeTree.gen.ts", "convex/_generated/**"],
-  "ignoreDependencies": ["tw-animate-css", "@auth/core"]
+  "ignore": ["src/components/ui/**"],
+  "ignoreDependencies": ["tw-animate-css", "tailwindcss"]
 }

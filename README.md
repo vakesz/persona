@@ -48,16 +48,16 @@ npx convex env set FAL_API_KEY <key>
 
 ## Scripts
 
-| Script              | Description                                  |
-| ------------------- | -------------------------------------------- |
-| `pnpm dev`          | Vite dev server                              |
-| `pnpm convex`       | Convex backend in watch mode                 |
-| `pnpm build`        | Type-check + production build                |
-| `pnpm typecheck`    | `tsc -b` across app, node, and convex configs |
-| `pnpm lint`         | ESLint (strict, type-checked)                |
-| `pnpm format`       | Prettier write                               |
-| `pnpm knip`         | Detect unused files, exports, dependencies   |
-| `pnpm check`        | typecheck + lint + format check + knip       |
+| Script           | Description                                   |
+| ---------------- | --------------------------------------------- |
+| `pnpm dev`       | Vite dev server                               |
+| `pnpm convex`    | Convex backend in watch mode                  |
+| `pnpm build`     | Type-check + production build                 |
+| `pnpm typecheck` | `tsc -b` across app, node, and convex configs |
+| `pnpm lint`      | ESLint (strict, type-checked)                 |
+| `pnpm format`    | Prettier write                                |
+| `pnpm knip`      | Detect unused files, exports, dependencies    |
+| `pnpm check`     | typecheck + lint + format check + knip        |
 
 ## Project structure
 

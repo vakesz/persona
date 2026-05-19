@@ -93,6 +93,7 @@ React app
 ## Convex Data Model
 
 ### users
+
 Usually managed through auth, but app data can be mirrored:
 
 ```
@@ -166,6 +167,7 @@ updated_at
 ```
 
 ### uploaded_items
+
 For user-uploaded dresses/shoes/etc:
 
 ```
@@ -208,6 +210,7 @@ markRenderJobFailed
 ```
 
 ### Actions
+
 Use Convex actions for external APIs:
 
 ```
@@ -408,37 +411,50 @@ convex/
 
 ## Build Order
 
-### Phase 1 — Foundation
+### Phase 1 — Foundation ✅ Done
+
 Vite React setup, TanStack Router, shadcn/ui, Convex setup, Auth,
 Protected routes, Basic layout.
 Goal: User can sign in.
 
+Implemented: strict-TS Vite/React project; file-based routes for every page
+in the plan; Convex schema for the full data model; Convex Auth (password) with
+sign-in/sign-up; `RequireAuth` route guard; auth-aware app shell; `getCurrentUser`
+query wired into `/settings`. `pnpm check` and `pnpm build` pass green.
+Run `npx convex dev` then `npx @convex-dev/auth` to make auth live.
+
 ### Phase 2 — Avatar Creation
+
 Upload image, compress in browser, store in Convex storage, create avatar
 record, show avatar list, limit to 3 avatars.
 Goal: User can create private avatars.
 
 ### Phase 3 — Personal Canvas
+
 Build /studio/$avatarId, load avatar image, render in React-Konva, add
 zoom/pan, layer system, mobile touch support.
 Goal: User sees themselves on an editable canvas.
 
 ### Phase 4 — Manual Styling
+
 Sample hairstyle/makeup/nail overlays, drag/scale/rotate/opacity controls,
 save recent tried items.
 Goal: User can customize their own image without AI cost.
 
 ### Phase 5 — AI Stylist
+
 Stylist prompt box, Gemini action, analyze avatar image, return suggestions,
 recommendation cards, convert suggestion to canvas layer.
 Goal: User can ask what suits them.
 
 ### Phase 6 — AI Render
+
 render_jobs table, render action, send image + prompt + layer metadata to
 provider, store result, realtime job updates, save final look.
 Goal: User gets a polished realistic image.
 
 ### Phase 7 — Clothing Upload
+
 Upload clothing image, store as uploaded_item, show in studio, rough overlay
 preview, manual adjustment, final AI try-on render.
 Goal: User can upload a dress and try it on.

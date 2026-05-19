@@ -7,9 +7,6 @@ dist/
 dist-ssr/
 *.tsbuildinfo
 
-# generated
-src/routeTree.gen.ts
-
 # env / secrets
 .env
 .env.local
