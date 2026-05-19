@@ -1,0 +1,32 @@
+{
+  "compilerOptions": {
+    "tsBuildInfoFile": "../node_modules/.tmp/tsconfig.convex.tsbuildinfo",
+    "target": "ESNext",
+    "lib": ["ES2023", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "moduleDetection": "force",
+    "jsx": "react-jsx",
+    "types": [],
+
+    "allowJs": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "exactOptionalPropertyTypes": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "useUnknownInCatchVariables": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["./**/*.ts"],
+  "exclude": ["./_generated"]
+}

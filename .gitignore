@@ -1,0 +1,34 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# build output
+dist/
+dist-ssr/
+*.tsbuildinfo
+
+# generated
+src/routeTree.gen.ts
+
+# env / secrets
+.env
+.env.local
+.env.*.local
+
+# convex local state
+.convex/
+
+# caches
+.eslintcache
+.knip-cache/
+
+# editor / OS
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
