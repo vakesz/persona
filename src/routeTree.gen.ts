@@ -14,7 +14,6 @@ import { Route as SavedRouteImport } from './routes/saved'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AvatarsIndexRouteImport } from './routes/avatars.index'
-import { Route as StylistAvatarIdRouteImport } from './routes/stylist.$avatarId'
 import { Route as StudioAvatarIdRouteImport } from './routes/studio.$avatarId'
 import { Route as AvatarsNewRouteImport } from './routes/avatars.new'
 
@@ -43,11 +42,6 @@ const AvatarsIndexRoute = AvatarsIndexRouteImport.update({
   path: '/avatars/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const StylistAvatarIdRoute = StylistAvatarIdRouteImport.update({
-  id: '/stylist/$avatarId',
-  path: '/stylist/$avatarId',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const StudioAvatarIdRoute = StudioAvatarIdRouteImport.update({
   id: '/studio/$avatarId',
   path: '/studio/$avatarId',
@@ -66,7 +60,6 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/avatars/new': typeof AvatarsNewRoute
   '/studio/$avatarId': typeof StudioAvatarIdRoute
-  '/stylist/$avatarId': typeof StylistAvatarIdRoute
   '/avatars/': typeof AvatarsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -76,7 +69,6 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/avatars/new': typeof AvatarsNewRoute
   '/studio/$avatarId': typeof StudioAvatarIdRoute
-  '/stylist/$avatarId': typeof StylistAvatarIdRoute
   '/avatars': typeof AvatarsIndexRoute
 }
 export interface FileRoutesById {
@@ -87,7 +79,6 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/avatars/new': typeof AvatarsNewRoute
   '/studio/$avatarId': typeof StudioAvatarIdRoute
-  '/stylist/$avatarId': typeof StylistAvatarIdRoute
   '/avatars/': typeof AvatarsIndexRoute
 }
 export interface FileRouteTypes {
@@ -99,7 +90,6 @@ export interface FileRouteTypes {
     | '/settings'
     | '/avatars/new'
     | '/studio/$avatarId'
-    | '/stylist/$avatarId'
     | '/avatars/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -109,7 +99,6 @@ export interface FileRouteTypes {
     | '/settings'
     | '/avatars/new'
     | '/studio/$avatarId'
-    | '/stylist/$avatarId'
     | '/avatars'
   id:
     | '__root__'
@@ -119,7 +108,6 @@ export interface FileRouteTypes {
     | '/settings'
     | '/avatars/new'
     | '/studio/$avatarId'
-    | '/stylist/$avatarId'
     | '/avatars/'
   fileRoutesById: FileRoutesById
 }
@@ -130,7 +118,6 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   AvatarsNewRoute: typeof AvatarsNewRoute
   StudioAvatarIdRoute: typeof StudioAvatarIdRoute
-  StylistAvatarIdRoute: typeof StylistAvatarIdRoute
   AvatarsIndexRoute: typeof AvatarsIndexRoute
 }
 
@@ -171,13 +158,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AvatarsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/stylist/$avatarId': {
-      id: '/stylist/$avatarId'
-      path: '/stylist/$avatarId'
-      fullPath: '/stylist/$avatarId'
-      preLoaderRoute: typeof StylistAvatarIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/studio/$avatarId': {
       id: '/studio/$avatarId'
       path: '/studio/$avatarId'
@@ -202,7 +182,6 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   AvatarsNewRoute: AvatarsNewRoute,
   StudioAvatarIdRoute: StudioAvatarIdRoute,
-  StylistAvatarIdRoute: StylistAvatarIdRoute,
   AvatarsIndexRoute: AvatarsIndexRoute,
 }
 export const routeTree = rootRouteImport

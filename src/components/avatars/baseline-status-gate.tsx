@@ -1,13 +1,17 @@
+import { Trans } from '@lingui/react/macro';
 import { Link } from '@tanstack/react-router';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import type { ReactNode } from 'react';
 
+import { translateStoredErrorMessage } from '@/i18n/server-errors';
 import { Button } from '@/components/ui/button';
 
 type AvatarBaselineStatus = 'queued' | 'processing' | 'done' | 'failed';
+type AvatarGender = 'male' | 'female' | 'unspecified';
 
 interface AvatarStub {
   name: string;
+  gender: AvatarGender;
   baselineStatus: AvatarBaselineStatus;
   baselineErrorMessage: string | undefined;
   baseImageUrl: string | null;
@@ -39,12 +43,16 @@ export function BaselineStatusGate({ avatar, children }: BaselineStatusGateProps
   if (avatar === null) {
     return (
       <div className="flex flex-col gap-4">
-        <h1 className="text-2xl font-semibold tracking-tight">Avatar not found</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          <Trans>Avatar not found</Trans>
+        </h1>
         <p className="text-muted-foreground text-sm">
-          This avatar doesn&apos;t exist or it belongs to someone else.
+          <Trans>This avatar doesn&apos;t exist or it belongs to someone else.</Trans>
         </p>
         <Button asChild variant="outline" className="w-fit">
-          <Link to="/avatars">Back to avatars</Link>
+          <Link to="/avatars">
+            <Trans>Back to avatars</Trans>
+          </Link>
         </Button>
       </div>
     );
@@ -54,17 +62,23 @@ export function BaselineStatusGate({ avatar, children }: BaselineStatusGateProps
     return (
       <div className="flex flex-col items-start gap-4">
         <AlertCircle className="text-destructive size-6" />
-        <h1 className="text-2xl font-semibold tracking-tight">Portrait generation failed</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          <Trans>Portrait generation failed</Trans>
+        </h1>
         <p className="text-muted-foreground max-w-md text-sm">
-          We couldn&apos;t generate a studio portrait of {avatar.name} from your photos.
+          <Trans>
+            We couldn&apos;t generate a studio portrait of {avatar.name} from your photos.
+          </Trans>
         </p>
         {avatar.baselineErrorMessage !== undefined && (
           <pre className="bg-muted text-muted-foreground max-w-full overflow-auto rounded-md p-3 text-xs">
-            {avatar.baselineErrorMessage}
+            {translateStoredErrorMessage(avatar.baselineErrorMessage)}
           </pre>
         )}
         <Button asChild variant="outline" size="sm">
-          <Link to="/avatars">Back to avatars</Link>
+          <Link to="/avatars">
+            <Trans>Back to avatars</Trans>
+          </Link>
         </Button>
       </div>
     );
@@ -74,13 +88,19 @@ export function BaselineStatusGate({ avatar, children }: BaselineStatusGateProps
     return (
       <div className="flex flex-col items-start gap-4">
         <Loader2 className="text-muted-foreground size-6 animate-spin" />
-        <h1 className="text-2xl font-semibold tracking-tight">Preparing your portrait…</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          <Trans>Preparing your portrait…</Trans>
+        </h1>
         <p className="text-muted-foreground max-w-md text-sm">
-          Gemini is composing your canonical studio portrait from the photos you uploaded. This
-          usually takes 10–30 seconds. The page will update automatically.
+          <Trans>
+            Gemini is composing your canonical studio portrait from the photos you uploaded. This
+            usually takes 10–30 seconds. The page will update automatically.
+          </Trans>
         </p>
         <Button asChild variant="outline" size="sm">
-          <Link to="/avatars">Back to avatars</Link>
+          <Link to="/avatars">
+            <Trans>Back to avatars</Trans>
+          </Link>
         </Button>
       </div>
     );

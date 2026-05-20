@@ -1,3 +1,4 @@
+import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation } from 'convex/react';
 import { Loader2, Plus, X } from 'lucide-react';
 import {
@@ -10,6 +11,7 @@ import {
 } from 'react';
 import { toast } from 'sonner';
 
+import { translateServerError } from '@/i18n/server-errors';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -20,6 +22,7 @@ import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
 
 type AvatarType = 'selfie' | 'full_body';
+type AvatarGender = 'male' | 'female' | 'unspecified';
 type Status = 'idle' | 'compressing' | 'uploading' | 'saving';
 
 const MAX_PHOTOS = 5;
@@ -38,10 +41,12 @@ export interface AvatarUploaderProps {
 export function AvatarUploader({ onCreated }: AvatarUploaderProps) {
   const generateUploadUrl = useMutation(api.storage.generateUploadUrl);
   const createAvatar = useMutation(api.avatars.createAvatar);
+  const { t } = useLingui();
 
   const [photos, setPhotos] = useState<PickedPhoto[]>([]);
   const [name, setName] = useState('');
   const [type, setType] = useState<AvatarType>('selfie');
+  const [gender, setGender] = useState<AvatarGender>('unspecified');
   const [status, setStatus] = useState<Status>('idle');
   const fileInputRef = useRef<HTMLInputElement>(null);
   // Owned-URL ledger — every call to URL.createObjectURL is registered here so
@@ -66,7 +71,7 @@ export function AvatarUploader({ onCreated }: AvatarUploaderProps) {
     setPhotos((prev) => {
       const remaining = MAX_PHOTOS - prev.length;
       if (remaining <= 0) {
-        toast.error(`At most ${MAX_PHOTOS} photos.`);
+        toast.error(t`At most ${MAX_PHOTOS} photos.`);
         return prev;
       }
       const accepted = incoming.slice(0, remaining).map<PickedPhoto>((file) => {
@@ -75,7 +80,7 @@ export function AvatarUploader({ onCreated }: AvatarUploaderProps) {
         return { id: crypto.randomUUID(), file, previewUrl };
       });
       if (incoming.length > remaining) {
-        toast.error(`Only the first ${MAX_PHOTOS} photos are used.`);
+        toast.error(t`Only the first ${MAX_PHOTOS} photos are used.`);
       }
       return [...prev, ...accepted];
     });
@@ -101,7 +106,7 @@ export function AvatarUploader({ onCreated }: AvatarUploaderProps) {
   const handleSubmit = (event: SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (photos.length === 0) {
-      toast.error('Pick at least one photo.');
+      toast.error(t`Pick at least one photo.`);
       return;
     }
     void uploadAndCreate();
@@ -124,7 +129,6 @@ export function AvatarUploader({ onCreated }: AvatarUploaderProps) {
   async function uploadAndCreate() {
     try {
       setStatus('compressing');
-      // First photo also yields the thumbnail; the rest are full-resolution sources.
       const first = photos[0];
       if (first === undefined) throw new Error('No photo selected.');
       const firstProcessed = await processAvatarImage(first.file);
@@ -143,14 +147,15 @@ export function AvatarUploader({ onCreated }: AvatarUploaderProps) {
       const avatarId = await createAvatar({
         name,
         type,
+        gender,
         sourcePhotoStorageIds,
         thumbnailStorageId,
       });
-      toast.success('Avatar created. Generating your studio portrait…');
+      toast.success(t`Avatar created. Generating your studio portrait…`);
       onCreated(avatarId);
     } catch (error) {
       console.error(error);
-      toast.error(error instanceof Error ? error.message : 'Something went wrong.');
+      toast.error(translateServerError(error));
       setStatus('idle');
     }
   }
@@ -161,7 +166,9 @@ export function AvatarUploader({ onCreated }: AvatarUploaderProps) {
         <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
           <div className="flex flex-col gap-2">
             <Label htmlFor="photo">
-              Photos ({photos.length} of {MAX_PHOTOS})
+              <Trans>
+                Photos ({photos.length} of {MAX_PHOTOS})
+              </Trans>
             </Label>
             <input
               ref={fileInputRef}
@@ -194,20 +201,24 @@ export function AvatarUploader({ onCreated }: AvatarUploaderProps) {
                 >
                   <Plus className="text-muted-foreground size-5" />
                   <span className="text-muted-foreground text-xs">
-                    {photos.length === 0 ? 'Add photo' : 'Add another'}
+                    {photos.length === 0 ? <Trans>Add photo</Trans> : <Trans>Add another</Trans>}
                   </span>
                 </button>
               )}
             </div>
             <p className="text-muted-foreground text-xs">
-              First photo becomes the front reference. Extra angles (¾ left / right, full body) help
-              the AI preserve your identity. Each photo is compressed and EXIF-stripped in your
-              browser before upload.
+              <Trans>
+                First photo becomes the front reference. Extra angles (¾ left / right, full body)
+                help the AI preserve your identity. Each photo is compressed and EXIF-stripped in
+                your browser before upload.
+              </Trans>
             </p>
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="name">Name</Label>
+            <Label htmlFor="name">
+              <Trans>Name</Trans>
+            </Label>
             <Input
               id="name"
               type="text"
@@ -215,7 +226,7 @@ export function AvatarUploader({ onCreated }: AvatarUploaderProps) {
               onChange={(event) => {
                 setName(event.currentTarget.value);
               }}
-              placeholder="e.g. Weekend me"
+              placeholder={t`e.g. Weekend me`}
               disabled={busy}
               required
               maxLength={40}
@@ -223,25 +234,66 @@ export function AvatarUploader({ onCreated }: AvatarUploaderProps) {
           </div>
 
           <fieldset className="flex flex-col gap-2" disabled={busy}>
-            <legend className="mb-2 text-sm font-medium">Photo type</legend>
+            <legend className="mb-2 text-sm font-medium">
+              <Trans>Photo type</Trans>
+            </legend>
             <div className="grid grid-cols-2 gap-2">
               <TypeOption value="selfie" selected={type === 'selfie'} onSelect={setType}>
-                Selfie
+                <Trans>Selfie</Trans>
               </TypeOption>
               <TypeOption value="full_body" selected={type === 'full_body'} onSelect={setType}>
-                Full body
+                <Trans>Full body</Trans>
               </TypeOption>
+            </div>
+          </fieldset>
+
+          <fieldset className="flex flex-col gap-2" disabled={busy}>
+            <legend className="mb-1 text-sm font-medium">
+              <Trans>Persona</Trans>
+            </legend>
+            <p className="text-muted-foreground -mt-1 mb-1 text-xs">
+              <Trans>
+                Tailors the studio tools — e.g. hides beard/mustache on a feminine persona.
+              </Trans>
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              <GenderOption value="female" selected={gender === 'female'} onSelect={setGender}>
+                <Trans>Feminine</Trans>
+              </GenderOption>
+              <GenderOption value="male" selected={gender === 'male'} onSelect={setGender}>
+                <Trans>Masculine</Trans>
+              </GenderOption>
+              <GenderOption
+                value="unspecified"
+                selected={gender === 'unspecified'}
+                onSelect={setGender}
+              >
+                <Trans>Show all</Trans>
+              </GenderOption>
             </div>
           </fieldset>
 
           <Button type="submit" disabled={busy || photos.length === 0}>
             {busy ? <Loader2 className="animate-spin" /> : null}
-            {statusLabel(status)}
+            <StatusLabel status={status} />
           </Button>
         </form>
       </CardContent>
     </Card>
   );
+}
+
+function StatusLabel({ status }: { status: Status }) {
+  switch (status) {
+    case 'compressing':
+      return <Trans>Compressing…</Trans>;
+    case 'uploading':
+      return <Trans>Uploading…</Trans>;
+    case 'saving':
+      return <Trans>Saving avatar…</Trans>;
+    case 'idle':
+      return <Trans>Create avatar</Trans>;
+  }
 }
 
 interface PhotoTileProps {
@@ -252,25 +304,27 @@ interface PhotoTileProps {
 }
 
 function PhotoTile({ previewUrl, index, disabled, onRemove }: PhotoTileProps) {
+  const { t } = useLingui();
+  const position = (index + 1).toString();
   return (
     <div className="relative aspect-[4/5] overflow-hidden rounded-md">
       <img
         src={previewUrl}
-        alt={`Selected photo ${(index + 1).toString()}`}
+        alt={t`Selected photo ${position}`}
         className="size-full object-cover"
       />
       <button
         type="button"
         onClick={onRemove}
         disabled={disabled}
-        aria-label={`Remove photo ${(index + 1).toString()}`}
+        aria-label={t`Remove photo ${position}`}
         className="bg-background/80 absolute top-1 right-1 rounded-full p-1 shadow disabled:opacity-50"
       >
         <X className="size-3" />
       </button>
       {index === 0 && (
         <span className="bg-foreground/80 text-background absolute bottom-1 left-1 rounded px-1.5 py-0.5 text-[10px] font-medium">
-          Front
+          <Trans>Front</Trans>
         </span>
       )}
     </div>
@@ -304,15 +358,29 @@ function TypeOption({ value, selected, onSelect, children }: TypeOptionProps) {
   );
 }
 
-function statusLabel(status: Status): string {
-  switch (status) {
-    case 'compressing':
-      return 'Compressing…';
-    case 'uploading':
-      return 'Uploading…';
-    case 'saving':
-      return 'Saving avatar…';
-    case 'idle':
-      return 'Create avatar';
-  }
+interface GenderOptionProps {
+  value: AvatarGender;
+  selected: boolean;
+  onSelect: (value: AvatarGender) => void;
+  children: ReactNode;
+}
+
+function GenderOption({ value, selected, onSelect, children }: GenderOptionProps) {
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        onSelect(value);
+      }}
+      aria-pressed={selected}
+      className={cn(
+        'rounded-md border px-3 py-2 text-sm transition',
+        selected
+          ? 'border-foreground bg-foreground text-background'
+          : 'border-input hover:bg-accent',
+      )}
+    >
+      {children}
+    </button>
+  );
 }

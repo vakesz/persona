@@ -1,6 +1,7 @@
 import { getAuthUserId } from '@convex-dev/auth/server';
 
 import { mutation } from './_generated/server';
+import { errors } from './lib/errors';
 
 /**
  * Issues a short-lived signed URL the browser POSTs the (already compressed
@@ -12,7 +13,7 @@ export const generateUploadUrl = mutation({
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
     if (userId === null) {
-      throw new Error('Not authenticated.');
+      throw errors.notAuthenticated();
     }
     return await ctx.storage.generateUploadUrl();
   },

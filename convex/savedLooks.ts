@@ -2,6 +2,7 @@ import { getAuthUserId } from '@convex-dev/auth/server';
 import { v } from 'convex/values';
 
 import { mutation, query } from './_generated/server';
+import { errors } from './lib/errors';
 
 export const listSavedLooks = query({
   args: { avatarId: v.optional(v.id('avatars')) },
@@ -40,17 +41,17 @@ export const saveLookFromJob = mutation({
   handler: async (ctx, { jobId }) => {
     const userId = await getAuthUserId(ctx);
     if (userId === null) {
-      throw new Error('Not authenticated.');
+      throw errors.notAuthenticated();
     }
     const job = await ctx.db.get(jobId);
     if (job === null) {
-      throw new Error('Render not found.');
+      throw errors.renderNotFound();
     }
     if (job.userId !== userId) {
-      throw new Error('Render not found.');
+      throw errors.renderNotFound();
     }
     if (job.status !== 'done' || job.resultStorageId === undefined) {
-      throw new Error('Render is not finished.');
+      throw errors.renderNotFinished();
     }
     return await ctx.db.insert('savedLooks', {
       userId,
@@ -66,7 +67,7 @@ export const deleteSavedLook = mutation({
   handler: async (ctx, { id }) => {
     const userId = await getAuthUserId(ctx);
     if (userId === null) {
-      throw new Error('Not authenticated.');
+      throw errors.notAuthenticated();
     }
     const look = await ctx.db.get(id);
     if (look === null) return;

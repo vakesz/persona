@@ -4,6 +4,7 @@ import { v } from 'convex/values';
 import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { action, internalAction } from './_generated/server';
+import { errors, serializeError } from './lib/errors';
 
 // @types/node v25 no longer exposes `process` on globalThis; Convex actions run
 // in a V8 isolate that provides `process.env`, so a minimal local shim is the
@@ -74,19 +75,19 @@ function isStylistStyleType(value: unknown): value is StylistStyleType {
 
 function parseStylistRecommendation(item: unknown): StylistRecommendation {
   if (typeof item !== 'object' || item === null) {
-    throw new Error('Stylist returned a malformed recommendation.');
+    throw errors.stylistMalformedRecommendation();
   }
   if (!('title' in item) || typeof item.title !== 'string' || item.title.length === 0) {
-    throw new Error('Stylist returned a recommendation without a title.');
+    throw errors.stylistRecommendationMissingField('title');
   }
   if (!('description' in item) || typeof item.description !== 'string') {
-    throw new Error('Stylist returned a recommendation without a description.');
+    throw errors.stylistRecommendationMissingField('description');
   }
   if (!('renderPrompt' in item) || typeof item.renderPrompt !== 'string') {
-    throw new Error('Stylist returned a recommendation without a render prompt.');
+    throw errors.stylistRecommendationMissingField('renderPrompt');
   }
   if (!('styleType' in item) || !isStylistStyleType(item.styleType)) {
-    throw new Error('Stylist returned a recommendation with an unknown style type.');
+    throw errors.stylistRecommendationUnknownStyle();
   }
   return {
     title: item.title,
@@ -111,13 +112,13 @@ export const analyzeStyleWithGemini = action({
   handler: async (ctx, { avatarId, question }) => {
     const apiKey = process.env['GEMINI_API_KEY'];
     if (apiKey === undefined || apiKey === '') {
-      throw new Error('GEMINI_API_KEY is not configured on the Convex deployment.');
+      throw errors.geminiKeyMissing();
     }
     const model = process.env['CONVEX_GEMINI_MODEL'] ?? DEFAULT_GEMINI_MODEL;
 
     const userId = await getAuthUserId(ctx);
     if (userId === null) {
-      throw new Error('Not authenticated.');
+      throw errors.notAuthenticated();
     }
 
     const avatar = await ctx.runQuery(internal.avatars.getAvatarStorageForUser, {
@@ -125,12 +126,12 @@ export const analyzeStyleWithGemini = action({
       userId,
     });
     if (avatar === null) {
-      throw new Error('Avatar not found.');
+      throw errors.avatarNotFound();
     }
 
     const blob = await ctx.storage.get(avatar.baseImageStorageId);
     if (blob === null) {
-      throw new Error('Avatar image is missing from storage.');
+      throw errors.avatarImageMissing();
     }
     const mimeType = blob.type === '' ? 'image/jpeg' : blob.type;
     const imageBytes = new Uint8Array(await blob.arrayBuffer());
@@ -167,20 +168,20 @@ export const analyzeStyleWithGemini = action({
     );
 
     if (!response.ok) {
-      throw new Error(await geminiErrorMessage('Stylist call', response));
+      throw await geminiError('stylist', response);
     }
 
     const data = (await response.json()) as GeminiResponse;
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
     if (typeof text !== 'string' || text === '') {
-      throw new Error('Stylist returned an empty response.');
+      throw errors.stylistEmptyResponse();
     }
 
     let parsed: unknown;
     try {
       parsed = JSON.parse(text);
     } catch {
-      throw new Error('Stylist returned malformed JSON.');
+      throw errors.stylistMalformedJson();
     }
 
     if (
@@ -189,7 +190,7 @@ export const analyzeStyleWithGemini = action({
       !('recommendations' in parsed) ||
       !Array.isArray(parsed.recommendations)
     ) {
-      throw new Error('Stylist response is missing recommendations.');
+      throw errors.stylistMissingRecommendations();
     }
 
     // Prompt asks for exactly 3. Trim defensively in case Gemini returns more.
@@ -200,20 +201,22 @@ export const analyzeStyleWithGemini = action({
 });
 
 /**
- * Maps a non-OK Gemini response to a user-readable message. The free tier
- * for the image model is small enough that 429 is the dominant failure mode,
- * so we surface it explicitly instead of dumping the JSON.
+ * Maps a non-OK Gemini response to a structured `ConvexError` the client can
+ * translate. The free tier is small enough that 429 is the dominant failure
+ * mode, so we surface it as its own code instead of dumping the JSON.
  */
-async function geminiErrorMessage(operation: string, response: Response): Promise<string> {
+async function geminiError(
+  operation: 'stylist' | 'baseline' | 'render',
+  response: Response,
+): Promise<ReturnType<typeof errors.geminiQuota | typeof errors.geminiAuth>> {
   if (response.status === 429) {
-    return `${operation} hit the Gemini free-tier quota. Try again later, or upgrade billing at https://aistudio.google.com.`;
+    return errors.geminiQuota(operation);
   }
   if (response.status === 401 || response.status === 403) {
-    return `${operation} was rejected by Gemini (HTTP ${response.status.toString()}). Check that GEMINI_API_KEY is valid and has access to this model.`;
+    return errors.geminiAuth(operation, response.status);
   }
   const errorText = await response.text().catch(() => '');
-  const trimmed = errorText.slice(0, 200);
-  return `${operation} failed (HTTP ${response.status.toString()})${trimmed === '' ? '.' : `: ${trimmed}`}`;
+  return errors.geminiFailed(operation, response.status, errorText.slice(0, 200));
 }
 
 function bytesToBase64(bytes: Uint8Array): string {
@@ -268,7 +271,7 @@ export const generateAvatarBaseline = internalAction({
     if (apiKey === undefined || apiKey === '') {
       await ctx.runMutation(internal.avatars.markBaselineFailed, {
         id: avatarId,
-        errorMessage: 'GEMINI_API_KEY is not configured.',
+        errorMessage: serializeError(errors.geminiKeyMissing()),
       });
       return null;
     }
@@ -289,7 +292,7 @@ export const generateAvatarBaseline = internalAction({
       for (const storageId of avatar.sourcePhotoStorageIds) {
         const blob = await ctx.storage.get(storageId);
         if (blob === null) {
-          throw new Error('A source photo is missing from storage.');
+          throw errors.baselineSourceMissing();
         }
         const mime = blob.type === '' ? 'image/jpeg' : blob.type;
         const base64 = bytesToBase64(new Uint8Array(await blob.arrayBuffer()));
@@ -313,13 +316,13 @@ export const generateAvatarBaseline = internalAction({
       );
 
       if (!response.ok) {
-        throw new Error(await geminiErrorMessage('Baseline generation', response));
+        throw await geminiError('baseline', response);
       }
 
       const data = (await response.json()) as GeminiImageResponse;
       const blockReason = data.promptFeedback?.blockReason;
       if (blockReason !== undefined) {
-        throw new Error(`Baseline generation was blocked: ${blockReason}`);
+        throw errors.baselineBlocked(blockReason);
       }
 
       const imagePart = data.candidates?.[0]?.content?.parts?.find(
@@ -327,7 +330,7 @@ export const generateAvatarBaseline = internalAction({
       );
       const inlineData = imagePart?.inlineData;
       if (inlineData?.data === undefined) {
-        throw new Error('Baseline generation returned no image.');
+        throw errors.baselineNoImage();
       }
 
       const outputMime = inlineData.mimeType ?? 'image/png';
@@ -343,7 +346,7 @@ export const generateAvatarBaseline = internalAction({
       console.error('Baseline generation failed:', error);
       await ctx.runMutation(internal.avatars.markBaselineFailed, {
         id: avatarId,
-        errorMessage: error instanceof Error ? error.message : 'Baseline generation failed.',
+        errorMessage: serializeError(error),
       });
     }
 
@@ -372,7 +375,7 @@ export const renderLookWithGemini = internalAction({
     if (apiKey === undefined || apiKey === '') {
       await ctx.runMutation(internal.renderJobs.markRenderJobFailed, {
         id: jobId,
-        errorMessage: 'GEMINI_API_KEY is not configured.',
+        errorMessage: serializeError(errors.geminiKeyMissing()),
       });
       return null;
     }
@@ -399,11 +402,11 @@ export const renderLookWithGemini = internalAction({
           userId: job.userId,
         });
         if (avatar === null) {
-          throw new Error('Avatar not found.');
+          throw errors.avatarNotFound();
         }
         inputBlob = await ctx.storage.get(avatar.baseImageStorageId);
         if (inputBlob === null) {
-          throw new Error('Avatar image is missing from storage.');
+          throw errors.avatarImageMissing();
         }
       }
       const inputMime = inputBlob.type === '' ? 'image/jpeg' : inputBlob.type;
@@ -416,11 +419,11 @@ export const renderLookWithGemini = internalAction({
           { id: input.referenceUploadedItemId as Id<'uploadedItems'>, userId: job.userId },
         );
         if (referenceItem === null) {
-          throw new Error('Reference item not found.');
+          throw errors.referenceItemNotFound();
         }
         const refBlob = await ctx.storage.get(referenceItem.imageStorageId);
         if (refBlob === null) {
-          throw new Error('Reference item bytes are missing from storage.');
+          throw errors.referenceItemBytesMissing();
         }
         const refMime = refBlob.type === '' ? 'image/jpeg' : refBlob.type;
         const refBase64 = bytesToBase64(new Uint8Array(await refBlob.arrayBuffer()));
@@ -450,13 +453,13 @@ export const renderLookWithGemini = internalAction({
       );
 
       if (!response.ok) {
-        throw new Error(await geminiErrorMessage('Render', response));
+        throw await geminiError('render', response);
       }
 
       const data = (await response.json()) as GeminiImageResponse;
       const blockReason = data.promptFeedback?.blockReason;
       if (blockReason !== undefined) {
-        throw new Error(`Render was blocked: ${blockReason}`);
+        throw errors.renderBlocked(blockReason);
       }
 
       const imagePart = data.candidates?.[0]?.content?.parts?.find(
@@ -464,10 +467,10 @@ export const renderLookWithGemini = internalAction({
       );
       const inlineData = imagePart?.inlineData;
       if (inlineData === undefined) {
-        throw new Error('Render returned no image.');
+        throw errors.renderNoImage();
       }
       if (inlineData.data === undefined) {
-        throw new Error('Render returned no image.');
+        throw errors.renderNoImage();
       }
 
       const outputMime = inlineData.mimeType ?? 'image/png';
@@ -483,7 +486,7 @@ export const renderLookWithGemini = internalAction({
       console.error('Render job failed:', error);
       await ctx.runMutation(internal.renderJobs.markRenderJobFailed, {
         id: jobId,
-        errorMessage: error instanceof Error ? error.message : 'Render failed.',
+        errorMessage: serializeError(error),
       });
     } finally {
       // Single-use studio canvas snapshot — free the storage blob whichever

@@ -2,6 +2,7 @@ import { getAuthUserId } from '@convex-dev/auth/server';
 
 import { cascadeDeleteAvatar } from './avatars';
 import { mutation, query } from './_generated/server';
+import { errors } from './lib/errors';
 
 /**
  * Returns the currently authenticated user, or `null` when signed out.
@@ -34,7 +35,15 @@ export const deleteAccount = mutation({
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
     if (userId === null) {
-      throw new Error('Not authenticated.');
+      throw errors.notAuthenticated();
+    }
+
+    const prefs = await ctx.db
+      .query('userPreferences')
+      .withIndex('by_user', (q) => q.eq('userId', userId))
+      .collect();
+    for (const pref of prefs) {
+      await ctx.db.delete(pref._id);
     }
 
     const avatars = await ctx.db

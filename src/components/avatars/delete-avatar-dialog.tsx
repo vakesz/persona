@@ -1,8 +1,10 @@
+import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation } from 'convex/react';
 import { Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
+import { translateServerError } from '@/i18n/server-errors';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -24,18 +26,19 @@ export interface DeleteAvatarDialogProps {
 export function DeleteAvatarDialog({ avatarId, avatarName, onClose }: DeleteAvatarDialogProps) {
   const deleteAvatar = useMutation(api.avatars.deleteAvatar);
   const [submitting, setSubmitting] = useState(false);
+  const { t } = useLingui();
 
   const handleConfirm = () => {
     if (avatarId === null) return;
     setSubmitting(true);
     deleteAvatar({ id: avatarId })
       .then(() => {
-        toast.success('Avatar deleted.');
+        toast.success(t`Avatar deleted.`);
         onClose();
       })
       .catch((error: unknown) => {
         console.error(error);
-        toast.error(error instanceof Error ? error.message : 'Could not delete.');
+        toast.error(translateServerError(error));
       })
       .finally(() => {
         setSubmitting(false);
@@ -48,27 +51,33 @@ export function DeleteAvatarDialog({ avatarId, avatarName, onClose }: DeleteAvat
       onOpenChange={(open) => {
         if (!open) onClose();
       }}
-      ariaLabel="Delete avatar"
+      ariaLabel={t`Delete avatar`}
     >
       <DialogHeader>
-        <DialogTitle>Delete {avatarName}?</DialogTitle>
+        <DialogTitle>
+          <Trans>Delete {avatarName}?</Trans>
+        </DialogTitle>
         <DialogDescription>
-          This removes the avatar and every saved look, render, and try-on tied to it. The original
-          photos and renders are deleted from storage too. This can&apos;t be undone.
+          <Trans>
+            This removes the avatar and every saved look, render, and try-on tied to it. The
+            original photos and renders are deleted from storage too. This can&apos;t be undone.
+          </Trans>
         </DialogDescription>
       </DialogHeader>
       <DialogBody>
         <p className="text-muted-foreground text-sm">
-          Uploaded clothing items aren&apos;t tied to a specific avatar, so those stay.
+          <Trans>
+            Uploaded clothing items aren&apos;t tied to a specific avatar, so those stay.
+          </Trans>
         </p>
       </DialogBody>
       <DialogFooter>
         <Button type="button" variant="outline" onClick={onClose} disabled={submitting}>
-          Cancel
+          <Trans>Cancel</Trans>
         </Button>
         <Button type="button" variant="destructive" onClick={handleConfirm} disabled={submitting}>
           {submitting ? <Loader2 className="animate-spin" /> : null}
-          Delete avatar
+          <Trans>Delete avatar</Trans>
         </Button>
       </DialogFooter>
     </Dialog>

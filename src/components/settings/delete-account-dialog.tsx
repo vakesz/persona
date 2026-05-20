@@ -1,10 +1,12 @@
 import { useAuthActions } from '@convex-dev/auth/react';
+import { Trans, useLingui } from '@lingui/react/macro';
 import { useNavigate } from '@tanstack/react-router';
 import { useMutation } from 'convex/react';
 import { Loader2 } from 'lucide-react';
 import { type SyntheticEvent, useState } from 'react';
 import { toast } from 'sonner';
 
+import { translateServerError } from '@/i18n/server-errors';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -31,17 +33,18 @@ export function DeleteAccountDialog({ open, onOpenChange }: DeleteAccountDialogP
   const navigate = useNavigate();
   const [confirmation, setConfirmation] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const { t } = useLingui();
 
   const handleSubmit = (event: SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (confirmation.trim().toLowerCase() !== CONFIRMATION_PHRASE) {
-      toast.error(`Type "${CONFIRMATION_PHRASE}" to confirm.`);
+      toast.error(t`Type "${CONFIRMATION_PHRASE}" to confirm.`);
       return;
     }
     setSubmitting(true);
     deleteAccount({})
       .then(async () => {
-        toast.success('Account deleted.');
+        toast.success(t`Account deleted.`);
         try {
           await signOut();
         } catch (error) {
@@ -54,7 +57,7 @@ export function DeleteAccountDialog({ open, onOpenChange }: DeleteAccountDialogP
       })
       .catch((error: unknown) => {
         console.error(error);
-        toast.error(error instanceof Error ? error.message : 'Could not delete account.');
+        toast.error(translateServerError(error));
         setSubmitting(false);
       });
   };
@@ -65,19 +68,25 @@ export function DeleteAccountDialog({ open, onOpenChange }: DeleteAccountDialogP
       onOpenChange={(next) => {
         if (!submitting) onOpenChange(next);
       }}
-      ariaLabel="Delete account"
+      ariaLabel={t`Delete account`}
     >
       <form onSubmit={handleSubmit}>
         <DialogHeader>
-          <DialogTitle>Delete your account?</DialogTitle>
+          <DialogTitle>
+            <Trans>Delete your account?</Trans>
+          </DialogTitle>
           <DialogDescription>
-            This deletes every avatar, saved look, render, uploaded item, and the storage blobs
-            behind them. It also removes your user record. There&apos;s no undo.
+            <Trans>
+              This deletes every avatar, saved look, render, uploaded item, and the storage blobs
+              behind them. It also removes your user record. There&apos;s no undo.
+            </Trans>
           </DialogDescription>
         </DialogHeader>
         <DialogBody>
           <Label htmlFor="confirmation">
-            Type <span className="font-mono">{CONFIRMATION_PHRASE}</span> to confirm
+            <Trans>
+              Type <span className="font-mono">{CONFIRMATION_PHRASE}</span> to confirm
+            </Trans>
           </Label>
           <Input
             id="confirmation"
@@ -100,7 +109,7 @@ export function DeleteAccountDialog({ open, onOpenChange }: DeleteAccountDialogP
             }}
             disabled={submitting}
           >
-            Cancel
+            <Trans>Cancel</Trans>
           </Button>
           <Button
             type="submit"
@@ -108,7 +117,7 @@ export function DeleteAccountDialog({ open, onOpenChange }: DeleteAccountDialogP
             disabled={submitting || confirmation.trim().toLowerCase() !== CONFIRMATION_PHRASE}
           >
             {submitting ? <Loader2 className="animate-spin" /> : null}
-            Delete account
+            <Trans>Delete account</Trans>
           </Button>
         </DialogFooter>
       </form>

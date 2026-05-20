@@ -1,7 +1,9 @@
+import { Plural, Trans } from '@lingui/react/macro';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useQuery } from 'convex/react';
 import { useState } from 'react';
 
+import { LocaleSwitcher } from '@/components/i18n/locale-switcher';
 import { RequireAuth } from '@/components/require-auth';
 import { DeleteAccountDialog } from '@/components/settings/delete-account-dialog';
 import { Button } from '@/components/ui/button';
@@ -27,24 +29,36 @@ function SettingsContent() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">
+        <Trans>Settings</Trans>
+      </h1>
 
       <Card>
         <CardHeader>
-          <CardTitle>Account</CardTitle>
-          <CardDescription>Your private account details.</CardDescription>
+          <CardTitle>
+            <Trans>Account</Trans>
+          </CardTitle>
+          <CardDescription>
+            <Trans>Your private account details.</Trans>
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {user === undefined ? (
-            <p className="text-muted-foreground text-sm">Loading…</p>
+            <p className="text-muted-foreground text-sm">
+              <Trans>Loading…</Trans>
+            </p>
           ) : (
             <dl className="grid gap-2 text-sm">
               <div className="flex items-center justify-between gap-4">
-                <dt className="text-muted-foreground">Email</dt>
+                <dt className="text-muted-foreground">
+                  <Trans>Email</Trans>
+                </dt>
                 <dd className="font-medium">{user?.email ?? '—'}</dd>
               </div>
               <div className="flex items-center justify-between gap-4">
-                <dt className="text-muted-foreground">Name</dt>
+                <dt className="text-muted-foreground">
+                  <Trans>Name</Trans>
+                </dt>
                 <dd className="font-medium">{user?.name ?? '—'}</dd>
               </div>
             </dl>
@@ -54,26 +68,52 @@ function SettingsContent() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Avatars</CardTitle>
-          <CardDescription>Rename or delete from the avatars page.</CardDescription>
+          <CardTitle>
+            <Trans>Language</Trans>
+          </CardTitle>
+          <CardDescription>
+            <Trans>Pick the language used across the app.</Trans>
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <LocaleSwitcher />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            <Trans>Avatars</Trans>
+          </CardTitle>
+          <CardDescription>
+            <Trans>Rename or delete from the avatars page.</Trans>
+          </CardDescription>
         </CardHeader>
         <CardContent className="flex items-center justify-between gap-4">
           <p className="text-muted-foreground text-sm">
-            {avatars === undefined
-              ? 'Loading…'
-              : `${avatars.length} avatar${avatars.length === 1 ? '' : 's'}.`}
+            {avatars === undefined ? (
+              <Trans>Loading…</Trans>
+            ) : (
+              <Plural value={avatars.length} one="# avatar." other="# avatars." />
+            )}
           </p>
           <Button asChild variant="outline" size="sm">
-            <Link to="/avatars">Manage avatars</Link>
+            <Link to="/avatars">
+              <Trans>Manage avatars</Trans>
+            </Link>
           </Button>
         </CardContent>
       </Card>
 
       <Card className="border-destructive/40">
         <CardHeader>
-          <CardTitle className="text-destructive">Danger zone</CardTitle>
+          <CardTitle className="text-destructive">
+            <Trans>Danger zone</Trans>
+          </CardTitle>
           <CardDescription>
-            Deleting your account removes every avatar, saved look, render, and uploaded item.
+            <Trans>
+              Deleting your account removes every avatar, saved look, render, and uploaded item.
+            </Trans>
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -84,7 +124,7 @@ function SettingsContent() {
               setDeleteOpen(true);
             }}
           >
-            Delete account
+            <Trans>Delete account</Trans>
           </Button>
         </CardContent>
       </Card>

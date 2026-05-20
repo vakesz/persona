@@ -1,16 +1,20 @@
+import { Trans, useLingui } from '@lingui/react/macro';
 import { Link } from '@tanstack/react-router';
 import { AlertCircle, Loader2, Pencil, RefreshCcw, Trash2, User, UserSquare2 } from 'lucide-react';
 
+import { translateStoredErrorMessage } from '@/i18n/server-errors';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import type { Id } from '@convex/_generated/dataModel';
 
 type AvatarBaselineStatus = 'queued' | 'processing' | 'done' | 'failed';
+type AvatarGender = 'male' | 'female' | 'unspecified';
 
 export interface AvatarCardProps {
   id: Id<'avatars'>;
   name: string;
   type: 'selfie' | 'full_body';
+  gender: AvatarGender;
   thumbnailUrl: string | null;
   baselineStatus: AvatarBaselineStatus;
   baselineErrorMessage: string | undefined;
@@ -24,6 +28,7 @@ export function AvatarCard({
   id,
   name,
   type,
+  gender,
   thumbnailUrl,
   baselineStatus,
   baselineErrorMessage,
@@ -34,6 +39,7 @@ export function AvatarCard({
 }: AvatarCardProps) {
   const ready = baselineStatus === 'done';
   const failed = baselineStatus === 'failed';
+  const { t } = useLingui();
   return (
     <Card className="group-hover:border-foreground/30 overflow-hidden p-0 transition">
       <ConditionalLink ready={ready} avatarId={id}>
@@ -71,7 +77,7 @@ export function AvatarCard({
         <div className="flex min-w-0 flex-col">
           <span className="truncate text-sm font-medium">{name}</span>
           <span className="text-muted-foreground text-xs">
-            {failed ? 'Portrait failed' : type === 'selfie' ? 'Selfie' : 'Full body'}
+            {failed ? <Trans>Portrait failed</Trans> : <AvatarMeta type={type} gender={gender} />}
           </span>
         </div>
         <div className="flex items-center gap-1">
@@ -79,7 +85,7 @@ export function AvatarCard({
             type="button"
             variant="ghost"
             size="icon"
-            aria-label={`Rename ${name}`}
+            aria-label={t`Rename ${name}`}
             onClick={() => {
               onRename(id, name);
             }}
@@ -90,7 +96,7 @@ export function AvatarCard({
             type="button"
             variant="ghost"
             size="icon"
-            aria-label={`Delete ${name}`}
+            aria-label={t`Delete ${name}`}
             onClick={() => {
               onDelete(id, name);
             }}
@@ -101,6 +107,13 @@ export function AvatarCard({
       </div>
     </Card>
   );
+}
+
+function AvatarMeta({ type, gender }: { type: 'selfie' | 'full_body'; gender: AvatarGender }) {
+  const { t } = useLingui();
+  const typeLabel = type === 'selfie' ? t`Selfie` : t`Full body`;
+  const genderLabel = gender === 'male' ? t`Masculine` : gender === 'female' ? t`Feminine` : null;
+  return <>{genderLabel === null ? typeLabel : `${typeLabel} · ${genderLabel}`}</>;
 }
 
 interface ConditionalLinkProps {
@@ -136,11 +149,15 @@ function BaselineBadge({ status, message, retrying, onRetry }: BaselineBadgeProp
     return (
       <div className="bg-background/80 absolute inset-0 flex flex-col items-center justify-center gap-2 p-4 text-center backdrop-blur-sm">
         <AlertCircle className="text-destructive size-6" />
-        <p className="text-sm font-medium">Portrait generation failed</p>
-        {message !== undefined && <p className="text-muted-foreground text-xs">{message}</p>}
+        <p className="text-sm font-medium">
+          <Trans>Portrait generation failed</Trans>
+        </p>
+        {message !== undefined && (
+          <p className="text-muted-foreground text-xs">{translateStoredErrorMessage(message)}</p>
+        )}
         <Button type="button" size="sm" variant="outline" onClick={onRetry} disabled={retrying}>
           {retrying ? <Loader2 className="animate-spin" /> : <RefreshCcw />}
-          {retrying ? 'Retrying…' : 'Retry'}
+          {retrying ? <Trans>Retrying…</Trans> : <Trans>Retry</Trans>}
         </Button>
       </div>
     );
@@ -148,7 +165,9 @@ function BaselineBadge({ status, message, retrying, onRetry }: BaselineBadgeProp
   return (
     <div className="bg-background/80 absolute inset-0 flex flex-col items-center justify-center gap-2 backdrop-blur-sm">
       <Loader2 className="text-muted-foreground size-6 animate-spin" />
-      <p className="text-muted-foreground text-xs">Preparing your portrait…</p>
+      <p className="text-muted-foreground text-xs">
+        <Trans>Preparing your portrait…</Trans>
+      </p>
     </div>
   );
 }

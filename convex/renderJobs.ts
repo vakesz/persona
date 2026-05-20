@@ -3,6 +3,7 @@ import { v } from 'convex/values';
 
 import { internal } from './_generated/api';
 import { internalMutation, internalQuery, mutation, query } from './_generated/server';
+import { errors } from './lib/errors';
 
 export const createRenderJob = mutation({
   args: {
@@ -22,27 +23,27 @@ export const createRenderJob = mutation({
   handler: async (ctx, { avatarId, prompt, title, referenceUploadedItemId, inputStorageId }) => {
     const userId = await getAuthUserId(ctx);
     if (userId === null) {
-      throw new Error('Not authenticated.');
+      throw errors.notAuthenticated();
     }
     const avatar = await ctx.db.get(avatarId);
     if (avatar === null) {
-      throw new Error('Avatar not found.');
+      throw errors.avatarNotFound();
     }
     if (avatar.userId !== userId) {
-      throw new Error('Avatar not found.');
+      throw errors.avatarNotFound();
     }
     const trimmedPrompt = prompt.trim();
     if (trimmedPrompt.length === 0) {
-      throw new Error('Prompt is required.');
+      throw errors.promptRequired();
     }
 
     if (referenceUploadedItemId !== undefined) {
       const item = await ctx.db.get(referenceUploadedItemId);
       if (item === null) {
-        throw new Error('Reference item not found.');
+        throw errors.referenceItemNotFound();
       }
       if (item.userId !== userId) {
-        throw new Error('Reference item not found.');
+        throw errors.referenceItemNotFound();
       }
     }
 

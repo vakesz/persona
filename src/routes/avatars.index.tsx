@@ -1,3 +1,4 @@
+import { Trans } from '@lingui/react/macro';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useMutation, useQuery } from 'convex/react';
 import { Loader2 } from 'lucide-react';
@@ -8,6 +9,7 @@ import { AvatarCard } from '@/components/avatars/avatar-card';
 import { DeleteAvatarDialog } from '@/components/avatars/delete-avatar-dialog';
 import { RenameAvatarDialog } from '@/components/avatars/rename-avatar-dialog';
 import { RequireAuth } from '@/components/require-auth';
+import { translateServerError } from '@/i18n/server-errors';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { api } from '@convex/_generated/api';
@@ -44,7 +46,7 @@ function AvatarsList() {
     retryBaseline({ id })
       .catch((error: unknown) => {
         console.error(error);
-        toast.error(error instanceof Error ? error.message : 'Could not retry.');
+        toast.error(translateServerError(error));
       })
       .finally(() => {
         setRetryingId(null);
@@ -65,30 +67,46 @@ function AvatarsList() {
     <div className="flex flex-col gap-6">
       <header className="flex items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Your avatars</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            <Trans>Your avatars</Trans>
+          </h1>
           <p className="text-muted-foreground text-sm">
-            {atLimit
-              ? `You've reached the ${MAX_AVATARS}-avatar limit. Delete one to add another.`
-              : `Create up to ${MAX_AVATARS} private avatars (${avatars.length} so far).`}
+            {atLimit ? (
+              <Trans>
+                You&apos;ve reached the {MAX_AVATARS}-avatar limit. Delete one to add another.
+              </Trans>
+            ) : (
+              <Trans>
+                Create up to {MAX_AVATARS} private avatars ({avatars.length} so far).
+              </Trans>
+            )}
           </p>
         </div>
         {atLimit ? (
-          <Button disabled>New avatar</Button>
+          <Button disabled>
+            <Trans>New avatar</Trans>
+          </Button>
         ) : (
           <Button asChild>
-            <Link to="/avatars/new">New avatar</Link>
+            <Link to="/avatars/new">
+              <Trans>New avatar</Trans>
+            </Link>
           </Button>
         )}
       </header>
 
       {avatars.length === 0 ? (
         <Card className="border-dashed p-10 text-center">
-          <h2 className="text-lg font-medium">No avatars yet</h2>
+          <h2 className="text-lg font-medium">
+            <Trans>No avatars yet</Trans>
+          </h2>
           <p className="text-muted-foreground mt-1 text-sm">
-            Upload a photo to create your first private avatar.
+            <Trans>Upload a photo to create your first private avatar.</Trans>
           </p>
           <Button asChild className="mt-4">
-            <Link to="/avatars/new">Get started</Link>
+            <Link to="/avatars/new">
+              <Trans>Get started</Trans>
+            </Link>
           </Button>
         </Card>
       ) : (
@@ -99,6 +117,7 @@ function AvatarsList() {
               id={avatar._id}
               name={avatar.name}
               type={avatar.type}
+              gender={avatar.gender}
               thumbnailUrl={avatar.thumbnailUrl}
               baselineStatus={avatar.baselineStatus}
               baselineErrorMessage={avatar.baselineErrorMessage}

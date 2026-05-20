@@ -1,8 +1,10 @@
+import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation } from 'convex/react';
 import { Loader2, Plus } from 'lucide-react';
 import { type ChangeEvent, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
+import { translateServerError } from '@/i18n/server-errors';
 import { processAvatarImage } from '@/lib/image-compression';
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
@@ -21,6 +23,7 @@ export function UploadedItemUploader({ onUploaded }: UploadedItemUploaderProps) 
   const createUploadedItem = useMutation(api.uploadedItems.createUploadedItem);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
+  const { t } = useLingui();
 
   const handleClick = () => {
     fileInputRef.current?.click();
@@ -44,7 +47,7 @@ export function UploadedItemUploader({ onUploaded }: UploadedItemUploaderProps) 
         body: base,
       });
       if (!response.ok) {
-        throw new Error('Upload failed.');
+        throw new Error(t`Upload failed.`);
       }
       const json = (await response.json()) as { storageId: Id<'_storage'> };
       const id = await createUploadedItem({
@@ -52,11 +55,11 @@ export function UploadedItemUploader({ onUploaded }: UploadedItemUploaderProps) 
         imageStorageId: json.storageId,
         label: stripExt(picked.name),
       });
-      toast.success('Upload added.');
+      toast.success(t`Upload added.`);
       onUploaded(id);
     } catch (error) {
       console.error(error);
-      toast.error(error instanceof Error ? error.message : 'Could not upload.');
+      toast.error(translateServerError(error));
     } finally {
       setBusy(false);
     }
@@ -80,7 +83,9 @@ export function UploadedItemUploader({ onUploaded }: UploadedItemUploaderProps) 
         <div className="bg-muted text-muted-foreground flex h-12 w-full items-center justify-center rounded">
           {busy ? <Loader2 className="size-5 animate-spin" /> : <Plus className="size-5" />}
         </div>
-        <span className="text-xs leading-tight">Upload</span>
+        <span className="text-xs leading-tight">
+          <Trans>Upload</Trans>
+        </span>
       </button>
     </>
   );

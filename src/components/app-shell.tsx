@@ -1,16 +1,12 @@
 import { useAuthActions } from '@convex-dev/auth/react';
+import { Trans } from '@lingui/react/macro';
 import { Link } from '@tanstack/react-router';
 import { Authenticated, Unauthenticated } from 'convex/react';
 import { Sparkles } from 'lucide-react';
 import type { ReactNode } from 'react';
 
+import { LocaleSwitcher } from '@/components/i18n/locale-switcher';
 import { Button } from '@/components/ui/button';
-
-const NAV_LINKS = [
-  { to: '/avatars', label: 'Avatars' },
-  { to: '/saved', label: 'Saved' },
-  { to: '/settings', label: 'Settings' },
-] as const;
 
 export interface AppShellProps {
   children: ReactNode;
@@ -28,21 +24,32 @@ export function AppShell({ children }: AppShellProps) {
           </Link>
           <nav className="flex items-center gap-1">
             <Authenticated>
-              {NAV_LINKS.map((link) => (
-                <Button key={link.to} asChild variant="ghost" size="sm">
-                  <Link
-                    to={link.to}
-                    activeProps={{ className: 'bg-accent text-accent-foreground' }}
-                  >
-                    {link.label}
-                  </Link>
-                </Button>
-              ))}
+              <Button asChild variant="ghost" size="sm">
+                <Link to="/avatars" activeProps={{ className: 'bg-accent text-accent-foreground' }}>
+                  <Trans>Avatars</Trans>
+                </Link>
+              </Button>
+              <Button asChild variant="ghost" size="sm">
+                <Link to="/saved" activeProps={{ className: 'bg-accent text-accent-foreground' }}>
+                  <Trans>Saved</Trans>
+                </Link>
+              </Button>
+              <Button asChild variant="ghost" size="sm">
+                <Link
+                  to="/settings"
+                  activeProps={{ className: 'bg-accent text-accent-foreground' }}
+                >
+                  <Trans>Settings</Trans>
+                </Link>
+              </Button>
               <SignOutButton />
             </Authenticated>
             <Unauthenticated>
+              <LocaleSwitcher variant="minimal" className="mr-2" />
               <Button asChild size="sm">
-                <Link to="/auth">Sign in</Link>
+                <Link to="/auth">
+                  <Trans>Sign in</Trans>
+                </Link>
               </Button>
             </Unauthenticated>
           </nav>
@@ -63,7 +70,7 @@ function SignOutButton() {
         void signOut();
       }}
     >
-      Sign out
+      <Trans>Sign out</Trans>
     </Button>
   );
 }

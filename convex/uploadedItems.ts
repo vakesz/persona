@@ -2,6 +2,7 @@ import { getAuthUserId } from '@convex-dev/auth/server';
 import { v } from 'convex/values';
 
 import { internalQuery, mutation, query } from './_generated/server';
+import { errors } from './lib/errors';
 
 const uploadedItemType = v.union(
   v.literal('dress'),
@@ -42,7 +43,7 @@ export const createUploadedItem = mutation({
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (userId === null) {
-      throw new Error('Not authenticated.');
+      throw errors.notAuthenticated();
     }
     return await ctx.db.insert('uploadedItems', {
       userId,
@@ -58,7 +59,7 @@ export const deleteUploadedItem = mutation({
   handler: async (ctx, { id }) => {
     const userId = await getAuthUserId(ctx);
     if (userId === null) {
-      throw new Error('Not authenticated.');
+      throw errors.notAuthenticated();
     }
     const item = await ctx.db.get(id);
     if (item === null) return;

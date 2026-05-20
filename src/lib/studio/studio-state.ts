@@ -26,24 +26,36 @@ export interface GeometryPlan {
 
 export interface StudioState {
   lip: LipTint;
+  lipShape: GeometryPlan;
   eyeshadow: ColorTint;
   blush: ColorTint;
   browTint: ColorTint;
+  browShape: GeometryPlan;
   beard: GeometryPlan;
   mustache: GeometryPlan;
   hairstyle: GeometryPlan;
+  eyewear: GeometryPlan;
+  headwear: GeometryPlan;
+  jewelry: GeometryPlan;
+  vibe: GeometryPlan;
   /** When set, the AI render uses Phase 7's two-image try-on path. */
   selectedUploadId: Id<'uploadedItems'> | null;
 }
 
 export const DEFAULT_STUDIO_STATE: StudioState = {
   lip: { enabled: false, color: '#c41e3a', intensity: 0.55, finish: 'satin' },
+  lipShape: { preset: null, custom: '' },
   eyeshadow: { enabled: false, color: '#7a5230', intensity: 0.45 },
   blush: { enabled: false, color: '#ff8db5', intensity: 0.35 },
   browTint: { enabled: false, color: '#3a2a1a', intensity: 0.6 },
+  browShape: { preset: null, custom: '' },
   beard: { preset: null, custom: '' },
   mustache: { preset: null, custom: '' },
   hairstyle: { preset: null, custom: '' },
+  eyewear: { preset: null, custom: '' },
+  headwear: { preset: null, custom: '' },
+  jewelry: { preset: null, custom: '' },
+  vibe: { preset: null, custom: '' },
   selectedUploadId: null,
 };
 
@@ -55,7 +67,15 @@ export function hasAnyTint(state: StudioState): boolean {
 
 function hasAnyGeometry(state: StudioState): boolean {
   return (
-    state.beard.preset !== null || state.mustache.preset !== null || state.hairstyle.preset !== null
+    state.lipShape.preset !== null ||
+    state.browShape.preset !== null ||
+    state.beard.preset !== null ||
+    state.mustache.preset !== null ||
+    state.hairstyle.preset !== null ||
+    state.eyewear.preset !== null ||
+    state.headwear.preset !== null ||
+    state.jewelry.preset !== null ||
+    state.vibe.preset !== null
   );
 }
 
@@ -67,7 +87,7 @@ export function hasAnyChange(state: StudioState): boolean {
  * Builds the natural-language prompt for the AI render. The flattened canvas
  * we send already shows the makeup tints, so the prompt only needs to:
  *  - tell Gemini to preserve the look (so it doesn't "clean" the makeup);
- *  - describe the geometry-changing additions (beard, mustache, hairstyle);
+ *  - describe the geometry-changing additions (shape, beard, hair, accessories);
  *  - mention the try-on item if one is queued.
  *
  * The flattening guarantee is enforced by `composeRenderInputs` in the studio
@@ -98,6 +118,12 @@ export function composeRenderPrompt(state: StudioState): string {
     parts.push('Preserve the existing look exactly.');
   }
 
+  if (state.lipShape.preset !== null) {
+    parts.push(`Reshape the lips to ${describePlan(state.lipShape)}.`);
+  }
+  if (state.browShape.preset !== null) {
+    parts.push(`Reshape the eyebrows to ${describePlan(state.browShape)}.`);
+  }
   if (state.beard.preset !== null) {
     parts.push(`Add a ${describePlan(state.beard)}.`);
   }
@@ -106,6 +132,18 @@ export function composeRenderPrompt(state: StudioState): string {
   }
   if (state.hairstyle.preset !== null) {
     parts.push(`Change the hairstyle to ${describePlan(state.hairstyle)}.`);
+  }
+  if (state.eyewear.preset !== null) {
+    parts.push(`Add ${describePlan(state.eyewear)}.`);
+  }
+  if (state.headwear.preset !== null) {
+    parts.push(`Add ${describePlan(state.headwear)}.`);
+  }
+  if (state.jewelry.preset !== null) {
+    parts.push(`Add ${describePlan(state.jewelry)}.`);
+  }
+  if (state.vibe.preset !== null) {
+    parts.push(`Apply ${describePlan(state.vibe)}.`);
   }
 
   if (state.selectedUploadId !== null) {
@@ -131,6 +169,12 @@ export function composeRenderTitle(state: StudioState): string {
   if (state.beard.preset !== null) bits.push(`${state.beard.preset} beard`);
   if (state.mustache.preset !== null) bits.push(`${state.mustache.preset} mustache`);
   if (state.lip.enabled) bits.push('lipstick');
+  if (state.lipShape.preset !== null) bits.push(`${state.lipShape.preset} lips`);
+  if (state.browShape.preset !== null) bits.push(`${state.browShape.preset} brows`);
+  if (state.eyewear.preset !== null) bits.push(state.eyewear.preset);
+  if (state.headwear.preset !== null) bits.push(state.headwear.preset);
+  if (state.jewelry.preset !== null) bits.push(state.jewelry.preset);
+  if (state.vibe.preset !== null) bits.push(state.vibe.preset);
   if (state.selectedUploadId !== null) bits.push('try-on');
   if (bits.length === 0) return 'Studio render';
   return bits.join(' • ');

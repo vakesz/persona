@@ -1,3 +1,4 @@
+import { Trans } from '@lingui/react/macro';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { useQuery } from 'convex/react';
 import { Loader2 } from 'lucide-react';
@@ -36,12 +37,16 @@ function NewAvatarFlow() {
   if (avatars.length >= MAX_AVATARS) {
     return (
       <div className="flex flex-col gap-4">
-        <h1 className="text-2xl font-semibold tracking-tight">Avatar limit reached</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          <Trans>Avatar limit reached</Trans>
+        </h1>
         <p className="text-muted-foreground text-sm">
-          You already have {MAX_AVATARS} avatars. Delete one to add another.
+          <Trans>You already have {MAX_AVATARS} avatars. Delete one to add another.</Trans>
         </p>
         <Button asChild variant="outline" className="w-fit">
-          <Link to="/avatars">Back to avatars</Link>
+          <Link to="/avatars">
+            <Trans>Back to avatars</Trans>
+          </Link>
         </Button>
       </div>
     );
@@ -50,10 +55,14 @@ function NewAvatarFlow() {
   return (
     <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Create an avatar</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          <Trans>Create an avatar</Trans>
+        </h1>
         <p className="text-muted-foreground text-sm">
-          Upload a photo. We compress and strip metadata in your browser before it leaves your
-          device.
+          <Trans>
+            Upload a photo. We compress and strip metadata in your browser before it leaves your
+            device.
+          </Trans>
         </p>
       </header>
       <AvatarUploader

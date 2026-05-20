@@ -1,6 +1,7 @@
+import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { useMutation, useQuery } from 'convex/react';
-import { AlertCircle, Loader2, Sparkles } from 'lucide-react';
+import { useAction, useMutation, useQuery } from 'convex/react';
+import { AlertCircle, Bookmark, Loader2, Sparkles } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -8,7 +9,12 @@ import { BaselineStatusGate } from '@/components/avatars/baseline-status-gate';
 import { RenderResult } from '@/components/render/render-result';
 import { RequireAuth } from '@/components/require-auth';
 import { StudioCanvas, type StudioCanvasHandle } from '@/components/studio/studio-canvas';
-import { StudioSidebar, type UploadedItemSummary } from '@/components/studio/studio-sidebar';
+import {
+  StudioSidebar,
+  type StylistRecommendation,
+  type UploadedItemSummary,
+} from '@/components/studio/studio-sidebar';
+import { translateServerError } from '@/i18n/server-errors';
 import { Button } from '@/components/ui/button';
 import { useAvatarFace } from '@/lib/mediapipe/use-avatar-face';
 import {
@@ -43,11 +49,14 @@ interface ActiveRender {
 
 function Studio() {
   const { avatarId } = Route.useParams();
+  const { t } = useLingui();
   const avatar = useQuery(api.avatars.getAvatar, { id: avatarId });
   const uploads = useQuery(api.uploadedItems.listUploadedItems, {});
+  const savedLooks = useQuery(api.savedLooks.listSavedLooks, { avatarId });
   const generateUploadUrl = useMutation(api.storage.generateUploadUrl);
   const createRenderJob = useMutation(api.renderJobs.createRenderJob);
   const deleteUploadedItem = useMutation(api.uploadedItems.deleteUploadedItem);
+  const analyze = useAction(api.ai.analyzeStyleWithGemini);
 
   const baselineImage = useImage(avatar?.baseImageUrl ?? '');
   const face = useAvatarFace(avatarId, baselineImage, avatar?.landmarksJson, avatar?.masksJson);
@@ -56,9 +65,13 @@ function Studio() {
   const [activeRender, setActiveRender] = useState<ActiveRender | null>(null);
   const [renderBusy, setRenderBusy] = useState(false);
   const [compareSliderX, setCompareSliderX] = useState(0);
+  const [askBusy, setAskBusy] = useState(false);
+  const [askError, setAskError] = useState<string | null>(null);
+  const [recommendations, setRecommendations] = useState<StylistRecommendation[]>([]);
   const canvasRef = useRef<StudioCanvasHandle | null>(null);
 
   const anyTints = hasAnyTint(studioState);
+  const savedCount = savedLooks?.length ?? 0;
 
   const uploadSummaries = useMemo<UploadedItemSummary[]>(() => {
     if (uploads === undefined) return [];
@@ -77,16 +90,53 @@ function Studio() {
   const handleDeleteUpload = (id: Id<'uploadedItems'>) => {
     void deleteUploadedItem({ id }).catch((error: unknown) => {
       console.error(error);
-      toast.error('Could not delete upload.');
+      toast.error(t`Could not delete upload.`);
     });
     if (studioState.selectedUploadId === id) {
       setStudioState({ ...studioState, selectedUploadId: null });
     }
   };
 
+  const handleAsk = (question: string) => {
+    setAskBusy(true);
+    setAskError(null);
+    analyze({ avatarId, question })
+      .then((result) => {
+        setRecommendations(result.recommendations);
+      })
+      .catch((error: unknown) => {
+        console.error(error);
+        const message = translateServerError(error);
+        setAskError(message);
+        toast.error(message);
+      })
+      .finally(() => {
+        setAskBusy(false);
+      });
+  };
+
+  const handleRenderRecommendation = (recommendation: StylistRecommendation) => {
+    setRenderBusy(true);
+    createRenderJob({
+      avatarId,
+      prompt: recommendation.renderPrompt,
+      title: recommendation.title,
+    })
+      .then((jobId) => {
+        setActiveRender({ jobId, title: recommendation.title });
+      })
+      .catch((error: unknown) => {
+        console.error(error);
+        toast.error(translateServerError(error));
+      })
+      .finally(() => {
+        setRenderBusy(false);
+      });
+  };
+
   const handleRender = async () => {
     if (!hasAnyChange(studioState)) {
-      toast.error('Apply at least one style change first.');
+      toast.error(t`Apply at least one style change first.`);
       return;
     }
     setRenderBusy(true);
@@ -106,7 +156,7 @@ function Studio() {
             body: blob,
           });
           if (!response.ok) {
-            throw new Error('Could not upload the canvas snapshot.');
+            throw new Error(t`Could not upload the canvas snapshot.`);
           }
           const json = (await response.json()) as { storageId: Id<'_storage'> };
           inputStorageId = json.storageId;
@@ -127,7 +177,7 @@ function Studio() {
       setActiveRender({ jobId, title });
     } catch (error) {
       console.error(error);
-      toast.error(error instanceof Error ? error.message : 'Could not start render.');
+      toast.error(translateServerError(error));
     } finally {
       setRenderBusy(false);
     }
@@ -137,21 +187,32 @@ function Studio() {
     <BaselineStatusGate avatar={avatar}>
       {(ready) => (
         <div className="flex flex-col gap-4">
-          <header className="flex items-end justify-between gap-4">
+          <header className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <h1 className="text-2xl font-semibold tracking-tight">{ready.name}</h1>
               <p className="text-muted-foreground text-sm">
-                Tint makeup live on your canonical portrait, then render the look (beard, mustache,
-                hairstyle, clothing try-on) via Gemini.
+                <Trans>
+                  Tint makeup live, pick extras, ask the stylist, then render the look — every saved
+                  look stays under {ready.name}.
+                </Trans>
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Button asChild variant="outline" size="sm">
-                <Link to="/avatars">All avatars</Link>
+                <Link to="/avatars">
+                  <Trans>All avatars</Trans>
+                </Link>
               </Button>
               <Button asChild variant="outline" size="sm">
-                <Link to="/stylist/$avatarId" params={{ avatarId }}>
-                  Stylist
+                <Link to="/saved" search={{ avatarId }}>
+                  <Bookmark />
+                  {savedCount > 0 ? (
+                    <Trans>
+                      {ready.name}&apos;s looks ({savedCount.toString()})
+                    </Trans>
+                  ) : (
+                    <Trans>{ready.name}&apos;s looks</Trans>
+                  )}
                 </Link>
               </Button>
             </div>
@@ -171,7 +232,9 @@ function Studio() {
               />
               {anyTints && (
                 <label className="flex items-center gap-3 text-xs">
-                  <span className="text-muted-foreground w-24 shrink-0">Before · After</span>
+                  <span className="text-muted-foreground w-24 shrink-0">
+                    <Trans>Before · After</Trans>
+                  </span>
                   <input
                     type="range"
                     min={0}
@@ -181,8 +244,8 @@ function Studio() {
                     onChange={(event) => {
                       setCompareSliderX(Number(event.currentTarget.value));
                     }}
-                    className="accent-foreground flex-1"
-                    aria-label="Before / after slider"
+                    className="studio-slider flex-1"
+                    aria-label={t`Before / after slider`}
                   />
                   <span className="text-muted-foreground w-12 shrink-0 text-right tabular-nums">
                     {Math.round(compareSliderX * 100)}%
@@ -197,6 +260,13 @@ function Studio() {
                 uploads={uploadSummaries}
                 onDeleteUpload={handleDeleteUpload}
                 faceReady={face.status === 'ready'}
+                gender={ready.gender}
+                askBusy={askBusy}
+                askError={askError}
+                recommendations={recommendations}
+                onAsk={handleAsk}
+                onRenderRecommendation={handleRenderRecommendation}
+                renderBusy={renderBusy}
               />
               <Button
                 type="button"
@@ -206,7 +276,7 @@ function Studio() {
                 disabled={renderBusy || !hasAnyChange(studioState)}
               >
                 {renderBusy ? <Loader2 className="animate-spin" /> : <Sparkles />}
-                Render look
+                <Trans>Render look</Trans>
               </Button>
               <Button
                 type="button"
@@ -217,15 +287,19 @@ function Studio() {
                 }}
                 disabled={!hasAnyChange(studioState)}
               >
-                Reset all tools
+                <Trans>Reset all tools</Trans>
               </Button>
             </div>
           </div>
 
           {activeRender !== null && (
             <RenderResult
+              key={activeRender.jobId}
               jobId={activeRender.jobId}
               title={activeRender.title}
+              avatarId={avatarId}
+              avatarName={ready.name}
+              baselineUrl={avatar?.baseImageUrl ?? ''}
               onClose={() => {
                 setActiveRender(null);
               }}
@@ -252,7 +326,7 @@ function FaceStatusBanner({ status, error }: FaceStatusBannerProps) {
     return (
       <div className="border-destructive/40 bg-destructive/5 text-destructive flex items-center gap-2 rounded-md border p-3 text-xs">
         <AlertCircle className="size-4 shrink-0" />
-        <span>{error ?? 'Could not prepare studio tools.'}</span>
+        <span>{error ?? <Trans>Could not prepare studio tools.</Trans>}</span>
       </div>
     );
   }
@@ -260,8 +334,10 @@ function FaceStatusBanner({ status, error }: FaceStatusBannerProps) {
     <div className="border-border text-muted-foreground bg-muted/40 flex items-center gap-2 rounded-md border p-3 text-xs">
       <Loader2 className="size-4 shrink-0 animate-spin" />
       <span>
-        Preparing studio tools (face landmarks + segmentation, runs in your browser, only your
-        canonical portrait is analysed)…
+        <Trans>
+          Preparing studio tools (face landmarks + segmentation, runs in your browser, only your
+          canonical portrait is analysed)…
+        </Trans>
       </span>
     </div>
   );

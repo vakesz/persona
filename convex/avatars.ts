@@ -10,11 +10,13 @@ import {
   type MutationCtx,
   query,
 } from './_generated/server';
+import { errors } from './lib/errors';
 
 const MAX_AVATARS_PER_USER = 3;
 const MAX_SOURCE_PHOTOS = 5;
 
 const avatarType = v.union(v.literal('selfie'), v.literal('full_body'));
+const avatarGender = v.union(v.literal('male'), v.literal('female'), v.literal('unspecified'));
 
 export const listAvatars = query({
   args: {},
@@ -29,22 +31,30 @@ export const listAvatars = query({
       .order('desc')
       .collect();
     return Promise.all(
-      avatars.map(async (avatar) => ({
-        _id: avatar._id,
-        _creationTime: avatar._creationTime,
-        name: avatar.name,
-        type: avatar.type,
+      avatars.map(async (avatar) => {
         // Pre-Phase-8 rows have no `baselineStatus`; treat them as ready —
         // their `baseImageStorageId` already points at a finished image.
-        baselineStatus: avatar.baselineStatus ?? 'done',
-        baselineErrorMessage: avatar.baselineErrorMessage,
-        thumbnailUrl:
-          avatar.thumbnailStorageId !== undefined
-            ? await ctx.storage.getUrl(avatar.thumbnailStorageId)
-            : avatar.baseImageStorageId !== undefined
-              ? await ctx.storage.getUrl(avatar.baseImageStorageId)
-              : null,
-      })),
+        const baselineStatus = avatar.baselineStatus ?? 'done';
+        // Prefer the Gemini-generated baseline once it's ready — that's the
+        // canonical portrait the user sees in the studio, so the avatar card
+        // should match. Fall back to the raw upload thumbnail only while the
+        // baseline is still being generated (queued / processing / failed).
+        const previewStorageId =
+          baselineStatus === 'done' && avatar.baseImageStorageId !== undefined
+            ? avatar.baseImageStorageId
+            : (avatar.thumbnailStorageId ?? avatar.baseImageStorageId);
+        return {
+          _id: avatar._id,
+          _creationTime: avatar._creationTime,
+          name: avatar.name,
+          type: avatar.type,
+          gender: avatar.gender ?? 'unspecified',
+          baselineStatus,
+          baselineErrorMessage: avatar.baselineErrorMessage,
+          thumbnailUrl:
+            previewStorageId !== undefined ? await ctx.storage.getUrl(previewStorageId) : null,
+        };
+      }),
     );
   },
 });
@@ -68,6 +78,7 @@ export const getAvatar = query({
       _creationTime: avatar._creationTime,
       name: avatar.name,
       type: avatar.type,
+      gender: avatar.gender ?? 'unspecified',
       baselineStatus: avatar.baselineStatus ?? 'done',
       baselineErrorMessage: avatar.baselineErrorMessage,
       baseImageUrl:
@@ -123,26 +134,27 @@ export const createAvatar = mutation({
   args: {
     name: v.string(),
     type: avatarType,
+    gender: avatarGender,
     sourcePhotoStorageIds: v.array(v.id('_storage')),
     thumbnailStorageId: v.id('_storage'),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (userId === null) {
-      throw new Error('Not authenticated.');
+      throw errors.notAuthenticated();
     }
     const name = args.name.trim();
     if (name.length === 0) {
       await cleanupOnReject(ctx, args.sourcePhotoStorageIds, args.thumbnailStorageId);
-      throw new Error('Name is required.');
+      throw errors.nameRequired();
     }
     if (args.sourcePhotoStorageIds.length === 0) {
       await cleanupOnReject(ctx, [], args.thumbnailStorageId);
-      throw new Error('Pick at least one photo.');
+      throw errors.pickAtLeastOnePhoto();
     }
     if (args.sourcePhotoStorageIds.length > MAX_SOURCE_PHOTOS) {
       await cleanupOnReject(ctx, args.sourcePhotoStorageIds, args.thumbnailStorageId);
-      throw new Error(`Pick at most ${MAX_SOURCE_PHOTOS} photos.`);
+      throw errors.tooManyPhotos(MAX_SOURCE_PHOTOS);
     }
     const existing = await ctx.db
       .query('avatars')
@@ -150,12 +162,13 @@ export const createAvatar = mutation({
       .collect();
     if (existing.length >= MAX_AVATARS_PER_USER) {
       await cleanupOnReject(ctx, args.sourcePhotoStorageIds, args.thumbnailStorageId);
-      throw new Error(`You can only have ${MAX_AVATARS_PER_USER} avatars.`);
+      throw errors.avatarLimitReached(MAX_AVATARS_PER_USER);
     }
     const avatarId = await ctx.db.insert('avatars', {
       userId,
       name,
       type: args.type,
+      gender: args.gender,
       sourcePhotoStorageIds: args.sourcePhotoStorageIds,
       thumbnailStorageId: args.thumbnailStorageId,
       baselineStatus: 'queued',
@@ -175,14 +188,14 @@ export const saveAvatarLandmarks = mutation({
   handler: async (ctx, { id, landmarksJson, masksJson }) => {
     const userId = await getAuthUserId(ctx);
     if (userId === null) {
-      throw new Error('Not authenticated.');
+      throw errors.notAuthenticated();
     }
     const avatar = await ctx.db.get(id);
     if (avatar === null) {
-      throw new Error('Avatar not found.');
+      throw errors.avatarNotFound();
     }
     if (avatar.userId !== userId) {
-      throw new Error('Avatar not found.');
+      throw errors.avatarNotFound();
     }
     await ctx.db.patch(id, {
       landmarksJson,
@@ -197,18 +210,18 @@ export const updateAvatar = mutation({
   handler: async (ctx, { id, name }) => {
     const userId = await getAuthUserId(ctx);
     if (userId === null) {
-      throw new Error('Not authenticated.');
+      throw errors.notAuthenticated();
     }
     const avatar = await ctx.db.get(id);
     if (avatar === null) {
-      throw new Error('Avatar not found.');
+      throw errors.avatarNotFound();
     }
     if (avatar.userId !== userId) {
-      throw new Error('Avatar not found.');
+      throw errors.avatarNotFound();
     }
     const trimmed = name.trim();
     if (trimmed.length === 0) {
-      throw new Error('Name is required.');
+      throw errors.nameRequired();
     }
     await ctx.db.patch(id, { name: trimmed, updatedAt: Date.now() });
   },
@@ -219,12 +232,12 @@ export const deleteAvatar = mutation({
   handler: async (ctx, { id }) => {
     const userId = await getAuthUserId(ctx);
     if (userId === null) {
-      throw new Error('Not authenticated.');
+      throw errors.notAuthenticated();
     }
     const avatar = await ctx.db.get(id);
     if (avatar === null) return;
     if (avatar.userId !== userId) {
-      throw new Error('Avatar not found.');
+      throw errors.avatarNotFound();
     }
     await cascadeDeleteAvatar(ctx, id);
   },
@@ -240,20 +253,20 @@ export const retryAvatarBaseline = mutation({
   handler: async (ctx, { id }) => {
     const userId = await getAuthUserId(ctx);
     if (userId === null) {
-      throw new Error('Not authenticated.');
+      throw errors.notAuthenticated();
     }
     const avatar = await ctx.db.get(id);
     if (avatar === null) {
-      throw new Error('Avatar not found.');
+      throw errors.avatarNotFound();
     }
     if (avatar.userId !== userId) {
-      throw new Error('Avatar not found.');
+      throw errors.avatarNotFound();
     }
     if (avatar.baselineStatus !== 'failed') {
-      throw new Error('Baseline is not in a failed state.');
+      throw errors.baselineNotFailed();
     }
     if ((avatar.sourcePhotoStorageIds ?? []).length === 0) {
-      throw new Error('Avatar has no source photos to retry from.');
+      throw errors.baselineNoSources();
     }
     await ctx.db.patch(id, {
       baselineStatus: 'queued',

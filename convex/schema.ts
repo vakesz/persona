@@ -23,6 +23,10 @@ export default defineSchema({
     userId: v.id('users'),
     name: v.string(),
     type: v.union(v.literal('selfie'), v.literal('full_body')),
+    // Drives which studio tools are shown by default (e.g. beard/mustache for
+    // male, blush/lipstick for female). Optional so legacy rows still validate
+    // — those rows behave as `unspecified` (every tool visible).
+    gender: v.optional(v.union(v.literal('male'), v.literal('female'), v.literal('unspecified'))),
     // 1–5 raw uploads (Phase 8+). Optional so pre-Phase-8 rows still
     // validate; those rows treat the original `baseImageStorageId` as the
     // ready-made baseline. New rows always set this.
@@ -79,5 +83,13 @@ export default defineSchema({
     ),
     imageStorageId: v.id('_storage'),
     label: v.optional(v.string()),
+  }).index('by_user', ['userId']),
+
+  // Per-user app preferences. Kept in a side table because `authTables.users`
+  // is owned by Convex Auth and shouldn't be extended directly.
+  userPreferences: defineTable({
+    userId: v.id('users'),
+    locale: v.union(v.literal('en'), v.literal('hu')),
+    updatedAt: v.number(),
   }).index('by_user', ['userId']),
 });

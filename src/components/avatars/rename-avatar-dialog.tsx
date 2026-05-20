@@ -1,8 +1,10 @@
+import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation } from 'convex/react';
 import { Loader2 } from 'lucide-react';
 import { type SyntheticEvent, useState } from 'react';
 import { toast } from 'sonner';
 
+import { translateServerError } from '@/i18n/server-errors';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -30,24 +32,25 @@ export function RenameAvatarDialog({ avatarId, currentName, onClose }: RenameAva
   const updateAvatar = useMutation(api.avatars.updateAvatar);
   const [name, setName] = useState(currentName);
   const [submitting, setSubmitting] = useState(false);
+  const { t } = useLingui();
 
   const handleSubmit = (event: SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (avatarId === null) return;
     const trimmed = name.trim();
     if (trimmed.length === 0) {
-      toast.error('Name is required.');
+      toast.error(t`Name is required.`);
       return;
     }
     setSubmitting(true);
     updateAvatar({ id: avatarId, name: trimmed })
       .then(() => {
-        toast.success('Renamed.');
+        toast.success(t`Renamed.`);
         onClose();
       })
       .catch((error: unknown) => {
         console.error(error);
-        toast.error(error instanceof Error ? error.message : 'Could not rename.');
+        toast.error(translateServerError(error));
       })
       .finally(() => {
         setSubmitting(false);
@@ -60,16 +63,22 @@ export function RenameAvatarDialog({ avatarId, currentName, onClose }: RenameAva
       onOpenChange={(open) => {
         if (!open) onClose();
       }}
-      ariaLabel="Rename avatar"
+      ariaLabel={t`Rename avatar`}
     >
       <form onSubmit={handleSubmit}>
         <DialogHeader>
-          <DialogTitle>Rename avatar</DialogTitle>
-          <DialogDescription>Give this avatar a name you&apos;ll recognize.</DialogDescription>
+          <DialogTitle>
+            <Trans>Rename avatar</Trans>
+          </DialogTitle>
+          <DialogDescription>
+            <Trans>Give this avatar a name you&apos;ll recognize.</Trans>
+          </DialogDescription>
         </DialogHeader>
         <DialogBody>
           <div className="flex flex-col gap-2">
-            <Label htmlFor="avatar-name">Name</Label>
+            <Label htmlFor="avatar-name">
+              <Trans>Name</Trans>
+            </Label>
             <Input
               id="avatar-name"
               type="text"
@@ -86,11 +95,11 @@ export function RenameAvatarDialog({ avatarId, currentName, onClose }: RenameAva
         </DialogBody>
         <DialogFooter>
           <Button type="button" variant="outline" onClick={onClose} disabled={submitting}>
-            Cancel
+            <Trans>Cancel</Trans>
           </Button>
           <Button type="submit" disabled={submitting || name.trim() === currentName}>
             {submitting ? <Loader2 className="animate-spin" /> : null}
-            Save
+            <Trans>Save</Trans>
           </Button>
         </DialogFooter>
       </form>

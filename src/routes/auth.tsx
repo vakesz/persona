@@ -1,4 +1,5 @@
 import { useAuthActions } from '@convex-dev/auth/react';
+import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute, Navigate, useNavigate } from '@tanstack/react-router';
 import { useConvexAuth } from 'convex/react';
 import { Loader2 } from 'lucide-react';
@@ -22,6 +23,7 @@ function AuthPage() {
   const navigate = useNavigate();
   const [flow, setFlow] = useState<Flow>('signIn');
   const [submitting, setSubmitting] = useState(false);
+  const { t } = useLingui();
 
   if (isAuthenticated) {
     return <Navigate to="/avatars" />;
@@ -41,8 +43,8 @@ function AuthPage() {
         console.error(error);
         toast.error(
           isSignIn
-            ? 'Could not sign in. Check your email and password.'
-            : 'Could not create that account. Try a different email.',
+            ? t`Could not sign in. Check your email and password.`
+            : t`Could not create that account. Try a different email.`,
         );
       })
       .finally(() => {
@@ -54,17 +56,23 @@ function AuthPage() {
     <div className="flex min-h-[60vh] items-center justify-center">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>{isSignIn ? 'Welcome back' : 'Create your account'}</CardTitle>
+          <CardTitle>
+            {isSignIn ? <Trans>Welcome back</Trans> : <Trans>Create your account</Trans>}
+          </CardTitle>
           <CardDescription>
-            {isSignIn
-              ? 'Sign in to your private styling studio.'
-              : 'Your avatars and looks stay private to you.'}
+            {isSignIn ? (
+              <Trans>Sign in to your private styling studio.</Trans>
+            ) : (
+              <Trans>Your avatars and looks stay private to you.</Trans>
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">
+                <Trans>Email</Trans>
+              </Label>
               <Input
                 id="email"
                 name="email"
@@ -75,7 +83,9 @@ function AuthPage() {
               />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">
+                <Trans>Password</Trans>
+              </Label>
               <Input
                 id="password"
                 name="password"
@@ -88,11 +98,15 @@ function AuthPage() {
             </div>
             <Button type="submit" disabled={busy}>
               {submitting ? <Loader2 className="animate-spin" /> : null}
-              {isSignIn ? 'Sign in' : 'Create account'}
+              {isSignIn ? <Trans>Sign in</Trans> : <Trans>Create account</Trans>}
             </Button>
           </form>
           <p className="text-muted-foreground mt-4 text-center text-sm">
-            {isSignIn ? "Don't have an account? " : 'Already have an account? '}
+            {isSignIn ? (
+              <Trans>Don&apos;t have an account? </Trans>
+            ) : (
+              <Trans>Already have an account? </Trans>
+            )}
             <button
               type="button"
               className="text-foreground font-medium underline-offset-4 hover:underline"
@@ -100,7 +114,7 @@ function AuthPage() {
                 setFlow(isSignIn ? 'signUp' : 'signIn');
               }}
             >
-              {isSignIn ? 'Sign up' : 'Sign in'}
+              {isSignIn ? <Trans>Sign up</Trans> : <Trans>Sign in</Trans>}
             </button>
           </p>
         </CardContent>

@@ -1,119 +1,197 @@
+import { Trans, useLingui } from '@lingui/react/macro';
+import { Link } from '@tanstack/react-router';
 import { useMutation, useQuery } from 'convex/react';
-import { CheckCircle2, Loader2, Save, X } from 'lucide-react';
+import { AlertCircle, Bookmark, CheckCircle2, Loader2, Save } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
+import { translateServerError, translateStoredErrorMessage } from '@/i18n/server-errors';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogBody,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
 
 export interface RenderResultProps {
   jobId: Id<'renderJobs'>;
   title: string;
+  avatarId: Id<'avatars'>;
+  avatarName: string;
+  baselineUrl: string;
   onClose: () => void;
 }
 
-export function RenderResult({ jobId, title, onClose }: RenderResultProps) {
+export function RenderResult({
+  jobId,
+  title,
+  avatarId,
+  avatarName,
+  baselineUrl,
+  onClose,
+}: RenderResultProps) {
   const job = useQuery(api.renderJobs.getRenderJob, { id: jobId });
   const saveLook = useMutation(api.savedLooks.saveLookFromJob);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const { t } = useLingui();
 
   const handleSave = () => {
     setSaving(true);
     saveLook({ jobId })
       .then(() => {
         setSaved(true);
-        toast.success('Look saved.');
+        toast.success(t`Saved to ${avatarName}'s looks.`);
       })
       .catch((error: unknown) => {
         console.error(error);
-        toast.error(error instanceof Error ? error.message : 'Could not save look.');
+        toast.error(translateServerError(error));
       })
       .finally(() => {
         setSaving(false);
       });
   };
 
-  if (job === undefined) {
-    return (
-      <Card>
-        <CardContent className="flex items-center gap-3">
-          <Loader2 className="text-muted-foreground size-5 animate-spin" />
-          <span className="text-sm">Starting render…</span>
-        </CardContent>
-      </Card>
-    );
-  }
-  if (job === null) {
-    return null;
-  }
+  const status = job?.status;
+  const isLoading = job === undefined || status === 'queued' || status === 'processing';
+  const isFailed = status === 'failed';
+  const resultUrl = job?.status === 'done' ? (job.resultUrl ?? null) : null;
+  const errorMessage = job?.errorMessage;
+  const translatedError =
+    errorMessage === undefined ? undefined : translateStoredErrorMessage(errorMessage);
 
   return (
-    <Card>
-      <CardContent className="flex flex-col gap-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex flex-col">
-            <span className="text-xs font-medium tracking-wide uppercase opacity-60">
-              Rendering
-            </span>
-            <h3 className="text-base leading-tight font-semibold">{title}</h3>
-          </div>
-          <Button type="button" variant="ghost" size="sm" onClick={onClose} aria-label="Close">
-            <X className="size-4" />
-          </Button>
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+      ariaLabel={t`Render: ${title}`}
+      className="w-[min(56rem,calc(100vw-2rem))]"
+    >
+      <DialogHeader>
+        <span className="text-muted-foreground text-[11px] font-medium tracking-wide uppercase">
+          <Trans>Render</Trans>
+        </span>
+        <DialogTitle>{title}</DialogTitle>
+      </DialogHeader>
+
+      <DialogBody>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <CompareTile label={t`Original`} src={baselineUrl} alt={avatarName} />
+          <CompareTile
+            label={t`Render`}
+            src={resultUrl}
+            alt={title}
+            loading={isLoading}
+            failed={isFailed}
+            {...(translatedError !== undefined && { failedMessage: translatedError })}
+          />
         </div>
 
-        {(job.status === 'queued' || job.status === 'processing') && (
-          <div className="text-muted-foreground flex items-center gap-3 text-sm">
+        {isLoading && (
+          <div className="text-muted-foreground flex items-center gap-2 text-sm">
             <Loader2 className="size-4 animate-spin" />
-            {job.status === 'queued'
-              ? 'Queued — waiting for the image model…'
-              : 'Painting your look (this can take 15–30 s)…'}
+            <span>
+              {status === 'queued' ? (
+                <Trans>Queued — waiting for the image model…</Trans>
+              ) : (
+                <Trans>Painting your look (15–30 s)…</Trans>
+              )}
+            </span>
           </div>
         )}
 
-        {job.status === 'failed' && (
-          <div className="text-destructive text-sm">
-            Render failed{job.errorMessage !== undefined ? `: ${job.errorMessage}` : '.'}
+        {saved && (
+          <div className="border-border bg-muted/30 flex items-center justify-between gap-3 rounded-md border p-3 text-sm">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="size-4 shrink-0" />
+              <span>
+                <Trans>Saved under {avatarName}&apos;s looks.</Trans>
+              </span>
+            </div>
+            <Button asChild variant="outline" size="sm">
+              <Link to="/saved" search={{ avatarId }}>
+                <Bookmark />
+                <Trans>View gallery</Trans>
+              </Link>
+            </Button>
           </div>
         )}
+      </DialogBody>
 
-        {job.status === 'done' && job.resultUrl !== null && (
+      <DialogFooter>
+        {resultUrl !== null && !saved && (
           <>
-            <div className="bg-muted overflow-hidden rounded-lg">
-              <img
-                src={job.resultUrl}
-                alt={title}
-                className="size-full object-contain"
-                loading="lazy"
-                decoding="async"
-              />
-            </div>
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                onClick={handleSave}
-                disabled={saving || saved}
-                className="flex-1"
-              >
-                {saving ? (
-                  <Loader2 className="animate-spin" />
-                ) : saved ? (
-                  <CheckCircle2 />
-                ) : (
-                  <Save />
-                )}
-                {saved ? 'Saved' : 'Save look'}
-              </Button>
-              <Button type="button" variant="outline" onClick={onClose}>
-                Done
-              </Button>
-            </div>
+            <Button type="button" variant="outline" onClick={onClose}>
+              <Trans>Discard</Trans>
+            </Button>
+            <Button type="button" onClick={handleSave} disabled={saving}>
+              {saving ? <Loader2 className="animate-spin" /> : <Save />}
+              <Trans>Save look</Trans>
+            </Button>
           </>
         )}
-      </CardContent>
-    </Card>
+        {(isLoading || isFailed || saved) && (
+          <Button type="button" variant={saved ? 'default' : 'outline'} onClick={onClose}>
+            <Trans>Close</Trans>
+          </Button>
+        )}
+      </DialogFooter>
+    </Dialog>
+  );
+}
+
+interface CompareTileProps {
+  label: string;
+  src: string | null;
+  alt: string;
+  loading?: boolean;
+  failed?: boolean;
+  failedMessage?: string;
+}
+
+function CompareTile({ label, src, alt, loading, failed, failedMessage }: CompareTileProps) {
+  return (
+    <figure className="flex flex-col gap-1.5">
+      <div className="bg-muted relative aspect-square overflow-hidden rounded-lg">
+        {src !== null && (
+          <img
+            src={src}
+            alt={alt}
+            className="size-full object-contain"
+            loading="lazy"
+            decoding="async"
+          />
+        )}
+        {loading === true && src === null && (
+          <div className="text-muted-foreground absolute inset-0 flex flex-col items-center justify-center gap-2 text-xs">
+            <Loader2 className="size-5 animate-spin" />
+            <span>
+              <Trans>Rendering…</Trans>
+            </span>
+          </div>
+        )}
+        {failed === true && src === null && (
+          <div className="text-destructive absolute inset-0 flex flex-col items-center justify-center gap-2 px-4 text-center text-xs">
+            <AlertCircle className="size-5" />
+            <span>
+              {failedMessage !== undefined ? (
+                <Trans>Render failed: {failedMessage}</Trans>
+              ) : (
+                <Trans>Render failed.</Trans>
+              )}
+            </span>
+          </div>
+        )}
+      </div>
+      <figcaption className="text-muted-foreground text-[11px] font-medium tracking-wide uppercase">
+        {label}
+      </figcaption>
+    </figure>
   );
 }
