@@ -9,7 +9,9 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as avatars from "../avatars.js";
 import type * as http from "../http.js";
+import type * as storage from "../storage.js";
 import type * as users from "../users.js";
 
 import type {
@@ -20,7 +22,9 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  avatars: typeof avatars;
   http: typeof http;
+  storage: typeof storage;
   users: typeof users;
 }>;
 

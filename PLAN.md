@@ -423,11 +423,19 @@ sign-in/sign-up; `RequireAuth` route guard; auth-aware app shell; `getCurrentUse
 query wired into `/settings`. `pnpm check` and `pnpm build` pass green.
 Run `npx convex dev` then `npx @convex-dev/auth` to make auth live.
 
-### Phase 2 — Avatar Creation
+### Phase 2 — Avatar Creation ✅ Done
 
 Upload image, compress in browser, store in Convex storage, create avatar
 record, show avatar list, limit to 3 avatars.
 Goal: User can create private avatars.
+
+Implemented: `convex/storage.ts:generateUploadUrl` (auth-gated mutation),
+`convex/avatars.ts:{listAvatars, createAvatar}` (owner-scoped, 3-avatar
+limit enforced server-side with storage cleanup on rejection),
+`src/lib/image-compression.ts` (canvas re-encode → strips EXIF + caps
+2048 px base / 512 px thumbnail), self-contained `AvatarCard` and
+`AvatarUploader` components, and avatar list / create routes with realtime
+limit awareness via Convex queries. `pnpm check` + `pnpm build` pass green.
 
 ### Phase 3 — Personal Canvas
 
@@ -502,6 +510,31 @@ advanced body adjustment, video, real 3D.
 
 ---
 
+## Engineering Principles (non-negotiable bar)
+
+These apply to **every** change in this repo. `pnpm check` is the gate.
+
+1. **Modern best practices and patterns throughout, always.** React 19
+   idioms, current Convex APIs, current TanStack Router APIs. No deprecated
+   APIs even when they still work.
+2. **Strict TypeScript.** `strict` + `noUncheckedIndexedAccess` +
+   `exactOptionalPropertyTypes` + `noPropertyAccessFromIndexSignature` +
+   `erasableSyntaxOnly` stay on. Fix type errors at the root — never widen
+   to `any` to get past them.
+3. **Simple and clean.** No premature abstractions, no "for future
+   flexibility" wrappers, no dead code paths. Three similar lines beats a
+   clever abstraction.
+4. **Properly organized.** `src/routes/`, `src/components/<feature>/`,
+   `src/lib/<domain>/`, `convex/`. New files go in the matching folder, not
+   next to unrelated siblings.
+5. **Every component is properly self-contained.** Clear, complete prop
+   interface (named `<Component>Props`). No hidden coupling to sibling
+   components. No reaching outside its props for data it should receive.
+   Sub-components used in only one place may live in the same file — they
+   still take everything via props.
+6. **`pnpm check` (typecheck + lint + format + knip) passes green before
+   every commit.**
+
 ## Implementation Decisions (this build)
 
 - **Package manager:** pnpm (all install/run commands use `pnpm`).
@@ -510,6 +543,9 @@ advanced body adjustment, video, real 3D.
 - **Tailwind:** v4 with the `@tailwindcss/vite` plugin.
 - **Routing:** TanStack Router file-based routing via its Vite plugin.
 - **State:** Convex reactive queries; no TanStack Query for now.
+- **Image processing:** `browser-image-compression` — canvas re-encode strips
+  EXIF metadata and caps the longest edge, keeping the upload path
+  local-first per the privacy spec.
 
 ## Manual Setup Steps (run once)
 
