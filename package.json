@@ -17,7 +17,7 @@
     "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm knip"
   },
   "dependencies": {
-    "@auth/core": "^0.34.3",
+    "@auth/core": "^0.37.4",
     "@convex-dev/auth": "^0.0.92",
     "@radix-ui/react-label": "^2.1.8",
     "@radix-ui/react-slot": "^1.2.4",
