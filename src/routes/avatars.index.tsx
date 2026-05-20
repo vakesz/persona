@@ -1,12 +1,16 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useQuery } from 'convex/react';
 import { Loader2 } from 'lucide-react';
+import { useState } from 'react';
 
 import { AvatarCard } from '@/components/avatars/avatar-card';
+import { DeleteAvatarDialog } from '@/components/avatars/delete-avatar-dialog';
+import { RenameAvatarDialog } from '@/components/avatars/rename-avatar-dialog';
 import { RequireAuth } from '@/components/require-auth';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { api } from '@convex/_generated/api';
+import type { Id } from '@convex/_generated/dataModel';
 
 const MAX_AVATARS = 3;
 
@@ -22,8 +26,15 @@ function AvatarsPage() {
   );
 }
 
+interface DialogTarget {
+  id: Id<'avatars'>;
+  name: string;
+}
+
 function AvatarsList() {
   const avatars = useQuery(api.avatars.listAvatars);
+  const [renameTarget, setRenameTarget] = useState<DialogTarget | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<DialogTarget | null>(null);
 
   if (avatars === undefined) {
     return (
@@ -74,10 +85,33 @@ function AvatarsList() {
               name={avatar.name}
               type={avatar.type}
               thumbnailUrl={avatar.thumbnailUrl}
+              baselineStatus={avatar.baselineStatus}
+              baselineErrorMessage={avatar.baselineErrorMessage}
+              onRename={(id, name) => {
+                setRenameTarget({ id, name });
+              }}
+              onDelete={(id, name) => {
+                setDeleteTarget({ id, name });
+              }}
             />
           ))}
         </div>
       )}
+
+      <RenameAvatarDialog
+        avatarId={renameTarget?.id ?? null}
+        currentName={renameTarget?.name ?? ''}
+        onClose={() => {
+          setRenameTarget(null);
+        }}
+      />
+      <DeleteAvatarDialog
+        avatarId={deleteTarget?.id ?? null}
+        avatarName={deleteTarget?.name ?? ''}
+        onClose={() => {
+          setDeleteTarget(null);
+        }}
+      />
     </div>
   );
 }

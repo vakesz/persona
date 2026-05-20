@@ -11,8 +11,8 @@
 import type * as ai from "../ai.js";
 import type * as auth from "../auth.js";
 import type * as avatars from "../avatars.js";
+import type * as crons from "../crons.js";
 import type * as http from "../http.js";
-import type * as recentItems from "../recentItems.js";
 import type * as renderJobs from "../renderJobs.js";
 import type * as savedLooks from "../savedLooks.js";
 import type * as storage from "../storage.js";
@@ -29,8 +29,8 @@ declare const fullApi: ApiFromModules<{
   ai: typeof ai;
   auth: typeof auth;
   avatars: typeof avatars;
+  crons: typeof crons;
   http: typeof http;
-  recentItems: typeof recentItems;
   renderJobs: typeof renderJobs;
   savedLooks: typeof savedLooks;
   storage: typeof storage;

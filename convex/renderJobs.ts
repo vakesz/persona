@@ -10,8 +10,16 @@ export const createRenderJob = mutation({
     prompt: v.string(),
     title: v.optional(v.string()),
     referenceUploadedItemId: v.optional(v.id('uploadedItems')),
+    /**
+     * When set, the render uses this storage blob as the input image instead
+     * of the avatar's canonical baseline. The studio uploads the flattened
+     * Konva canvas (baseline + applied color tints) here so geometry edits
+     * stack on top of any makeup the user already chose. The blob is
+     * single-use — the action consumes and deletes it.
+     */
+    inputStorageId: v.optional(v.id('_storage')),
   },
-  handler: async (ctx, { avatarId, prompt, title, referenceUploadedItemId }) => {
+  handler: async (ctx, { avatarId, prompt, title, referenceUploadedItemId, inputStorageId }) => {
     const userId = await getAuthUserId(ctx);
     if (userId === null) {
       throw new Error('Not authenticated.');
@@ -47,6 +55,7 @@ export const createRenderJob = mutation({
         prompt: trimmedPrompt,
         ...(title !== undefined && { title }),
         ...(referenceUploadedItemId !== undefined && { referenceUploadedItemId }),
+        ...(inputStorageId !== undefined && { inputStorageId }),
       }),
       updatedAt: Date.now(),
     });
@@ -120,5 +129,45 @@ export const markRenderJobFailed = internalMutation({
       errorMessage,
       updatedAt: Date.now(),
     });
+  },
+});
+
+const RENDER_JOB_TTL_MS = 14 * 24 * 60 * 60 * 1000;
+
+/**
+ * Hourly sweep (see `convex/crons.ts`). Removes render jobs older than 14
+ * days. If the job has a `resultStorageId` and no `savedLook` references it,
+ * the blob is freed too — saved looks are how users opt-in to keeping a
+ * render, so anything else is fair game.
+ */
+export const sweepStaleRenderJobs = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const cutoff = Date.now() - RENDER_JOB_TTL_MS;
+    const stale = await ctx.db
+      .query('renderJobs')
+      .filter((q) => q.lt(q.field('updatedAt'), cutoff))
+      .collect();
+    if (stale.length === 0) return;
+
+    const referencedStorageIds = new Set<string>();
+    if (stale.some((job) => job.resultStorageId !== undefined)) {
+      const looks = await ctx.db.query('savedLooks').collect();
+      for (const look of looks) {
+        if (look.renderStorageId !== undefined) {
+          referencedStorageIds.add(look.renderStorageId);
+        }
+        if (look.previewStorageId !== undefined) {
+          referencedStorageIds.add(look.previewStorageId);
+        }
+      }
+    }
+
+    for (const job of stale) {
+      if (job.resultStorageId !== undefined && !referencedStorageIds.has(job.resultStorageId)) {
+        await ctx.storage.delete(job.resultStorageId);
+      }
+      await ctx.db.delete(job._id);
+    }
   },
 });

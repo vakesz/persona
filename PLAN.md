@@ -13,9 +13,8 @@ Tailwind CSS
 Convex
 Convex Auth or Clerk
 React-Konva
-MediaPipe
-Gemini API
-fal.ai or similar image API
+MediaPipe Tasks (FaceLandmarker + ImageSegmenter)
+Gemini API (Flash Lite for text/vision, Flash Image for image edit)
 ```
 
 With Convex, you may not need much TanStack Query because Convex already gives
@@ -110,10 +109,13 @@ created_at
 user_id
 name
 type: selfie | full_body
-base_image_storage_id
+source_photo_storage_ids: array (1–5)      ← raw uploads, used to generate the baseline
+base_image_storage_id                        ← canonical baseline portrait (Gemini-generated)
 thumbnail_storage_id
-landmarks_json
-masks_json
+landmarks_json                               ← MediaPipe FaceLandmarker on the baseline
+masks_json                                   ← MediaPipe ImageSegmenter on the baseline
+baseline_status: queued | processing | done | failed
+baseline_error_message
 created_at
 updated_at
 ```
@@ -123,7 +125,9 @@ Rules:
 ```
 Max 3 avatars per user
 Only owner can read/write
-Deleting avatar deletes related looks/items/files
+Deleting avatar cascades source photos + baseline + thumbnail +
+  recentItems + savedLooks + renderJobs and every referenced _storage blob
+Deleting account cascades every avatar plus uploadedItems and the auth identity
 ```
 
 ### recent_items
@@ -198,15 +202,16 @@ listUploadedItems
 
 ```
 createAvatar
-updateAvatar
-deleteAvatar
-saveRecentItem
-pruneRecentItems
-saveLook
-deleteLook
+updateAvatar           ← rename only
+deleteAvatar           ← cascade delete (Phase 12)
+saveRecentItem         ← prunes by count + crons.ts prunes by age
+saveLookFromJob
+deleteSavedLook
 createRenderJob
 markRenderJobDone
 markRenderJobFailed
+deleteAccount          ← full user cascade + Convex Auth deletion (Phase 12)
+saveAvatarLandmarks    ← write MediaPipe output (Phase 9)
 ```
 
 ### Actions
@@ -214,10 +219,17 @@ markRenderJobFailed
 Use Convex actions for external APIs:
 
 ```
-analyzeStyleWithGemini
-renderLookWithFal
+analyzeStyleWithGemini      ← Gemini 2.5 Flash Lite (text + vision)
+renderLookWithGemini        ← Gemini 2.5 Flash Image (image edit / try-on)
+generateAvatarBaseline      ← Gemini 2.5 Flash Image (multi-image → canonical portrait, Phase 8)
 generateUploadUrl
-fetchAndStoreRenderedImage
+```
+
+### Crons (Phase 12)
+
+```
+sweepStaleRenderJobs        ← hourly: delete renderJobs older than 14d not promoted to a look
+sweepOldRecentItems         ← daily: delete recentItems older than 30d
 ```
 
 ---
@@ -238,34 +250,30 @@ User selects photo
 
 ## 2.5D Studio
 
-### Canvas layers
+### Canvas layers (Phase 10 redesign)
 
 ```
-Base user image
-Hair layer
-Makeup layer
-Nail layer
-Clothing layer
-Shoe layer
-Accessory layer
-Selection handles
-Mask correction layer
+Baseline portrait (canonical, Gemini-generated)
+Makeup tint layer        ← Konva paths clipped to MediaPipe lip/eye/brow/cheek polygons
+Mask correction layer    ← brush nudges where MediaPipe got a region wrong
+Pending render preview   ← flattened-to-PNG snapshot sent to Gemini Flash Image
 ```
+
+There is no free-position drag layer. Color tools clip to face geometry;
+geometry-changing tools (beard, mustache, hairstyle) go through AI render.
 
 Use: React-Konva
 
-### Editor tools
+### Editor tools (Phase 10 redesign)
 
 ```
-Drag
-Scale
-Rotate
-Flip
-Opacity
-Before/after toggle
-Undo/redo
-Reset layer
-Erase/restore brush
+Per-tool color picker      ← lips, eyes, brows, cheeks, nails
+Per-tool finish            ← matte / satin / gloss (lips)
+Per-tool intensity slider
+Reset tool / Clear all tools
+Before/after slider against the baseline
+Undo / redo per tool state
+Erase/restore brush on the mask correction layer
 ```
 
 Keep canvas movement local. Do not write every drag movement to Convex.
@@ -320,10 +328,12 @@ render_prompt
 ### Preview mode
 
 ```
-Fast / Cheap / In-browser / Layer based / Editable
+Fast / Cheap / In-browser / Landmark-anchored / Editable
 ```
 
-Used for: hair overlays, makeup color, nail color, clothing rough placement.
+Used for: makeup color (lips, brows, eyes, cheeks) and nail color — tinted in
+the browser, clipped to MediaPipe FaceLandmarker polygons. No free-position
+overlays. Cost: zero per change.
 
 ### Render mode
 
@@ -331,7 +341,10 @@ Used for: hair overlays, makeup color, nail color, clothing rough placement.
 Slower / Costs money / Calls AI image provider / Returns polished realistic image
 ```
 
-Triggered only by user button: `Render Look`
+Triggered only by user button: `Render Look`. Used for every geometry-changing
+change: beard, mustache, hairstyle, clothing try-on. Input is the _flattened_
+canvas (baseline + applied color tints), so AI renders stack on top of
+whatever makeup the user already applied.
 
 ---
 
@@ -537,6 +550,151 @@ result reuses the Phase 6 `RenderResult` component, now lifted to
 
 ---
 
+## Studio Redesign (Phases 8–12)
+
+The first seven phases got the app to "see yourself + drop draggable
+overlays". Phase 4 cut a corner: it shipped free-position SVG sample
+overlays instead of landmark-anchored tools, which makes the studio feel
+like collage. Phases 8–12 fix that and finish promises PLAN.md already
+made but earlier phases skipped.
+
+Order: **Phase 12 → 8 → 9 → 10 → 11**. Phase 12 lands first because Phase 8
+churns the avatar schema and doubles the storage footprint per avatar —
+cascade-delete needs to exist before that lands so we don't accumulate
+orphan blobs.
+
+Q1 / Q3 interpretation (2026-05-20 planning): generate the canonical baseline
+**and** compute landmarks/masks against that baseline. Q1 rejected the
+"smart-masked original photo" base, not MediaPipe entirely; Q3 needs landmarks
+to drive the live color preview. Running landmarks on the _baseline_ (not the
+upload) means the geometry matches what the user sees in the canvas.
+
+### Phase 12 — Privacy & lifecycle
+
+Cascade-delete avatars, allow account deletion, sweep stale renders + recent
+items via crons. Lands first so Phase 8's new storage footprint doesn't leak.
+
+Scope:
+
+- `deleteAvatar` mutation — cascades source photos, baseline, thumbnail,
+  recentItems (+ imageStorageId), savedLooks (+ previewStorageId,
+  renderStorageId), renderJobs (+ resultStorageId).
+- `updateAvatar` mutation — rename only.
+- `deleteAccount` mutation — cascades every avatar (via the same path) plus
+  uploadedItems, then deletes the Convex Auth identity.
+- `convex/crons.ts`:
+  - hourly: delete renderJobs older than 14 days that were never promoted to
+    a savedLook (+ resultStorageId);
+  - daily: delete recentItems older than 30 days (+ imageStorageId).
+- `AvatarCard` gets a three-dot menu (rename / delete with confirm).
+- `/settings` Account section: real avatar list with delete + a Delete
+  account dialog. Drop the `ComingSoon` placeholder.
+
+### Phase 8 — Multi-photo avatar + canonical baseline
+
+Goal: User uploads 1–5 photos; the studio canvas is a Gemini-generated
+canonical portrait, not the raw selfie.
+
+Scope:
+
+- Schema: add `sourcePhotoStorageIds: v.array(v.id('_storage'))`,
+  `baselineStatus`, `baselineErrorMessage`. Repurpose `baseImageStorageId` to
+  the _generated baseline_ (no longer the upload).
+- `AvatarUploader` becomes a multi-file picker (1–5) with per-file thumbnail
+  - remove. Each file goes through the existing
+    `processAvatarImage` (compress + EXIF-strip).
+- `createAvatar` accepts the storage-ID array, inserts the row in
+  `baselineStatus: 'queued'`, schedules `internal.ai.generateAvatarBaseline`.
+- New action `generateAvatarBaseline`: fetches all source photo bytes; calls
+  Gemini Flash Image with a fixed studio-portrait prompt + 1–5 inline images;
+  stores the result as the baseline; flips status to `done`. On failure
+  records `baselineErrorMessage` and flips to `failed`. Source-photo blobs
+  are cleaned up if the schedule fails to even start.
+- Avatar list shows a "Preparing your portrait…" state while
+  `baselineStatus !== 'done'`. Studio gates entry until ready.
+- Cascade-delete from Phase 12 extended to walk `sourcePhotoStorageIds`.
+
+Cost: 1 Flash Image call per avatar (max 3 per user). Stays well inside the
+free tier for personal use.
+
+### Phase 9 — Landmarks + masks (finish Phase 3's promise)
+
+Goal: populate the `landmarksJson` / `masksJson` fields the schema already
+declares but Phase 3 left empty.
+
+Library: `@mediapipe/tasks-vision` (current Tasks Web API — not the legacy
+`face-mesh` package). Lazy-loaded inside the studio chunk only.
+
+Scope:
+
+- `src/lib/mediapipe/face.ts` — `runFaceLandmarker(image)` returns 478 points
+  - per-feature polygons (lipsOuter, lipsInner, leftEye, rightEye, leftBrow,
+    rightBrow, leftCheek, rightCheek, faceOval).
+- `src/lib/mediapipe/segmentation.ts` — `runImageSegmenter(image)` returns
+  hair / skin / background masks (multiclass selfie segmenter).
+- Studio runs both once on the baseline after Phase 8 completes, then writes
+  the serialized JSON via a new `saveAvatarLandmarks` mutation.
+- IndexedDB cache keyed by `avatarId + baselineStorageId` so subsequent
+  visits skip recompute.
+- Mask correction brush: when MediaPipe's polygon misses (e.g. clips through
+  a mole), a brush on the mask correction layer adds/removes coverage. The
+  correction is persisted with the landmarks.
+
+Privacy: MediaPipe runs entirely in-browser. Only serialized JSON crosses
+the wire; no per-pixel masks are uploaded to Convex.
+
+### Phase 10 — Feature-anchored studio (replaces Phase 4 layers)
+
+Goal: real-feeling makeup application, AI render for everything else.
+
+Delete:
+
+- `src/lib/studio/sample-overlays.ts`
+- The free-position drag / `Konva.Transformer` machinery in `StudioCanvas`
+- `src/components/studio/style-palette.tsx` (Hair/Makeup/Nails drag-anywhere tabs)
+- `src/components/studio/layer-controls.tsx` opacity/remove on draggable layers
+
+Build (color tools — live in-browser preview, zero AI cost per change):
+
+- `LipColorTool` — Konva `Path` from lipsOuter minus lipsInner, blended with
+  the baseline via `globalCompositeOperation: 'multiply'`. Finish toggle:
+  matte / satin / gloss (highlight overlay polygon).
+- `EyeshadowTool` — path between brow and eye polygons; multiply blend +
+  intensity slider.
+- `BlushTool` — feathered radial gradient clipped to cheek region.
+- `BrowTintTool` — path along brow polygon; color + opacity.
+- (Nail tool needs hand landmarks — defer.)
+
+Build (geometry tools — AI render only, no drag handles):
+
+- `BeardTool`, `MustacheTool`, `HairstyleTool` are prompt-builders.
+  Categorical pickers (e.g. _full / goatee / stubble_; _pixie / bob /
+  undercut / waves_) + optional free-text input.
+- On render click, the Konva stage is exported to PNG, uploaded to Convex
+  storage, and passed to Gemini Flash Image as the input image. Tints
+  baked-in to the AI render input means beards land on top of any lipstick
+  the user already chose.
+- `renderLookWithGemini` accepts an optional `inputStorageId` override; if
+  present, reads from there instead of `avatar.baseImageStorageId`.
+
+State: a single typed `studioState` (lip / eye / brow / cheek entries +
+queued geometry prompts) replaces per-layer identity. Save look writes both
+the flattened-preview PNG and the AI-rendered PNG to `savedLooks`.
+
+### Phase 11 — Studio polish ✅ Done
+
+- `recentItems` deleted entirely (table, queries, mutation, cron). With
+  Phase 10 there's nothing left to "remember" per-avatar — saved looks are
+  the durable artefact. Cleaner schema, less storage to GC.
+- Before/after slider — vertical wipe across the canvas. Tints are clipped
+  to the right of the handle; the left half shows the canonical baseline.
+- Studio sidebar reorganized in Phase 10: Lips / Eyes / Brows / Cheeks /
+  Beard / Mustache / Hair / Uploads.
+- Undo / redo deferred — `Reset all tools` covers most "I want to start
+  over" cases. Pick up when granular history pays its own complexity cost.
+
+---
+
 ## Low-Budget Strategy
 
 Do in browser: image resize, compression, landmark detection, preview canvas,
@@ -617,6 +775,14 @@ These apply to **every** change in this repo. `pnpm check` is the gate.
 - **LLM cost stance:** default to the cheapest model that can still do the
   job. Phase 5 uses Gemini 2.5 Flash Lite. Never pick a more expensive
   model without an explicit signal that quality is insufficient.
+- **MediaPipe (Phase 9):** `@mediapipe/tasks-vision` (current Tasks Web API).
+  FaceLandmarker for per-feature polygons + ImageSegmenter for hair/skin
+  masks, both running in-browser only. JSON-only persistence; no per-pixel
+  masks uploaded.
+- **Canonical baseline (Phase 8):** Gemini 2.5 Flash Image generates a single
+  clean studio portrait from 1–5 source photos at avatar creation. That
+  baseline is the canvas — landmarks, makeup tints, and AI renders all
+  operate on it, not on the raw upload.
 
 ## Manual Setup Steps (run once)
 
@@ -626,9 +792,8 @@ npx convex dev          # provisions the Convex deployment (interactive login)
 npx @convex-dev/auth    # generates JWT keys + SITE_URL for Convex Auth
 ```
 
-Add provider keys to the Convex deployment when reaching Phase 5/6:
+Add the Gemini API key to the Convex deployment (Phases 5/6/8 all use it):
 
 ```
 npx convex env set GEMINI_API_KEY <key>
-npx convex env set FAL_API_KEY <key>
 ```

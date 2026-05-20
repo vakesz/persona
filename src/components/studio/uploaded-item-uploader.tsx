@@ -11,6 +11,11 @@ export interface UploadedItemUploaderProps {
   onUploaded: (id: Id<'uploadedItems'>) => void;
 }
 
+/**
+ * Square "+ Upload" tile that triggers a file picker and uploads a clothing or
+ * accessory reference into `uploadedItems`. Re-uses the existing avatar image
+ * compression pipeline so EXIF + dimensions are stripped before upload.
+ */
 export function UploadedItemUploader({ onUploaded }: UploadedItemUploaderProps) {
   const generateUploadUrl = useMutation(api.storage.generateUploadUrl);
   const createUploadedItem = useMutation(api.uploadedItems.createUploadedItem);
@@ -25,7 +30,6 @@ export function UploadedItemUploader({ onUploaded }: UploadedItemUploaderProps) 
     const picked = event.currentTarget.files?.[0];
     if (picked === undefined) return;
     void upload(picked);
-    // Reset so the same file can be re-selected if the upload failed.
     event.currentTarget.value = '';
   };
 
@@ -71,9 +75,9 @@ export function UploadedItemUploader({ onUploaded }: UploadedItemUploaderProps) 
         type="button"
         onClick={handleClick}
         disabled={busy}
-        className="border-border hover:border-foreground/40 flex w-24 shrink-0 flex-col items-center justify-center gap-2 rounded-md border border-dashed p-2 text-center transition disabled:opacity-50"
+        className="border-border hover:border-foreground/40 flex aspect-square w-full flex-col items-center justify-center gap-2 rounded-md border border-dashed p-2 text-center transition disabled:opacity-50"
       >
-        <div className="bg-muted text-muted-foreground flex h-16 w-full items-center justify-center rounded">
+        <div className="bg-muted text-muted-foreground flex h-12 w-full items-center justify-center rounded">
           {busy ? <Loader2 className="size-5 animate-spin" /> : <Plus className="size-5" />}
         </div>
         <span className="text-xs leading-tight">Upload</span>

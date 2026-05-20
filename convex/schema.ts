@@ -9,15 +9,6 @@ import { v } from 'convex/values';
  * by Convex Auth. App tables below reference `users` by id and are always
  * scoped to their owner — every query/mutation must enforce owner-only access.
  */
-export const itemType = v.union(
-  v.literal('hair'),
-  v.literal('nails'),
-  v.literal('makeup'),
-  v.literal('clothes'),
-  v.literal('shoes'),
-  v.literal('accessory'),
-);
-
 export const renderStatus = v.union(
   v.literal('queued'),
   v.literal('processing'),
@@ -32,24 +23,25 @@ export default defineSchema({
     userId: v.id('users'),
     name: v.string(),
     type: v.union(v.literal('selfie'), v.literal('full_body')),
-    baseImageStorageId: v.id('_storage'),
+    // 1–5 raw uploads (Phase 8+). Optional so pre-Phase-8 rows still
+    // validate; those rows treat the original `baseImageStorageId` as the
+    // ready-made baseline. New rows always set this.
+    sourcePhotoStorageIds: v.optional(v.array(v.id('_storage'))),
+    // Canonical baseline portrait — Gemini-generated from the source photos.
+    // Optional because it's filled async after avatar creation; the studio
+    // gates on `baselineStatus === 'done'`.
+    baseImageStorageId: v.optional(v.id('_storage')),
     thumbnailStorageId: v.optional(v.id('_storage')),
     landmarksJson: v.optional(v.string()),
     masksJson: v.optional(v.string()),
+    // Optional for the same reason as `sourcePhotoStorageIds` — legacy rows
+    // are treated as `'done'` on read. New rows always set this field.
+    baselineStatus: v.optional(
+      v.union(v.literal('queued'), v.literal('processing'), v.literal('done'), v.literal('failed')),
+    ),
+    baselineErrorMessage: v.optional(v.string()),
     updatedAt: v.number(),
   }).index('by_user', ['userId']),
-
-  recentItems: defineTable({
-    userId: v.id('users'),
-    avatarId: v.id('avatars'),
-    type: itemType,
-    source: v.union(v.literal('uploaded'), v.literal('generated'), v.literal('suggested')),
-    prompt: v.optional(v.string()),
-    imageStorageId: v.optional(v.id('_storage')),
-    settingsJson: v.optional(v.string()),
-  })
-    .index('by_user', ['userId'])
-    .index('by_avatar', ['avatarId']),
 
   savedLooks: defineTable({
     userId: v.id('users'),

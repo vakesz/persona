@@ -207,10 +207,116 @@ interface GeminiImageResponse {
   promptFeedback?: { blockReason?: string };
 }
 
+const BASELINE_INSTRUCTION = `Generate a single clean studio portrait of the person shown in the attached reference photo(s). Strict requirements:
+- Front-facing, head and upper shoulders in frame.
+- Neutral, relaxed expression (slight pleasant resting face, mouth closed).
+- Even, diffuse studio lighting; no harsh shadows.
+- Plain neutral light-grey background.
+- No visible makeup. Clean, natural skin tone.
+- Hair styled naturally and away from the face — no styling product, no accessories.
+- Photorealistic, sharp focus, no painterly effects.
+- Preserve identity exactly: same face shape, eye colour, hair colour and length, skin tone, apparent age as the reference photos. Use all references to infer 3D shape if multiple were provided.
+Return only the generated portrait image — no text, no decorations.`;
+
+export const generateAvatarBaseline = internalAction({
+  args: { avatarId: v.id('avatars') },
+  returns: v.null(),
+  handler: async (ctx, { avatarId }) => {
+    const apiKey = process.env['GEMINI_API_KEY'];
+    if (apiKey === undefined || apiKey === '') {
+      await ctx.runMutation(internal.avatars.markBaselineFailed, {
+        id: avatarId,
+        errorMessage: 'GEMINI_API_KEY is not configured.',
+      });
+      return null;
+    }
+
+    const avatar = await ctx.runQuery(internal.avatars.getAvatarForBaseline, { id: avatarId });
+    if (avatar === null) return null;
+    // Avatar was deleted between schedule and run, or status moved on. Bail.
+    if (avatar.baselineStatus !== 'queued' && avatar.baselineStatus !== 'failed') {
+      return null;
+    }
+
+    await ctx.runMutation(internal.avatars.markBaselineProcessing, { id: avatarId });
+
+    try {
+      const parts: { text?: string; inlineData?: { mimeType: string; data: string } }[] = [
+        { text: BASELINE_INSTRUCTION },
+      ];
+      for (const storageId of avatar.sourcePhotoStorageIds) {
+        const blob = await ctx.storage.get(storageId);
+        if (blob === null) {
+          throw new Error('A source photo is missing from storage.');
+        }
+        const mime = blob.type === '' ? 'image/jpeg' : blob.type;
+        const base64 = bytesToBase64(new Uint8Array(await blob.arrayBuffer()));
+        parts.push({ inlineData: { mimeType: mime, data: base64 } });
+      }
+
+      const model = process.env['CONVEX_GEMINI_IMAGE_MODEL'] ?? DEFAULT_GEMINI_IMAGE_MODEL;
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ role: 'user', parts }],
+            generationConfig: {
+              responseModalities: ['IMAGE'],
+              temperature: 0.4,
+            },
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `Baseline generation failed (HTTP ${response.status}): ${errorText.slice(0, 200)}`,
+        );
+      }
+
+      const data = (await response.json()) as GeminiImageResponse;
+      const blockReason = data.promptFeedback?.blockReason;
+      if (blockReason !== undefined) {
+        throw new Error(`Baseline generation was blocked: ${blockReason}`);
+      }
+
+      const imagePart = data.candidates?.[0]?.content?.parts?.find(
+        (part) => part.inlineData?.data !== undefined,
+      );
+      const inlineData = imagePart?.inlineData;
+      if (inlineData?.data === undefined) {
+        throw new Error('Baseline generation returned no image.');
+      }
+
+      const outputMime = inlineData.mimeType ?? 'image/png';
+      const outputBuffer = base64ToArrayBuffer(inlineData.data);
+      const outputBlob = new Blob([outputBuffer], { type: outputMime });
+      const baseImageStorageId = await ctx.storage.store(outputBlob);
+
+      await ctx.runMutation(internal.avatars.markBaselineDone, {
+        id: avatarId,
+        baseImageStorageId,
+      });
+    } catch (error) {
+      console.error('Baseline generation failed:', error);
+      await ctx.runMutation(internal.avatars.markBaselineFailed, {
+        id: avatarId,
+        errorMessage: error instanceof Error ? error.message : 'Baseline generation failed.',
+      });
+    }
+
+    return null;
+  },
+});
+
 interface RenderInputJson {
   prompt: string;
   title?: string;
   referenceUploadedItemId?: string;
+  inputStorageId?: string;
 }
 
 const RENDER_INSTRUCTION = (prompt: string) =>
@@ -238,23 +344,31 @@ export const renderLookWithGemini = internalAction({
     await ctx.runMutation(internal.renderJobs.markRenderJobProcessing, { id: jobId });
 
     try {
-      const avatar = await ctx.runQuery(internal.avatars.getAvatarStorageForUser, {
-        id: job.avatarId,
-        userId: job.userId,
-      });
-      if (avatar === null) {
-        throw new Error('Avatar not found.');
-      }
-
-      const blob = await ctx.storage.get(avatar.baseImageStorageId);
-      if (blob === null) {
-        throw new Error('Avatar image is missing from storage.');
-      }
-      const inputMime = blob.type === '' ? 'image/jpeg' : blob.type;
-      const inputBase64 = bytesToBase64(new Uint8Array(await blob.arrayBuffer()));
-
       const input = JSON.parse(job.inputJson) as RenderInputJson;
       const prompt = input.prompt;
+
+      // Prefer the studio's flattened canvas (baseline + tints) if the client
+      // uploaded one — that way AI renders stack on top of makeup. Otherwise
+      // fall back to the canonical baseline.
+      let inputBlob: Blob | null = null;
+      if (input.inputStorageId !== undefined) {
+        inputBlob = await ctx.storage.get(input.inputStorageId as Id<'_storage'>);
+      }
+      if (inputBlob === null) {
+        const avatar = await ctx.runQuery(internal.avatars.getAvatarStorageForUser, {
+          id: job.avatarId,
+          userId: job.userId,
+        });
+        if (avatar === null) {
+          throw new Error('Avatar not found.');
+        }
+        inputBlob = await ctx.storage.get(avatar.baseImageStorageId);
+        if (inputBlob === null) {
+          throw new Error('Avatar image is missing from storage.');
+        }
+      }
+      const inputMime = inputBlob.type === '' ? 'image/jpeg' : inputBlob.type;
+      const inputBase64 = bytesToBase64(new Uint8Array(await inputBlob.arrayBuffer()));
 
       const parts: { text?: string; inlineData?: { mimeType: string; data: string } }[] = [];
       if (input.referenceUploadedItemId !== undefined) {
@@ -333,8 +447,28 @@ export const renderLookWithGemini = internalAction({
         id: jobId,
         errorMessage: error instanceof Error ? error.message : 'Render failed.',
       });
+    } finally {
+      // Single-use studio canvas snapshot — free the storage blob whichever
+      // way the action exited (success or failure). Doesn't apply to the
+      // avatar baseline or uploaded reference items, which are owned blobs.
+      const parsedInput = safeParseInput(job.inputJson);
+      if (parsedInput?.inputStorageId !== undefined) {
+        try {
+          await ctx.storage.delete(parsedInput.inputStorageId as Id<'_storage'>);
+        } catch (cleanupError) {
+          console.warn('Render input cleanup failed:', cleanupError);
+        }
+      }
     }
 
     return null;
   },
 });
+
+function safeParseInput(json: string): RenderInputJson | null {
+  try {
+    return JSON.parse(json) as RenderInputJson;
+  } catch {
+    return null;
+  }
+}

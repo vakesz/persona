@@ -1,18 +1,41 @@
 import type Konva from 'konva';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Image as KonvaImage, Layer, Stage, Transformer } from 'react-konva';
+import {
+  type ForwardedRef,
+  forwardRef,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { Group, Image as KonvaImage, Layer, Path, Stage } from 'react-konva';
 
-import type { CanvasLayer } from '@/lib/studio/layers';
-import { useImage } from '@/lib/studio/use-image';
+import type { FaceLandmarksResult } from '@/lib/mediapipe/face';
+import {
+  CHEEK_ANCHORS,
+  FACE_POLYGON_INDICES,
+  landmarkAt,
+  polygonPoints,
+  polygonsToPathData,
+} from '@/lib/studio/face-polygons';
+import type { ColorTint, StudioState } from '@/lib/studio/studio-state';
+
+export interface StudioCanvasHandle {
+  /** Exports the current visible composition (baseline + tints) as a PNG blob. */
+  exportPng: () => Promise<Blob | null>;
+}
 
 export interface StudioCanvasProps {
-  baseImageUrl: string;
+  baseImage: HTMLImageElement | null;
   altText: string;
-  layers: CanvasLayer[];
-  selectedLayerId: string | null;
-  onSelectLayer: (id: string | null) => void;
-  onLayerChange: (id: string, patch: Partial<CanvasLayer>) => void;
-  onStageReady: (size: { width: number; height: number }) => void;
+  face: FaceLandmarksResult | null;
+  state: StudioState;
+  /**
+   * Before/after wipe position, 0..1 in image-x. Pixels to the LEFT of this
+   * line show the baseline only (no tints). 0 = no wipe (fully tinted),
+   * 1 = full baseline (no tints visible).
+   */
+  compareSliderX: number;
 }
 
 const MIN_SCALE = 0.25;
@@ -28,23 +51,18 @@ interface PinchState {
   distance: number;
 }
 
-export function StudioCanvas({
-  baseImageUrl,
-  altText,
-  layers,
-  selectedLayerId,
-  onSelectLayer,
-  onLayerChange,
-  onStageReady,
-}: StudioCanvasProps) {
+export const StudioCanvas = forwardRef(StudioCanvasInner);
+
+function StudioCanvasInner(
+  { baseImage, altText, face, state, compareSliderX }: StudioCanvasProps,
+  ref: ForwardedRef<StudioCanvasHandle>,
+) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<Konva.Stage>(null);
-  const transformerRef = useRef<Konva.Transformer>(null);
-  const layerNodes = useRef(new Map<string, Konva.Image>());
+  const exportGroupRef = useRef<Konva.Group>(null);
   const pinchRef = useRef<PinchState | null>(null);
 
   const [size, setSize] = useState<ContainerSize | null>(null);
-  const baseImage = useImage(baseImageUrl);
 
   useEffect(() => {
     const wrapper = wrapperRef.current;
@@ -52,15 +70,13 @@ export function StudioCanvas({
     const observer = new ResizeObserver((entries) => {
       const entry = entries[0];
       if (entry === undefined) return;
-      const next = { width: entry.contentRect.width, height: entry.contentRect.height };
-      setSize(next);
-      onStageReady(next);
+      setSize({ width: entry.contentRect.width, height: entry.contentRect.height });
     });
     observer.observe(wrapper);
     return () => {
       observer.disconnect();
     };
-  }, [onStageReady]);
+  }, []);
 
   const initialFit = useMemo(() => {
     if (size === null || baseImage === null) return null;
@@ -75,17 +91,33 @@ export function StudioCanvas({
     };
   }, [size, baseImage]);
 
+  // Expose the export-to-PNG handle. Konva's `toBlob` renders the current
+  // visible state of the stage at native resolution; we crop to the baseline
+  // image so the output matches the upload (no chrome, no whitespace).
   useEffect(() => {
-    const transformer = transformerRef.current;
-    if (transformer === null) return;
-    if (selectedLayerId === null) {
-      transformer.nodes([]);
+    if (ref === null) return;
+    const handle: StudioCanvasHandle = {
+      exportPng: async () => {
+        const group = exportGroupRef.current;
+        if (group === null || baseImage === null) return null;
+        const dataUrl = group.toDataURL({
+          x: group.getClientRect({ skipTransform: true }).x,
+          y: group.getClientRect({ skipTransform: true }).y,
+          width: baseImage.naturalWidth,
+          height: baseImage.naturalHeight,
+          pixelRatio: 1,
+          mimeType: 'image/png',
+        });
+        const response = await fetch(dataUrl);
+        return await response.blob();
+      },
+    };
+    if (typeof ref === 'function') {
+      ref(handle);
     } else {
-      const node = layerNodes.current.get(selectedLayerId);
-      transformer.nodes(node === undefined ? [] : [node]);
+      ref.current = handle;
     }
-    transformer.getLayer()?.batchDraw();
-  }, [selectedLayerId, layers]);
+  }, [ref, baseImage]);
 
   const zoomAroundPoint = useCallback((clientX: number, clientY: number, factor: number) => {
     const stage = stageRef.current;
@@ -125,29 +157,18 @@ export function StudioCanvas({
     if (t1 === undefined || t2 === undefined) return;
 
     const distance = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
-    const centerClient = {
-      x: (t1.clientX + t2.clientX) / 2,
-      y: (t1.clientY + t2.clientY) / 2,
-    };
-
+    const centerClient = { x: (t1.clientX + t2.clientX) / 2, y: (t1.clientY + t2.clientY) / 2 };
     const previous = pinchRef.current;
     if (previous === null) {
       pinchRef.current = { distance };
       return;
     }
-
     zoomAroundPoint(centerClient.x, centerClient.y, distance / previous.distance);
     pinchRef.current = { distance };
   };
 
   const handleTouchEnd = () => {
     pinchRef.current = null;
-  };
-
-  const handleBackgroundClick = (event: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => {
-    if (event.target === event.target.getStage()) {
-      onSelectLayer(null);
-    }
   };
 
   return (
@@ -164,48 +185,52 @@ export function StudioCanvas({
           onWheel={handleWheel}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          onMouseDown={handleBackgroundClick}
-          onTouchStart={handleBackgroundClick}
         >
           <Layer>
-            <KonvaImage
-              image={baseImage}
+            <Group
+              ref={exportGroupRef}
               x={initialFit.x}
               y={initialFit.y}
               scaleX={initialFit.scale}
               scaleY={initialFit.scale}
-              alt={altText}
-              listening={false}
-            />
-            {layers.map((layer) => (
-              <LayerImage
-                key={layer.id}
-                layer={layer}
-                isSelected={selectedLayerId === layer.id}
-                onSelect={() => {
-                  onSelectLayer(layer.id);
-                }}
-                onChange={(patch) => {
-                  onLayerChange(layer.id, patch);
-                }}
-                registerNode={(node) => {
-                  if (node === null) {
-                    layerNodes.current.delete(layer.id);
-                  } else {
-                    layerNodes.current.set(layer.id, node);
-                  }
-                }}
+            >
+              <KonvaImage
+                image={baseImage}
+                x={0}
+                y={0}
+                width={baseImage.naturalWidth}
+                height={baseImage.naturalHeight}
+                alt={altText}
+                listening={false}
               />
-            ))}
-            <Transformer
-              ref={transformerRef}
-              rotateEnabled
-              keepRatio
-              boundBoxFunc={(_oldBox, newBox) => {
-                if (newBox.width < 10 || newBox.height < 10) return _oldBox;
-                return newBox;
-              }}
-            />
+              {face !== null && (
+                <Group
+                  clipX={compareSliderX * baseImage.naturalWidth}
+                  clipY={0}
+                  clipWidth={Math.max(
+                    0,
+                    baseImage.naturalWidth - compareSliderX * baseImage.naturalWidth,
+                  )}
+                  clipHeight={baseImage.naturalHeight}
+                >
+                  <TintLayer
+                    face={face}
+                    state={state}
+                    imageWidth={baseImage.naturalWidth}
+                    imageHeight={baseImage.naturalHeight}
+                  />
+                </Group>
+              )}
+              {compareSliderX > 0 && compareSliderX < 1 && (
+                <Path
+                  data={`M ${(compareSliderX * baseImage.naturalWidth).toString()} 0 L ${(compareSliderX * baseImage.naturalWidth).toString()} ${baseImage.naturalHeight.toString()}`}
+                  stroke="#ffffff"
+                  strokeWidth={Math.max(2, baseImage.naturalWidth * 0.003)}
+                  opacity={0.85}
+                  listening={false}
+                />
+              )}
+            </Group>
           </Layer>
         </Stage>
       )}
@@ -213,46 +238,128 @@ export function StudioCanvas({
   );
 }
 
-interface LayerImageProps {
-  layer: CanvasLayer;
-  isSelected: boolean;
-  onSelect: () => void;
-  onChange: (patch: Partial<CanvasLayer>) => void;
-  registerNode: (node: Konva.Image | null) => void;
+interface TintLayerProps {
+  face: FaceLandmarksResult;
+  state: StudioState;
+  imageWidth: number;
+  imageHeight: number;
 }
 
-function LayerImage({ layer, isSelected, onSelect, onChange, registerNode }: LayerImageProps) {
-  const image = useImage(layer.imageUrl);
-  if (image === null) return null;
+function TintLayer({ face, state, imageWidth, imageHeight }: TintLayerProps) {
+  const lipData = useMemo(() => {
+    if (!state.lip.enabled) return null;
+    const outer = polygonPoints(face, FACE_POLYGON_INDICES.lipsOuter, imageWidth, imageHeight);
+    const inner = polygonPoints(face, FACE_POLYGON_INDICES.lipsInner, imageWidth, imageHeight);
+    return polygonsToPathData([outer, inner]);
+  }, [face, state.lip.enabled, imageWidth, imageHeight]);
+
+  const eyeshadowData = useMemo(() => {
+    if (!state.eyeshadow.enabled) return null;
+    const left = polygonPoints(face, FACE_POLYGON_INDICES.leftEyeshadow, imageWidth, imageHeight);
+    const right = polygonPoints(face, FACE_POLYGON_INDICES.rightEyeshadow, imageWidth, imageHeight);
+    return polygonsToPathData([left, right]);
+  }, [face, state.eyeshadow.enabled, imageWidth, imageHeight]);
+
+  const browData = useMemo(() => {
+    if (!state.browTint.enabled) return null;
+    const left = polygonPoints(face, FACE_POLYGON_INDICES.leftBrow, imageWidth, imageHeight);
+    const right = polygonPoints(face, FACE_POLYGON_INDICES.rightBrow, imageWidth, imageHeight);
+    return polygonsToPathData([left, right]);
+  }, [face, state.browTint.enabled, imageWidth, imageHeight]);
+
+  const blushAnchors = useMemo(() => {
+    if (!state.blush.enabled) return null;
+    const left = landmarkAt(face, CHEEK_ANCHORS.left, imageWidth, imageHeight);
+    const right = landmarkAt(face, CHEEK_ANCHORS.right, imageWidth, imageHeight);
+    return { left, right };
+  }, [face, state.blush.enabled, imageWidth, imageHeight]);
+
   return (
-    <KonvaImage
-      ref={registerNode}
-      image={image}
-      x={layer.x}
-      y={layer.y}
-      scaleX={layer.scaleX}
-      scaleY={layer.scaleY}
-      rotation={layer.rotation}
-      opacity={layer.opacity}
-      draggable
-      onMouseDown={onSelect}
-      onTouchStart={onSelect}
-      onDragEnd={(event) => {
-        onChange({ x: event.target.x(), y: event.target.y() });
-      }}
-      onTransformEnd={(event) => {
-        const node = event.target;
-        onChange({
-          x: node.x(),
-          y: node.y(),
-          scaleX: node.scaleX(),
-          scaleY: node.scaleY(),
-          rotation: node.rotation(),
-        });
-      }}
-      {...(isSelected && { shadowColor: '#3b82f6', shadowBlur: 4, shadowOpacity: 0.6 })}
-    />
+    <>
+      {lipData !== null && (
+        <Path
+          data={lipData}
+          fill={state.lip.color}
+          opacity={state.lip.intensity}
+          fillRule="evenodd"
+          globalCompositeOperation="multiply"
+          listening={false}
+        />
+      )}
+      {state.lip.enabled && state.lip.finish !== 'matte' && lipData !== null && (
+        <Path
+          data={lipData}
+          fill="#ffffff"
+          opacity={state.lip.finish === 'gloss' ? 0.18 : 0.08}
+          fillRule="evenodd"
+          globalCompositeOperation="overlay"
+          listening={false}
+        />
+      )}
+      {eyeshadowData !== null && (
+        <Path
+          data={eyeshadowData}
+          fill={state.eyeshadow.color}
+          opacity={state.eyeshadow.intensity}
+          globalCompositeOperation="multiply"
+          listening={false}
+        />
+      )}
+      {browData !== null && (
+        <Path
+          data={browData}
+          fill={state.browTint.color}
+          opacity={state.browTint.intensity}
+          globalCompositeOperation="multiply"
+          listening={false}
+        />
+      )}
+      {blushAnchors !== null && (
+        <BlushSpots
+          anchors={blushAnchors}
+          tint={state.blush}
+          radius={Math.min(imageWidth, imageHeight) * 0.08}
+        />
+      )}
+    </>
   );
+}
+
+interface BlushSpotsProps {
+  anchors: {
+    left: { x: number; y: number } | null;
+    right: { x: number; y: number } | null;
+  };
+  tint: ColorTint;
+  radius: number;
+}
+
+function BlushSpots({ anchors, tint, radius }: BlushSpotsProps) {
+  const spots = [anchors.left, anchors.right].filter(
+    (anchor): anchor is { x: number; y: number } => anchor !== null,
+  );
+  return (
+    <>
+      {spots.map((anchor, index) => (
+        <Path
+          key={index}
+          data={ellipsePathData(anchor.x, anchor.y, radius, radius * 0.7)}
+          fill={tint.color}
+          opacity={tint.intensity}
+          globalCompositeOperation="multiply"
+          shadowColor={tint.color}
+          shadowBlur={radius * 0.4}
+          shadowOpacity={0.4}
+          listening={false}
+        />
+      ))}
+    </>
+  );
+}
+
+function ellipsePathData(cx: number, cy: number, rx: number, ry: number): string {
+  // SVG arc path for an ellipse: M (cx-rx) cy a rx ry 0 1 0 (2rx) 0 a rx ry 0 1 0 (-2rx) 0
+  return `M ${(cx - rx).toString()} ${cy.toString()} a ${rx.toString()} ${ry.toString()} 0 1 0 ${(rx * 2).toString()} 0 a ${rx.toString()} ${ry.toString()} 0 1 0 ${(-rx * 2).toString()} 0 Z`;
 }
 
 function clamp(value: number, min: number, max: number): number {
