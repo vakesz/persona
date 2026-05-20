@@ -230,6 +230,40 @@ export const deleteAvatar = mutation({
   },
 });
 
+/**
+ * Re-runs the Gemini baseline for an avatar that previously failed (e.g. quota
+ * 429). Owner-only; only valid in the `failed` state so we don't queue duplicate
+ * work while one is already running.
+ */
+export const retryAvatarBaseline = mutation({
+  args: { id: v.id('avatars') },
+  handler: async (ctx, { id }) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) {
+      throw new Error('Not authenticated.');
+    }
+    const avatar = await ctx.db.get(id);
+    if (avatar === null) {
+      throw new Error('Avatar not found.');
+    }
+    if (avatar.userId !== userId) {
+      throw new Error('Avatar not found.');
+    }
+    if (avatar.baselineStatus !== 'failed') {
+      throw new Error('Baseline is not in a failed state.');
+    }
+    if ((avatar.sourcePhotoStorageIds ?? []).length === 0) {
+      throw new Error('Avatar has no source photos to retry from.');
+    }
+    await ctx.db.patch(id, {
+      baselineStatus: 'queued',
+      baselineErrorMessage: undefined,
+      updatedAt: Date.now(),
+    });
+    await ctx.scheduler.runAfter(0, internal.ai.generateAvatarBaseline, { avatarId: id });
+  },
+});
+
 export const markBaselineProcessing = internalMutation({
   args: { id: v.id('avatars') },
   handler: async (ctx, { id }) => {

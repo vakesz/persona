@@ -24,6 +24,7 @@ import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
 
 export const Route = createFileRoute('/studio/$avatarId')({
+  parseParams: ({ avatarId }) => ({ avatarId: avatarId as Id<'avatars'> }),
   component: StudioPage,
 });
 
@@ -42,20 +43,14 @@ interface ActiveRender {
 
 function Studio() {
   const { avatarId } = Route.useParams();
-  const typedAvatarId = avatarId as Id<'avatars'>;
-  const avatar = useQuery(api.avatars.getAvatar, { id: typedAvatarId });
+  const avatar = useQuery(api.avatars.getAvatar, { id: avatarId });
   const uploads = useQuery(api.uploadedItems.listUploadedItems, {});
   const generateUploadUrl = useMutation(api.storage.generateUploadUrl);
   const createRenderJob = useMutation(api.renderJobs.createRenderJob);
   const deleteUploadedItem = useMutation(api.uploadedItems.deleteUploadedItem);
 
   const baselineImage = useImage(avatar?.baseImageUrl ?? '');
-  const face = useAvatarFace(
-    typedAvatarId,
-    baselineImage,
-    avatar?.landmarksJson,
-    avatar?.masksJson,
-  );
+  const face = useAvatarFace(avatarId, baselineImage, avatar?.landmarksJson, avatar?.masksJson);
 
   const [studioState, setStudioState] = useState<StudioState>(DEFAULT_STUDIO_STATE);
   const [activeRender, setActiveRender] = useState<ActiveRender | null>(null);
@@ -121,7 +116,7 @@ function Studio() {
       const prompt = composeRenderPrompt(studioState);
       const title = composeRenderTitle(studioState);
       const jobId = await createRenderJob({
-        avatarId: typedAvatarId,
+        avatarId,
         prompt,
         title,
         ...(studioState.selectedUploadId !== null && {
@@ -155,7 +150,7 @@ function Studio() {
                 <Link to="/avatars">All avatars</Link>
               </Button>
               <Button asChild variant="outline" size="sm">
-                <Link to="/stylist/$avatarId" params={{ avatarId: typedAvatarId }}>
+                <Link to="/stylist/$avatarId" params={{ avatarId }}>
                   Stylist
                 </Link>
               </Button>

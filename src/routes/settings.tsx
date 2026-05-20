@@ -89,7 +89,11 @@ function SettingsContent() {
         </CardContent>
       </Card>
 
-      <DeleteAccountDialog open={deleteOpen} onOpenChange={setDeleteOpen} />
+      <DeleteAccountDialog
+        key={deleteOpen ? 'open' : 'closed'}
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+      />
     </div>
   );
 }

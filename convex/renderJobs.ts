@@ -146,7 +146,7 @@ export const sweepStaleRenderJobs = internalMutation({
     const cutoff = Date.now() - RENDER_JOB_TTL_MS;
     const stale = await ctx.db
       .query('renderJobs')
-      .filter((q) => q.lt(q.field('updatedAt'), cutoff))
+      .withIndex('by_updatedAt', (q) => q.lt('updatedAt', cutoff))
       .collect();
     if (stale.length === 0) return;
 

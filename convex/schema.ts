@@ -64,7 +64,9 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index('by_user', ['userId'])
-    .index('by_avatar', ['avatarId']),
+    .index('by_avatar', ['avatarId'])
+    // Drives the hourly TTL sweep — see `sweepStaleRenderJobs` in renderJobs.ts.
+    .index('by_updatedAt', ['updatedAt']),
 
   uploadedItems: defineTable({
     userId: v.id('users'),

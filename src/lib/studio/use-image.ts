@@ -11,6 +11,10 @@ export function useImage(url: string): HTMLImageElement | null {
   const [image, setImage] = useState<HTMLImageElement | null>(null);
 
   useEffect(() => {
+    if (url === '') {
+      setImage(null);
+      return undefined;
+    }
     const img = new Image();
     img.crossOrigin = 'anonymous';
     let cancelled = false;

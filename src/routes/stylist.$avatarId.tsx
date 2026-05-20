@@ -16,6 +16,7 @@ import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
 
 export const Route = createFileRoute('/stylist/$avatarId')({
+  parseParams: ({ avatarId }) => ({ avatarId: avatarId as Id<'avatars'> }),
   component: StylistPage,
 });
 
@@ -41,8 +42,7 @@ interface ActiveRender {
 
 function Stylist() {
   const { avatarId } = Route.useParams();
-  const typedAvatarId = avatarId as Id<'avatars'>;
-  const avatar = useQuery(api.avatars.getAvatar, { id: typedAvatarId });
+  const avatar = useQuery(api.avatars.getAvatar, { id: avatarId });
   const analyze = useAction(api.ai.analyzeStyleWithGemini);
   const createRenderJob = useMutation(api.renderJobs.createRenderJob);
 
@@ -55,7 +55,7 @@ function Stylist() {
   const ask = async (next: string) => {
     setBusy(true);
     try {
-      const result = await analyze({ avatarId: typedAvatarId, question: next });
+      const result = await analyze({ avatarId, question: next });
       setRecommendations(result.recommendations);
     } catch (error) {
       console.error(error);
@@ -73,7 +73,7 @@ function Stylist() {
   const handleRender = (recommendation: Recommendation) => {
     setStartingRender(true);
     createRenderJob({
-      avatarId: typedAvatarId,
+      avatarId,
       prompt: recommendation.renderPrompt,
       title: recommendation.title,
     })
@@ -102,7 +102,7 @@ function Stylist() {
               </p>
             </div>
             <Button asChild variant="outline" size="sm">
-              <Link to="/studio/$avatarId" params={{ avatarId: typedAvatarId }}>
+              <Link to="/studio/$avatarId" params={{ avatarId }}>
                 Open studio
               </Link>
             </Button>
@@ -166,9 +166,9 @@ function Stylist() {
 
           {recommendations.length > 0 && (
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-              {recommendations.map((recommendation, index) => (
+              {recommendations.map((recommendation) => (
                 <RecommendationCard
-                  key={index}
+                  key={`${recommendation.styleType}:${recommendation.title}`}
                   recommendation={recommendation}
                   busy={startingRender || activeRender !== null}
                   onRender={() => {

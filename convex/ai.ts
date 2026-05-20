@@ -59,15 +59,41 @@ interface GeminiResponse {
   candidates?: GeminiCandidate[];
 }
 
+type StylistStyleType = 'hair' | 'makeup' | 'nails' | 'clothes';
+
 interface StylistRecommendation {
   title: string;
   description: string;
-  styleType: 'hair' | 'makeup' | 'nails' | 'clothes';
+  styleType: StylistStyleType;
   renderPrompt: string;
 }
 
-interface StylistResponse {
-  recommendations: StylistRecommendation[];
+function isStylistStyleType(value: unknown): value is StylistStyleType {
+  return value === 'hair' || value === 'makeup' || value === 'nails' || value === 'clothes';
+}
+
+function parseStylistRecommendation(item: unknown): StylistRecommendation {
+  if (typeof item !== 'object' || item === null) {
+    throw new Error('Stylist returned a malformed recommendation.');
+  }
+  if (!('title' in item) || typeof item.title !== 'string' || item.title.length === 0) {
+    throw new Error('Stylist returned a recommendation without a title.');
+  }
+  if (!('description' in item) || typeof item.description !== 'string') {
+    throw new Error('Stylist returned a recommendation without a description.');
+  }
+  if (!('renderPrompt' in item) || typeof item.renderPrompt !== 'string') {
+    throw new Error('Stylist returned a recommendation without a render prompt.');
+  }
+  if (!('styleType' in item) || !isStylistStyleType(item.styleType)) {
+    throw new Error('Stylist returned a recommendation with an unknown style type.');
+  }
+  return {
+    title: item.title,
+    description: item.description,
+    styleType: item.styleType,
+    renderPrompt: item.renderPrompt,
+  };
 }
 
 export const analyzeStyleWithGemini = action({
@@ -141,9 +167,7 @@ export const analyzeStyleWithGemini = action({
     );
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Gemini error:', response.status, errorText);
-      throw new Error(`Stylist call failed (HTTP ${response.status}).`);
+      throw new Error(await geminiErrorMessage('Stylist call', response));
     }
 
     const data = (await response.json()) as GeminiResponse;
@@ -152,27 +176,45 @@ export const analyzeStyleWithGemini = action({
       throw new Error('Stylist returned an empty response.');
     }
 
-    let parsed: StylistResponse;
+    let parsed: unknown;
     try {
-      parsed = JSON.parse(text) as StylistResponse;
+      parsed = JSON.parse(text);
     } catch {
       throw new Error('Stylist returned malformed JSON.');
     }
 
-    if (!Array.isArray(parsed.recommendations)) {
+    if (
+      typeof parsed !== 'object' ||
+      parsed === null ||
+      !('recommendations' in parsed) ||
+      !Array.isArray(parsed.recommendations)
+    ) {
       throw new Error('Stylist response is missing recommendations.');
     }
 
+    // Prompt asks for exactly 3. Trim defensively in case Gemini returns more.
     return {
-      recommendations: parsed.recommendations.slice(0, 5).map((item) => ({
-        title: item.title,
-        description: item.description,
-        styleType: item.styleType,
-        renderPrompt: item.renderPrompt,
-      })),
+      recommendations: parsed.recommendations.slice(0, 3).map(parseStylistRecommendation),
     };
   },
 });
+
+/**
+ * Maps a non-OK Gemini response to a user-readable message. The free tier
+ * for the image model is small enough that 429 is the dominant failure mode,
+ * so we surface it explicitly instead of dumping the JSON.
+ */
+async function geminiErrorMessage(operation: string, response: Response): Promise<string> {
+  if (response.status === 429) {
+    return `${operation} hit the Gemini free-tier quota. Try again later, or upgrade billing at https://aistudio.google.com.`;
+  }
+  if (response.status === 401 || response.status === 403) {
+    return `${operation} was rejected by Gemini (HTTP ${response.status.toString()}). Check that GEMINI_API_KEY is valid and has access to this model.`;
+  }
+  const errorText = await response.text().catch(() => '');
+  const trimmed = errorText.slice(0, 200);
+  return `${operation} failed (HTTP ${response.status.toString()})${trimmed === '' ? '.' : `: ${trimmed}`}`;
+}
 
 function bytesToBase64(bytes: Uint8Array): string {
   let binary = '';
@@ -271,10 +313,7 @@ export const generateAvatarBaseline = internalAction({
       );
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(
-          `Baseline generation failed (HTTP ${response.status}): ${errorText.slice(0, 200)}`,
-        );
+        throw new Error(await geminiErrorMessage('Baseline generation', response));
       }
 
       const data = (await response.json()) as GeminiImageResponse;
@@ -411,8 +450,7 @@ export const renderLookWithGemini = internalAction({
       );
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Render failed (HTTP ${response.status}): ${errorText.slice(0, 200)}`);
+        throw new Error(await geminiErrorMessage('Render', response));
       }
 
       const data = (await response.json()) as GeminiImageResponse;

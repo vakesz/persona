@@ -1,6 +1,6 @@
 import { useMutation } from 'convex/react';
 import { Loader2 } from 'lucide-react';
-import { type SyntheticEvent, useEffect, useState } from 'react';
+import { type SyntheticEvent, useState } from 'react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
@@ -23,14 +23,13 @@ export interface RenameAvatarDialogProps {
   onClose: () => void;
 }
 
+// Parent supplies `key={avatarId ?? 'closed'}` so this component remounts on
+// each open — that way `useState(currentName)` always starts from the latest
+// name without a derived-state effect.
 export function RenameAvatarDialog({ avatarId, currentName, onClose }: RenameAvatarDialogProps) {
   const updateAvatar = useMutation(api.avatars.updateAvatar);
   const [name, setName] = useState(currentName);
   const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => {
-    setName(currentName);
-  }, [currentName, avatarId]);
 
   const handleSubmit = (event: SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();

@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { useQuery } from 'convex/react';
+import { useMutation, useQuery } from 'convex/react';
 import { Loader2 } from 'lucide-react';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 import { AvatarCard } from '@/components/avatars/avatar-card';
 import { DeleteAvatarDialog } from '@/components/avatars/delete-avatar-dialog';
@@ -33,8 +34,22 @@ interface DialogTarget {
 
 function AvatarsList() {
   const avatars = useQuery(api.avatars.listAvatars);
+  const retryBaseline = useMutation(api.avatars.retryAvatarBaseline);
   const [renameTarget, setRenameTarget] = useState<DialogTarget | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DialogTarget | null>(null);
+  const [retryingId, setRetryingId] = useState<Id<'avatars'> | null>(null);
+
+  const handleRetry = (id: Id<'avatars'>) => {
+    setRetryingId(id);
+    retryBaseline({ id })
+      .catch((error: unknown) => {
+        console.error(error);
+        toast.error(error instanceof Error ? error.message : 'Could not retry.');
+      })
+      .finally(() => {
+        setRetryingId(null);
+      });
+  };
 
   if (avatars === undefined) {
     return (
@@ -87,18 +102,21 @@ function AvatarsList() {
               thumbnailUrl={avatar.thumbnailUrl}
               baselineStatus={avatar.baselineStatus}
               baselineErrorMessage={avatar.baselineErrorMessage}
+              retrying={retryingId === avatar._id}
               onRename={(id, name) => {
                 setRenameTarget({ id, name });
               }}
               onDelete={(id, name) => {
                 setDeleteTarget({ id, name });
               }}
+              onRetryBaseline={handleRetry}
             />
           ))}
         </div>
       )}
 
       <RenameAvatarDialog
+        key={`rename:${renameTarget?.id ?? 'closed'}`}
         avatarId={renameTarget?.id ?? null}
         currentName={renameTarget?.name ?? ''}
         onClose={() => {
@@ -106,6 +124,7 @@ function AvatarsList() {
         }}
       />
       <DeleteAvatarDialog
+        key={`delete:${deleteTarget?.id ?? 'closed'}`}
         avatarId={deleteTarget?.id ?? null}
         avatarName={deleteTarget?.name ?? ''}
         onClose={() => {

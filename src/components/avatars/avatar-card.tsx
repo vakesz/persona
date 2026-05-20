@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router';
-import { AlertCircle, Loader2, Pencil, Trash2, User, UserSquare2 } from 'lucide-react';
+import { AlertCircle, Loader2, Pencil, RefreshCcw, Trash2, User, UserSquare2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -14,8 +14,10 @@ export interface AvatarCardProps {
   thumbnailUrl: string | null;
   baselineStatus: AvatarBaselineStatus;
   baselineErrorMessage: string | undefined;
+  retrying: boolean;
   onRename: (id: Id<'avatars'>, name: string) => void;
   onDelete: (id: Id<'avatars'>, name: string) => void;
+  onRetryBaseline: (id: Id<'avatars'>) => void;
 }
 
 export function AvatarCard({
@@ -25,8 +27,10 @@ export function AvatarCard({
   thumbnailUrl,
   baselineStatus,
   baselineErrorMessage,
+  retrying,
   onRename,
   onDelete,
+  onRetryBaseline,
 }: AvatarCardProps) {
   const ready = baselineStatus === 'done';
   const failed = baselineStatus === 'failed';
@@ -51,7 +55,16 @@ export function AvatarCard({
               decoding="async"
             />
           )}
-          {!ready && <BaselineBadge status={baselineStatus} message={baselineErrorMessage} />}
+          {!ready && (
+            <BaselineBadge
+              status={baselineStatus}
+              message={baselineErrorMessage}
+              retrying={retrying}
+              onRetry={() => {
+                onRetryBaseline(id);
+              }}
+            />
+          )}
         </div>
       </ConditionalLink>
       <div className="flex items-center justify-between gap-2 px-4 py-3">
@@ -114,15 +127,21 @@ function ConditionalLink({ ready, avatarId, children }: ConditionalLinkProps) {
 interface BaselineBadgeProps {
   status: 'queued' | 'processing' | 'failed';
   message: string | undefined;
+  retrying: boolean;
+  onRetry: () => void;
 }
 
-function BaselineBadge({ status, message }: BaselineBadgeProps) {
+function BaselineBadge({ status, message, retrying, onRetry }: BaselineBadgeProps) {
   if (status === 'failed') {
     return (
       <div className="bg-background/80 absolute inset-0 flex flex-col items-center justify-center gap-2 p-4 text-center backdrop-blur-sm">
         <AlertCircle className="text-destructive size-6" />
         <p className="text-sm font-medium">Portrait generation failed</p>
         {message !== undefined && <p className="text-muted-foreground text-xs">{message}</p>}
+        <Button type="button" size="sm" variant="outline" onClick={onRetry} disabled={retrying}>
+          {retrying ? <Loader2 className="animate-spin" /> : <RefreshCcw />}
+          {retrying ? 'Retrying…' : 'Retry'}
+        </Button>
       </div>
     );
   }

@@ -44,16 +44,19 @@ export function AvatarUploader({ onCreated }: AvatarUploaderProps) {
   const [type, setType] = useState<AvatarType>('selfie');
   const [status, setStatus] = useState<Status>('idle');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Owned-URL ledger — every call to URL.createObjectURL is registered here so
+  // we can revoke any survivors on unmount. Handlers below add/remove entries
+  // alongside the photo state.
+  const liveUrlsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
+    const urls = liveUrlsRef.current;
     return () => {
-      // Revoke any object URLs still alive when the component unmounts.
-      for (const photo of photos) {
-        URL.revokeObjectURL(photo.previewUrl);
+      for (const url of urls) {
+        URL.revokeObjectURL(url);
       }
+      urls.clear();
     };
-    // We intentionally only want this on unmount — addPhotos/removePhoto manage URLs themselves.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const busy = status !== 'idle';
@@ -66,11 +69,11 @@ export function AvatarUploader({ onCreated }: AvatarUploaderProps) {
         toast.error(`At most ${MAX_PHOTOS} photos.`);
         return prev;
       }
-      const accepted = incoming.slice(0, remaining).map<PickedPhoto>((file) => ({
-        id: crypto.randomUUID(),
-        file,
-        previewUrl: URL.createObjectURL(file),
-      }));
+      const accepted = incoming.slice(0, remaining).map<PickedPhoto>((file) => {
+        const previewUrl = URL.createObjectURL(file);
+        liveUrlsRef.current.add(previewUrl);
+        return { id: crypto.randomUUID(), file, previewUrl };
+      });
       if (incoming.length > remaining) {
         toast.error(`Only the first ${MAX_PHOTOS} photos are used.`);
       }
@@ -89,6 +92,7 @@ export function AvatarUploader({ onCreated }: AvatarUploaderProps) {
       const removed = prev.find((p) => p.id === id);
       if (removed !== undefined) {
         URL.revokeObjectURL(removed.previewUrl);
+        liveUrlsRef.current.delete(removed.previewUrl);
       }
       return prev.filter((p) => p.id !== id);
     });
