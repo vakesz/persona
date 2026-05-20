@@ -3,12 +3,16 @@ import { useConvexAuth } from 'convex/react';
 import { Loader2 } from 'lucide-react';
 import type { ReactNode } from 'react';
 
+export interface RequireAuthProps {
+  children: ReactNode;
+}
+
 /**
  * Gates protected routes: shows a spinner while auth resolves and redirects to
  * `/auth` when the visitor is signed out. Server functions still enforce
  * owner-only access — this is purely for UX.
  */
-export function RequireAuth({ children }: { children: ReactNode }) {
+export function RequireAuth({ children }: RequireAuthProps) {
   const { isLoading, isAuthenticated } = useConvexAuth();
 
   if (isLoading) {

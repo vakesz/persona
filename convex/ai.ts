@@ -5,9 +5,9 @@ import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { action, internalAction } from './_generated/server';
 
-// Declared locally so this file type-checks under both the convex tsconfig
-// (which loads @types/node) and the app tsconfig (which reaches us via
-// the generated `_generated/api.d.ts` type chain but has no node types).
+// @types/node v25 no longer exposes `process` on globalThis; Convex actions run
+// in a V8 isolate that provides `process.env`, so a minimal local shim is the
+// pragmatic fix.
 declare const process: { env: Record<string, string | undefined> };
 
 const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash-lite';

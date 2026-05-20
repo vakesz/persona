@@ -1,13 +1,5 @@
 import type Konva from 'konva';
-import {
-  type ForwardedRef,
-  forwardRef,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { type Ref, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Group, Image as KonvaImage, Layer, Path, Stage } from 'react-konva';
 
 import type { FaceLandmarksResult } from '@/lib/mediapipe/face';
@@ -36,6 +28,7 @@ export interface StudioCanvasProps {
    * 1 = full baseline (no tints visible).
    */
   compareSliderX: number;
+  ref?: Ref<StudioCanvasHandle>;
 }
 
 const MIN_SCALE = 0.25;
@@ -51,12 +44,14 @@ interface PinchState {
   distance: number;
 }
 
-export const StudioCanvas = forwardRef(StudioCanvasInner);
-
-function StudioCanvasInner(
-  { baseImage, altText, face, state, compareSliderX }: StudioCanvasProps,
-  ref: ForwardedRef<StudioCanvasHandle>,
-) {
+export function StudioCanvas({
+  baseImage,
+  altText,
+  face,
+  state,
+  compareSliderX,
+  ref,
+}: StudioCanvasProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<Konva.Stage>(null);
   const exportGroupRef = useRef<Konva.Group>(null);
@@ -95,7 +90,7 @@ function StudioCanvasInner(
   // visible state of the stage at native resolution; we crop to the baseline
   // image so the output matches the upload (no chrome, no whitespace).
   useEffect(() => {
-    if (ref === null) return;
+    if (ref === undefined || ref === null) return undefined;
     const handle: StudioCanvasHandle = {
       exportPng: async () => {
         const group = exportGroupRef.current;
@@ -113,10 +108,13 @@ function StudioCanvasInner(
       },
     };
     if (typeof ref === 'function') {
-      ref(handle);
-    } else {
-      ref.current = handle;
+      const cleanup = ref(handle);
+      return typeof cleanup === 'function' ? cleanup : undefined;
     }
+    ref.current = handle;
+    return () => {
+      ref.current = null;
+    };
   }, [ref, baseImage]);
 
   const zoomAroundPoint = useCallback((clientX: number, clientY: number, factor: number) => {

@@ -21,14 +21,6 @@ function SavedLooksPage() {
   );
 }
 
-interface SavedLook {
-  _id: Id<'savedLooks'>;
-  _creationTime: number;
-  avatarId: Id<'avatars'>;
-  metadataJson: string | undefined;
-  renderUrl: string | null;
-}
-
 function SavedLooks() {
   const looks = useQuery(api.savedLooks.listSavedLooks, {});
   const deleteLook = useMutation(api.savedLooks.deleteSavedLook);
@@ -69,7 +61,7 @@ function SavedLooks() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {looks.map((look: SavedLook) => (
+          {looks.map((look) => (
             <SavedLookCard
               key={look._id}
               renderUrl={look.renderUrl}

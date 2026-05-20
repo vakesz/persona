@@ -12,8 +12,12 @@ const NAV_LINKS = [
   { to: '/settings', label: 'Settings' },
 ] as const;
 
+export interface AppShellProps {
+  children: ReactNode;
+}
+
 /** App-wide chrome: sticky header with auth-aware navigation. */
-export function AppShell({ children }: { children: ReactNode }) {
+export function AppShell({ children }: AppShellProps) {
   return (
     <div className="flex min-h-dvh flex-col">
       <header className="bg-background/80 sticky top-0 z-10 border-b backdrop-blur">
