@@ -437,11 +437,19 @@ limit enforced server-side with storage cleanup on rejection),
 `AvatarUploader` components, and avatar list / create routes with realtime
 limit awareness via Convex queries. `pnpm check` + `pnpm build` pass green.
 
-### Phase 3 — Personal Canvas
+### Phase 3 — Personal Canvas ✅ Done
 
 Build /studio/$avatarId, load avatar image, render in React-Konva, add
 zoom/pan, layer system, mobile touch support.
 Goal: User sees themselves on an editable canvas.
+
+Implemented: `convex/avatars.ts:getAvatar` (owner-scoped, returns a signed
+base-image URL); self-contained `StudioCanvas` component using
+React-Konva — `ResizeObserver`-driven responsive Stage, fit-to-container
+initial layout, mouse-wheel zoom around pointer, two-finger pinch zoom for
+mobile, draggable pan, single Konva `Layer` ready to receive Phase 4
+overlays. Konva (≈ 310 kB) is isolated in the studio route chunk via
+`autoCodeSplitting`. `pnpm check` + `pnpm build` pass green.
 
 ### Phase 4 — Manual Styling
 

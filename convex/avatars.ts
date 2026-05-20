@@ -33,6 +33,30 @@ export const listAvatars = query({
   },
 });
 
+export const getAvatar = query({
+  args: { id: v.id('avatars') },
+  handler: async (ctx, { id }) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) {
+      return null;
+    }
+    const avatar = await ctx.db.get(id);
+    if (avatar === null) {
+      return null;
+    }
+    if (avatar.userId !== userId) {
+      return null;
+    }
+    return {
+      _id: avatar._id,
+      _creationTime: avatar._creationTime,
+      name: avatar.name,
+      type: avatar.type,
+      baseImageUrl: await ctx.storage.getUrl(avatar.baseImageStorageId),
+    };
+  },
+});
+
 export const createAvatar = mutation({
   args: {
     name: v.string(),
