@@ -1,10 +1,18 @@
 import type Konva from 'konva';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Image as KonvaImage, Layer, Stage } from 'react-konva';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Image as KonvaImage, Layer, Stage, Transformer } from 'react-konva';
+
+import type { CanvasLayer } from '@/lib/studio/layers';
+import { useImage } from '@/lib/studio/use-image';
 
 export interface StudioCanvasProps {
   baseImageUrl: string;
   altText: string;
+  layers: CanvasLayer[];
+  selectedLayerId: string | null;
+  onSelectLayer: (id: string | null) => void;
+  onLayerChange: (id: string, patch: Partial<CanvasLayer>) => void;
+  onStageReady: (size: { width: number; height: number }) => void;
 }
 
 const MIN_SCALE = 0.25;
@@ -18,16 +26,25 @@ interface ContainerSize {
 
 interface PinchState {
   distance: number;
-  centerClient: { x: number; y: number };
 }
 
-export function StudioCanvas({ baseImageUrl, altText }: StudioCanvasProps) {
+export function StudioCanvas({
+  baseImageUrl,
+  altText,
+  layers,
+  selectedLayerId,
+  onSelectLayer,
+  onLayerChange,
+  onStageReady,
+}: StudioCanvasProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<Konva.Stage>(null);
+  const transformerRef = useRef<Konva.Transformer>(null);
+  const layerNodes = useRef(new Map<string, Konva.Image>());
   const pinchRef = useRef<PinchState | null>(null);
 
   const [size, setSize] = useState<ContainerSize | null>(null);
-  const [image, setImage] = useState<HTMLImageElement | null>(null);
+  const baseImage = useImage(baseImageUrl);
 
   useEffect(() => {
     const wrapper = wrapperRef.current;
@@ -35,38 +52,42 @@ export function StudioCanvas({ baseImageUrl, altText }: StudioCanvasProps) {
     const observer = new ResizeObserver((entries) => {
       const entry = entries[0];
       if (entry === undefined) return;
-      setSize({ width: entry.contentRect.width, height: entry.contentRect.height });
+      const next = { width: entry.contentRect.width, height: entry.contentRect.height };
+      setSize(next);
+      onStageReady(next);
     });
     observer.observe(wrapper);
     return () => {
       observer.disconnect();
     };
-  }, []);
-
-  useEffect(() => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.src = baseImageUrl;
-    const onLoad = () => {
-      setImage(img);
-    };
-    img.addEventListener('load', onLoad);
-    return () => {
-      img.removeEventListener('load', onLoad);
-    };
-  }, [baseImageUrl]);
+  }, [onStageReady]);
 
   const initialFit = useMemo(() => {
-    if (size === null || image === null) return null;
-    const scale = Math.min(size.width / image.naturalWidth, size.height / image.naturalHeight);
+    if (size === null || baseImage === null) return null;
+    const scale = Math.min(
+      size.width / baseImage.naturalWidth,
+      size.height / baseImage.naturalHeight,
+    );
     return {
       scale,
-      x: (size.width - image.naturalWidth * scale) / 2,
-      y: (size.height - image.naturalHeight * scale) / 2,
+      x: (size.width - baseImage.naturalWidth * scale) / 2,
+      y: (size.height - baseImage.naturalHeight * scale) / 2,
     };
-  }, [size, image]);
+  }, [size, baseImage]);
 
-  const zoomAroundPoint = (clientX: number, clientY: number, factor: number) => {
+  useEffect(() => {
+    const transformer = transformerRef.current;
+    if (transformer === null) return;
+    if (selectedLayerId === null) {
+      transformer.nodes([]);
+    } else {
+      const node = layerNodes.current.get(selectedLayerId);
+      transformer.nodes(node === undefined ? [] : [node]);
+    }
+    transformer.getLayer()?.batchDraw();
+  }, [selectedLayerId, layers]);
+
+  const zoomAroundPoint = useCallback((clientX: number, clientY: number, factor: number) => {
     const stage = stageRef.current;
     if (stage === null) return;
     const box = stage.container().getBoundingClientRect();
@@ -83,7 +104,7 @@ export function StudioCanvas({ baseImageUrl, altText }: StudioCanvasProps) {
       y: pointer.y - worldPoint.y * newScale,
     });
     stage.batchDraw();
-  };
+  }, []);
 
   const handleWheel = (event: Konva.KonvaEventObject<WheelEvent>) => {
     event.evt.preventDefault();
@@ -111,16 +132,22 @@ export function StudioCanvas({ baseImageUrl, altText }: StudioCanvasProps) {
 
     const previous = pinchRef.current;
     if (previous === null) {
-      pinchRef.current = { distance, centerClient };
+      pinchRef.current = { distance };
       return;
     }
 
     zoomAroundPoint(centerClient.x, centerClient.y, distance / previous.distance);
-    pinchRef.current = { distance, centerClient };
+    pinchRef.current = { distance };
   };
 
   const handleTouchEnd = () => {
     pinchRef.current = null;
+  };
+
+  const handleBackgroundClick = (event: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => {
+    if (event.target === event.target.getStage()) {
+      onSelectLayer(null);
+    }
   };
 
   return (
@@ -128,7 +155,7 @@ export function StudioCanvas({ baseImageUrl, altText }: StudioCanvasProps) {
       ref={wrapperRef}
       className="bg-muted relative aspect-[4/5] w-full touch-none overflow-hidden rounded-lg"
     >
-      {size !== null && image !== null && initialFit !== null && (
+      {size !== null && baseImage !== null && initialFit !== null && (
         <Stage
           ref={stageRef}
           width={size.width}
@@ -137,10 +164,12 @@ export function StudioCanvas({ baseImageUrl, altText }: StudioCanvasProps) {
           onWheel={handleWheel}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
+          onMouseDown={handleBackgroundClick}
+          onTouchStart={handleBackgroundClick}
         >
           <Layer>
             <KonvaImage
-              image={image}
+              image={baseImage}
               x={initialFit.x}
               y={initialFit.y}
               scaleX={initialFit.scale}
@@ -148,10 +177,81 @@ export function StudioCanvas({ baseImageUrl, altText }: StudioCanvasProps) {
               alt={altText}
               listening={false}
             />
+            {layers.map((layer) => (
+              <LayerImage
+                key={layer.id}
+                layer={layer}
+                isSelected={selectedLayerId === layer.id}
+                onSelect={() => {
+                  onSelectLayer(layer.id);
+                }}
+                onChange={(patch) => {
+                  onLayerChange(layer.id, patch);
+                }}
+                registerNode={(node) => {
+                  if (node === null) {
+                    layerNodes.current.delete(layer.id);
+                  } else {
+                    layerNodes.current.set(layer.id, node);
+                  }
+                }}
+              />
+            ))}
+            <Transformer
+              ref={transformerRef}
+              rotateEnabled
+              keepRatio
+              boundBoxFunc={(_oldBox, newBox) => {
+                if (newBox.width < 10 || newBox.height < 10) return _oldBox;
+                return newBox;
+              }}
+            />
           </Layer>
         </Stage>
       )}
     </div>
+  );
+}
+
+interface LayerImageProps {
+  layer: CanvasLayer;
+  isSelected: boolean;
+  onSelect: () => void;
+  onChange: (patch: Partial<CanvasLayer>) => void;
+  registerNode: (node: Konva.Image | null) => void;
+}
+
+function LayerImage({ layer, isSelected, onSelect, onChange, registerNode }: LayerImageProps) {
+  const image = useImage(layer.imageUrl);
+  if (image === null) return null;
+  return (
+    <KonvaImage
+      ref={registerNode}
+      image={image}
+      x={layer.x}
+      y={layer.y}
+      scaleX={layer.scaleX}
+      scaleY={layer.scaleY}
+      rotation={layer.rotation}
+      opacity={layer.opacity}
+      draggable
+      onMouseDown={onSelect}
+      onTouchStart={onSelect}
+      onDragEnd={(event) => {
+        onChange({ x: event.target.x(), y: event.target.y() });
+      }}
+      onTransformEnd={(event) => {
+        const node = event.target;
+        onChange({
+          x: node.x(),
+          y: node.y(),
+          scaleX: node.scaleX(),
+          scaleY: node.scaleY(),
+          rotation: node.rotation(),
+        });
+      }}
+      {...(isSelected && { shadowColor: '#3b82f6', shadowBlur: 4, shadowOpacity: 0.6 })}
+    />
   );
 }
 

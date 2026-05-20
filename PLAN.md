@@ -451,11 +451,24 @@ mobile, draggable pan, single Konva `Layer` ready to receive Phase 4
 overlays. Konva (≈ 310 kB) is isolated in the studio route chunk via
 `autoCodeSplitting`. `pnpm check` + `pnpm build` pass green.
 
-### Phase 4 — Manual Styling
+### Phase 4 — Manual Styling ✅ Done
 
 Sample hairstyle/makeup/nail overlays, drag/scale/rotate/opacity controls,
 save recent tried items.
 Goal: User can customize their own image without AI cost.
+
+Implemented: built-in inline-SVG sample overlays (2 hair, 2 makeup, 1 nail)
+via `src/lib/studio/sample-overlays.ts`; canonical `CanvasLayer` type and
+defaults in `src/lib/studio/layers.ts`; `useImage` hook for any Konva
+image. Studio canvas now renders each layer with drag, plus a Konva
+`Transformer` for scale/rotate on the selected layer; click empty stage
+to deselect. `StylePalette` provides Hair/Makeup/Nails/Recent tabs;
+picking a sample drops a centered layer and writes a `recentItems` entry
+(prompt + serialized layer settings). `LayerControls` exposes an opacity
+slider and a remove button when a layer is selected.
+`convex/recentItems.ts` exposes `listRecentItems` and `saveRecentItem`
+(owner-scoped, prunes to 20 per avatar). `pnpm check` + `pnpm build` pass
+green; Konva still isolated in the per-route chunk.
 
 ### Phase 5 — AI Stylist
 

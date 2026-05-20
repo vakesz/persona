@@ -1,10 +1,30 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { useQuery } from 'convex/react';
+import { useMutation, useQuery } from 'convex/react';
 import { Loader2 } from 'lucide-react';
+import { useCallback, useMemo, useState } from 'react';
+import { toast } from 'sonner';
 
-import { RequireAuth } from '@/components/require-auth';
+import { LayerControls } from '@/components/studio/layer-controls';
+import {
+  type PaletteTab,
+  type RecentPaletteEntry,
+  StylePalette,
+} from '@/components/studio/style-palette';
 import { StudioCanvas } from '@/components/studio/studio-canvas';
+import { RequireAuth } from '@/components/require-auth';
 import { Button } from '@/components/ui/button';
+import {
+  buildInitialLayer,
+  type CanvasLayer,
+  parseLayerSettings,
+  serializeLayerSettings,
+} from '@/lib/studio/layers';
+import {
+  type OverlayCategory,
+  SAMPLE_OVERLAYS,
+  type SampleOverlay,
+  findSampleOverlay,
+} from '@/lib/studio/sample-overlays';
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
 
@@ -20,9 +40,79 @@ function StudioPage() {
   );
 }
 
+const CATEGORY_TO_ITEM_TYPE: Record<OverlayCategory, 'hair' | 'makeup' | 'nails'> = {
+  hair: 'hair',
+  makeup: 'makeup',
+  nails: 'nails',
+};
+
 function Studio() {
   const { avatarId } = Route.useParams();
-  const avatar = useQuery(api.avatars.getAvatar, { id: avatarId as Id<'avatars'> });
+  const typedAvatarId = avatarId as Id<'avatars'>;
+  const avatar = useQuery(api.avatars.getAvatar, { id: typedAvatarId });
+  const recent = useQuery(api.recentItems.listRecentItems, { avatarId: typedAvatarId });
+  const saveRecentItem = useMutation(api.recentItems.saveRecentItem);
+
+  const [layers, setLayers] = useState<CanvasLayer[]>([]);
+  const [selectedLayerId, setSelectedLayerId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<PaletteTab>('hair');
+  const [stageSize, setStageSize] = useState<{ width: number; height: number } | null>(null);
+
+  const handleStageReady = useCallback((size: { width: number; height: number }) => {
+    setStageSize(size);
+  }, []);
+
+  const handleLayerChange = useCallback((id: string, patch: Partial<CanvasLayer>) => {
+    setLayers((prev) => prev.map((layer) => (layer.id === id ? { ...layer, ...patch } : layer)));
+  }, []);
+
+  const recentEntries = useMemo<RecentPaletteEntry[]>(() => {
+    if (recent === undefined) return [];
+    const entries: RecentPaletteEntry[] = [];
+    for (const item of recent) {
+      const settings = parseLayerSettings(item.settingsJson);
+      if (settings === null) continue;
+      const overlay = findSampleOverlay(settings.sampleOverlayId);
+      if (overlay === undefined) continue;
+      entries.push({ id: item._id, label: item.prompt ?? overlay.label, overlay });
+    }
+    return entries;
+  }, [recent]);
+
+  const selectedLayer = useMemo(
+    () => layers.find((layer) => layer.id === selectedLayerId) ?? null,
+    [layers, selectedLayerId],
+  );
+
+  const applyOverlay = (overlay: SampleOverlay) => {
+    if (stageSize === null) return;
+    const layer = buildInitialLayer(overlay, stageSize);
+    setLayers((prev) => [...prev, layer]);
+    setSelectedLayerId(layer.id);
+    void saveRecentItem({
+      avatarId: typedAvatarId,
+      type: CATEGORY_TO_ITEM_TYPE[overlay.category],
+      source: 'suggested',
+      prompt: overlay.label,
+      settingsJson: serializeLayerSettings(layer),
+    }).catch((error: unknown) => {
+      console.error(error);
+      toast.error('Could not save to recents.');
+    });
+  };
+
+  const reapplyRecent = (entry: RecentPaletteEntry) => {
+    if (stageSize === null) return;
+    const layer = buildInitialLayer(entry.overlay, stageSize);
+    setLayers((prev) => [...prev, layer]);
+    setSelectedLayerId(layer.id);
+  };
+
+  const deleteSelected = () => {
+    if (selectedLayer === null) return;
+    setLayers((prev) => prev.filter((layer) => layer.id !== selectedLayer.id));
+    setSelectedLayerId(null);
+  };
 
   if (avatar === undefined) {
     return (
@@ -63,14 +153,43 @@ function Studio() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">{avatar.name}</h1>
           <p className="text-muted-foreground text-sm">
-            Scroll or pinch to zoom. Drag to pan. Styling tools land next.
+            Pick a style, drag and rotate it into place, then adjust opacity. Recent picks land in
+            the Recent tab.
           </p>
         </div>
         <Button asChild variant="outline" size="sm">
           <Link to="/avatars">All avatars</Link>
         </Button>
       </header>
-      <StudioCanvas baseImageUrl={avatar.baseImageUrl} altText={avatar.name} />
+
+      <StylePalette
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        samples={SAMPLE_OVERLAYS}
+        recent={recentEntries}
+        onPickSample={applyOverlay}
+        onPickRecent={reapplyRecent}
+      />
+
+      <StudioCanvas
+        baseImageUrl={avatar.baseImageUrl}
+        altText={avatar.name}
+        layers={layers}
+        selectedLayerId={selectedLayerId}
+        onSelectLayer={setSelectedLayerId}
+        onLayerChange={handleLayerChange}
+        onStageReady={handleStageReady}
+      />
+
+      {selectedLayer !== null && (
+        <LayerControls
+          opacity={selectedLayer.opacity}
+          onOpacityChange={(opacity) => {
+            handleLayerChange(selectedLayer.id, { opacity });
+          }}
+          onDelete={deleteSelected}
+        />
+      )}
     </div>
   );
 }
