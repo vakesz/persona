@@ -121,7 +121,7 @@ function messageFor(payload: ServerErrorPayload): AnyMessage {
     case 'gemini_auth':
       return msg`Gemini rejected the request for ${payload.operation} (HTTP ${payload.status}). Check your API key.`;
     case 'gemini_failed':
-      return msg`Gemini failed for ${payload.operation} (HTTP ${payload.status}).`;
+      return msg`Gemini failed for ${payload.operation} (HTTP ${payload.status}): ${payload.detail}`;
     case 'unknown_error':
       return msg`Something went wrong: ${payload.detail}`;
   }

@@ -55,7 +55,11 @@ export default defineSchema({
     metadataJson: v.optional(v.string()),
   })
     .index('by_user', ['userId'])
-    .index('by_avatar', ['avatarId']),
+    .index('by_avatar', ['avatarId'])
+    // Used by `sweepStaleRenderJobs` to check whether a stale job's
+    // resultStorageId is still referenced by a saved look before freeing it.
+    .index('by_renderStorageId', ['renderStorageId'])
+    .index('by_previewStorageId', ['previewStorageId']),
 
   renderJobs: defineTable({
     userId: v.id('users'),

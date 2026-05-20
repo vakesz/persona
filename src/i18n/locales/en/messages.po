@@ -480,9 +480,10 @@ msgstr "fully shaved"
 
 #. placeholder {0}: payload.operation
 #. placeholder {1}: payload.status
+#. placeholder {2}: payload.detail
 #: src/i18n/server-errors.ts
-msgid "Gemini failed for {0} (HTTP {1})."
-msgstr "Gemini failed for {0} (HTTP {1})."
+msgid "Gemini failed for {0} (HTTP {1}): {2}"
+msgstr "Gemini failed for {0} (HTTP {1}): {2}"
 
 #: src/components/avatars/baseline-status-gate.tsx
 msgid "Gemini is composing your canonical studio portrait from the photos you uploaded. This usually takes 10–30 seconds. The page will update automatically."

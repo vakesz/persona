@@ -383,10 +383,24 @@ export const renderLookWithGemini = internalAction({
     const job = await ctx.runQuery(internal.renderJobs.getRenderJobInternal, { id: jobId });
     if (job === null) return null;
 
+    // Parse once up front so `finally` can free the single-use input blob even
+    // if a later step throws. The JSON was just serialized by createRenderJob,
+    // so a parse failure here is a hard corruption case we mark as failed.
+    let input: RenderInputJson;
+    try {
+      input = JSON.parse(job.inputJson) as RenderInputJson;
+    } catch (error) {
+      console.error('Render job inputJson is corrupt:', error);
+      await ctx.runMutation(internal.renderJobs.markRenderJobFailed, {
+        id: jobId,
+        errorMessage: serializeError(error),
+      });
+      return null;
+    }
+
     await ctx.runMutation(internal.renderJobs.markRenderJobProcessing, { id: jobId });
 
     try {
-      const input = JSON.parse(job.inputJson) as RenderInputJson;
       const prompt = input.prompt;
 
       // Prefer the studio's flattened canvas (baseline + tints) if the client
@@ -492,10 +506,9 @@ export const renderLookWithGemini = internalAction({
       // Single-use studio canvas snapshot — free the storage blob whichever
       // way the action exited (success or failure). Doesn't apply to the
       // avatar baseline or uploaded reference items, which are owned blobs.
-      const parsedInput = safeParseInput(job.inputJson);
-      if (parsedInput?.inputStorageId !== undefined) {
+      if (input.inputStorageId !== undefined) {
         try {
-          await ctx.storage.delete(parsedInput.inputStorageId as Id<'_storage'>);
+          await ctx.storage.delete(input.inputStorageId as Id<'_storage'>);
         } catch (cleanupError) {
           console.warn('Render input cleanup failed:', cleanupError);
         }
@@ -505,11 +518,3 @@ export const renderLookWithGemini = internalAction({
     return null;
   },
 });
-
-function safeParseInput(json: string): RenderInputJson | null {
-  try {
-    return JSON.parse(json) as RenderInputJson;
-  } catch {
-    return null;
-  }
-}

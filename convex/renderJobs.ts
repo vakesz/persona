@@ -137,9 +137,10 @@ const RENDER_JOB_TTL_MS = 14 * 24 * 60 * 60 * 1000;
 
 /**
  * Hourly sweep (see `convex/crons.ts`). Removes render jobs older than 14
- * days. If the job has a `resultStorageId` and no `savedLook` references it,
- * the blob is freed too — saved looks are how users opt-in to keeping a
- * render, so anything else is fair game.
+ * days. If the job has a `resultStorageId` and no `savedLook` references it
+ * (either as its render or preview blob), the bytes are freed too — saved
+ * looks are how users opt-in to keeping a render, so anything else is fair
+ * game.
  */
 export const sweepStaleRenderJobs = internalMutation({
   args: {},
@@ -149,24 +150,25 @@ export const sweepStaleRenderJobs = internalMutation({
       .query('renderJobs')
       .withIndex('by_updatedAt', (q) => q.lt('updatedAt', cutoff))
       .collect();
-    if (stale.length === 0) return;
-
-    const referencedStorageIds = new Set<string>();
-    if (stale.some((job) => job.resultStorageId !== undefined)) {
-      const looks = await ctx.db.query('savedLooks').collect();
-      for (const look of looks) {
-        if (look.renderStorageId !== undefined) {
-          referencedStorageIds.add(look.renderStorageId);
-        }
-        if (look.previewStorageId !== undefined) {
-          referencedStorageIds.add(look.previewStorageId);
-        }
-      }
-    }
-
     for (const job of stale) {
-      if (job.resultStorageId !== undefined && !referencedStorageIds.has(job.resultStorageId)) {
-        await ctx.storage.delete(job.resultStorageId);
+      if (job.resultStorageId !== undefined) {
+        const resultStorageId = job.resultStorageId;
+        // Indexed point lookups instead of scanning the whole savedLooks
+        // table — keeps the sweep O(stale) instead of O(stale + saved).
+        const referencingRender = await ctx.db
+          .query('savedLooks')
+          .withIndex('by_renderStorageId', (q) => q.eq('renderStorageId', resultStorageId))
+          .first();
+        const referencingPreview =
+          referencingRender === null
+            ? await ctx.db
+                .query('savedLooks')
+                .withIndex('by_previewStorageId', (q) => q.eq('previewStorageId', resultStorageId))
+                .first()
+            : null;
+        if (referencingRender === null && referencingPreview === null) {
+          await ctx.storage.delete(resultStorageId);
+        }
       }
       await ctx.db.delete(job._id);
     }

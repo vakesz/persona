@@ -65,17 +65,21 @@ export function hasAnyTint(state: StudioState): boolean {
   );
 }
 
+function planActive(plan: GeometryPlan): boolean {
+  return plan.preset !== null || plan.custom.trim().length > 0;
+}
+
 function hasAnyGeometry(state: StudioState): boolean {
   return (
-    state.lipShape.preset !== null ||
-    state.browShape.preset !== null ||
-    state.beard.preset !== null ||
-    state.mustache.preset !== null ||
-    state.hairstyle.preset !== null ||
-    state.eyewear.preset !== null ||
-    state.headwear.preset !== null ||
-    state.jewelry.preset !== null ||
-    state.vibe.preset !== null
+    planActive(state.lipShape) ||
+    planActive(state.browShape) ||
+    planActive(state.beard) ||
+    planActive(state.mustache) ||
+    planActive(state.hairstyle) ||
+    planActive(state.eyewear) ||
+    planActive(state.headwear) ||
+    planActive(state.jewelry) ||
+    planActive(state.vibe)
   );
 }
 
@@ -118,31 +122,31 @@ export function composeRenderPrompt(state: StudioState): string {
     parts.push('Preserve the existing look exactly.');
   }
 
-  if (state.lipShape.preset !== null) {
+  if (planActive(state.lipShape)) {
     parts.push(`Reshape the lips to ${describePlan(state.lipShape)}.`);
   }
-  if (state.browShape.preset !== null) {
+  if (planActive(state.browShape)) {
     parts.push(`Reshape the eyebrows to ${describePlan(state.browShape)}.`);
   }
-  if (state.beard.preset !== null) {
+  if (planActive(state.beard)) {
     parts.push(`Add a ${describePlan(state.beard)}.`);
   }
-  if (state.mustache.preset !== null) {
+  if (planActive(state.mustache)) {
     parts.push(`Add a ${describePlan(state.mustache)}.`);
   }
-  if (state.hairstyle.preset !== null) {
+  if (planActive(state.hairstyle)) {
     parts.push(`Change the hairstyle to ${describePlan(state.hairstyle)}.`);
   }
-  if (state.eyewear.preset !== null) {
+  if (planActive(state.eyewear)) {
     parts.push(`Add ${describePlan(state.eyewear)}.`);
   }
-  if (state.headwear.preset !== null) {
+  if (planActive(state.headwear)) {
     parts.push(`Add ${describePlan(state.headwear)}.`);
   }
-  if (state.jewelry.preset !== null) {
+  if (planActive(state.jewelry)) {
     parts.push(`Add ${describePlan(state.jewelry)}.`);
   }
-  if (state.vibe.preset !== null) {
+  if (planActive(state.vibe)) {
     parts.push(`Apply ${describePlan(state.vibe)}.`);
   }
 

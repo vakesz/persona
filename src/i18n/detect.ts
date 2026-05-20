@@ -1,6 +1,17 @@
 import { DEFAULT_LOCALE, isLocale, type Locale } from './locales';
 
 const STORAGE_KEY = 'persona.locale';
+const URL_PARAM = 'locale';
+
+function readUrlLocale(): Locale | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = new URL(window.location.href).searchParams.get(URL_PARAM);
+    return isLocale(raw) ? raw : null;
+  } catch {
+    return null;
+  }
+}
 
 function readStoredLocale(): Locale | null {
   try {
@@ -29,6 +40,7 @@ function detectBrowserLocale(): Locale {
   return DEFAULT_LOCALE;
 }
 
+/** Priority: `?locale=…` URL param > stored preference > browser default. */
 export function resolveInitialLocale(): Locale {
-  return readStoredLocale() ?? detectBrowserLocale();
+  return readUrlLocale() ?? readStoredLocale() ?? detectBrowserLocale();
 }

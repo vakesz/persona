@@ -54,6 +54,7 @@ function Studio() {
   const uploads = useQuery(api.uploadedItems.listUploadedItems, {});
   const savedLooks = useQuery(api.savedLooks.listSavedLooks, { avatarId });
   const generateUploadUrl = useMutation(api.storage.generateUploadUrl);
+  const discardRenderInput = useMutation(api.storage.discardRenderInput);
   const createRenderJob = useMutation(api.renderJobs.createRenderJob);
   const deleteUploadedItem = useMutation(api.uploadedItems.deleteUploadedItem);
   const analyze = useAction(api.ai.analyzeStyleWithGemini);
@@ -140,8 +141,12 @@ function Studio() {
       return;
     }
     setRenderBusy(true);
+    // Held outside the try so the catch can free the blob if createRenderJob
+    // throws after we've already uploaded the snapshot. On the success path
+    // we clear it — the render action then owns the blob and deletes it
+    // itself when it finishes.
+    let pendingInputStorageId: Id<'_storage'> | undefined;
     try {
-      let inputStorageId: Id<'_storage'> | undefined;
       // Bake the live makeup into the render input only when the user has
       // applied some — preserves an exact handoff so Gemini doesn't drop the
       // makeup. When no tints are applied, the avatar baseline is the input
@@ -159,7 +164,7 @@ function Studio() {
             throw new Error(t`Could not upload the canvas snapshot.`);
           }
           const json = (await response.json()) as { storageId: Id<'_storage'> };
-          inputStorageId = json.storageId;
+          pendingInputStorageId = json.storageId;
         }
       }
 
@@ -172,12 +177,21 @@ function Studio() {
         ...(studioState.selectedUploadId !== null && {
           referenceUploadedItemId: studioState.selectedUploadId,
         }),
-        ...(inputStorageId !== undefined && { inputStorageId }),
+        ...(pendingInputStorageId !== undefined && { inputStorageId: pendingInputStorageId }),
       });
+      // Job accepted — the action now owns the blob.
+      pendingInputStorageId = undefined;
       setActiveRender({ jobId, title });
     } catch (error) {
       console.error(error);
       toast.error(translateServerError(error));
+      if (pendingInputStorageId !== undefined) {
+        void discardRenderInput({ storageId: pendingInputStorageId }).catch(
+          (cleanupError: unknown) => {
+            console.warn('Render input cleanup failed:', cleanupError);
+          },
+        );
+      }
     } finally {
       setRenderBusy(false);
     }

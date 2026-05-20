@@ -218,7 +218,7 @@ msgstr "macskaszem szemüveg"
 
 #: src/components/studio/studio-sidebar.tsx
 msgid "Cheeks"
-msgstr "Arc"
+msgstr "Orcák"
 
 #: src/components/studio/studio-sidebar.tsx
 msgid "chevron"
@@ -258,7 +258,7 @@ msgstr "Szín"
 
 #: src/components/studio/studio-sidebar.tsx
 msgid "Color tools become available once face landmarks finish computing."
-msgstr "A színeszközök akkor lesznek elérhetők, amikor az arcfelismerés befejeződik."
+msgstr "A színezőeszközök akkor lesznek elérhetők, amikor az arcpontok feldolgozása befejeződik."
 
 #: src/components/avatars/avatar-uploader.tsx
 msgid "Compressing…"
@@ -278,7 +278,7 @@ msgstr "Nem sikerült törölni a feltöltést."
 
 #: src/routes/studio.$avatarId.tsx
 msgid "Could not prepare studio tools."
-msgstr "Nem sikerült előkészíteni a stúdió eszközöket."
+msgstr "Nem sikerült előkészíteni a stúdióeszközöket."
 
 #: src/routes/auth.tsx
 msgid "Could not sign in. Check your email and password."
@@ -447,7 +447,7 @@ msgstr "Befejezés"
 
 #: src/components/avatars/avatar-uploader.tsx
 msgid "First photo becomes the front reference. Extra angles (¾ left / right, full body) help the AI preserve your identity. Each photo is compressed and EXIF-stripped in your browser before upload."
-msgstr "Az első fotó lesz a fő referencia. További szögek (¾ bal / jobb, egész alak) segítik az MI-t megőrizni az arcvonásaidat. Minden fotó tömörítve és EXIF-mentesítve van a böngésződben, mielőtt feltöltődne."
+msgstr "Az első fotó lesz az elölnézeti referencia. A további szögek (¾ bal / jobb, egész alak) segítenek az MI-nek megőrizni az arcvonásaidat. Minden fotót a böngésződ tömörít és EXIF-mentesít feltöltés előtt."
 
 #: src/components/studio/studio-sidebar.tsx
 msgid "french crop"
@@ -472,7 +472,7 @@ msgstr "Egész alak"
 
 #: src/components/studio/studio-sidebar.tsx
 msgid "fuller, plumper lips"
-msgstr "teltebb, duzzadtabb ajkak"
+msgstr "teltebb ajkak"
 
 #: src/components/studio/studio-sidebar.tsx
 msgid "fully shaved"
@@ -480,9 +480,10 @@ msgstr "teljesen kopaszra borotvált"
 
 #. placeholder {0}: payload.operation
 #. placeholder {1}: payload.status
+#. placeholder {2}: payload.detail
 #: src/i18n/server-errors.ts
-msgid "Gemini failed for {0} (HTTP {1})."
-msgstr "A Gemini hibát adott a következőhöz: {0} (HTTP {1})."
+msgid "Gemini failed for {0} (HTTP {1}): {2}"
+msgstr "A Gemini-hívás sikertelen volt ennél: {0} (HTTP {1}): {2}"
 
 #: src/components/avatars/baseline-status-gate.tsx
 msgid "Gemini is composing your canonical studio portrait from the photos you uploaded. This usually takes 10–30 seconds. The page will update automatically."
@@ -491,7 +492,7 @@ msgstr "A Gemini összeállítja a fő stúdióportrédat a feltöltött fotókb
 #. placeholder {0}: payload.operation
 #: src/i18n/server-errors.ts
 msgid "Gemini quota reached for {0}. Try again later, or upgrade billing."
-msgstr "Elérted a Gemini kvótát ({0}). Próbáld később, vagy frissítsd a számlázást."
+msgstr "Elérted a Gemini-kvótát ennél: {0}. Próbáld újra később, vagy frissítsd a számlázást."
 
 #: src/components/studio/studio-sidebar.tsx
 msgid "Gemini reads your portrait and suggests looks."
@@ -501,7 +502,7 @@ msgstr "A Gemini elemzi a portrédat és stílusokat javasol."
 #. placeholder {1}: payload.status
 #: src/i18n/server-errors.ts
 msgid "Gemini rejected the request for {0} (HTTP {1}). Check your API key."
-msgstr "A Gemini elutasította a kérést ({0}, HTTP {1}). Ellenőrizd az API-kulcsodat."
+msgstr "A Gemini elutasította a kérést ennél: {0} (HTTP {1}). Ellenőrizd az API-kulcsodat."
 
 #: src/i18n/server-errors.ts
 msgid "GEMINI_API_KEY is not configured."
@@ -509,7 +510,7 @@ msgstr "A GEMINI_API_KEY nincs beállítva."
 
 #: src/components/studio/studio-sidebar.tsx
 msgid "Geometry change — runs the AI render."
-msgstr "Geometriai változtatás — MI-rendert indít."
+msgstr "Geometriai módosítás — MI-renderelést indít."
 
 #: src/routes/avatars.index.tsx
 #: src/routes/index.tsx
@@ -518,7 +519,7 @@ msgstr "Kezdjük el"
 
 #: src/components/avatars/rename-avatar-dialog.tsx
 msgid "Give this avatar a name you'll recognize."
-msgstr "Adj az avatárnak egy nevet, amit felismersz."
+msgstr "Adj az avatárnak egy könnyen felismerhető nevet."
 
 #: src/components/studio/studio-sidebar.tsx
 msgid "Glasses or sunglasses."
@@ -538,7 +539,7 @@ msgstr "kecskeszakáll"
 
 #: src/components/studio/studio-sidebar.tsx
 msgid "gold choker"
-msgstr "arany choker"
+msgstr "arany nyakpánt"
 
 #: src/components/studio/studio-sidebar.tsx
 msgid "gold hoop earrings"
@@ -618,7 +619,7 @@ msgstr "Rúzs"
 
 #: src/components/studio/studio-sidebar.tsx
 msgid "Live preview — clips to your lip polygons."
-msgstr "Élő előnézet — az ajkak körvonalához igazodik."
+msgstr "Élő előnézet — az ajkaid körvonalához igazodik."
 
 #: src/routes/settings.tsx
 msgid "Loading…"
@@ -638,7 +639,7 @@ msgstr "hosszú, hullámzó"
 
 #: src/components/studio/studio-sidebar.tsx
 msgid "long loose waves"
-msgstr "hosszú laza hullámok"
+msgstr "hosszú, laza hullámok"
 
 #: src/components/studio/studio-sidebar.tsx
 msgid "long straight"
@@ -746,11 +747,11 @@ msgstr "Opcionális részlet — pl. mézszínű balayage, oldalt elválasztva"
 
 #: src/components/studio/studio-sidebar.tsx
 msgid "Optional detail — e.g. salt-and-pepper, side parted"
-msgstr "Opcionális részlet — pl. sószínű, oldalt elválasztva"
+msgstr "Opcionális részlet — pl. őszes, oldalt elválasztva"
 
 #: src/routes/saved.tsx
 msgid "Organized per avatar. You can save as many looks as you like for each persona."
-msgstr "Avatáronként rendezve. Tetszőleges számú stílust menthetsz minden személyiséghez."
+msgstr "Avatáronként rendezve. Tetszőleges számú stílust menthetsz minden avatárhoz."
 
 #: src/components/render/render-result.tsx
 msgid "Original"
@@ -826,7 +827,7 @@ msgstr "A portré generálása sikertelen"
 
 #: src/routes/studio.$avatarId.tsx
 msgid "Preparing studio tools (face landmarks + segmentation, runs in your browser, only your canonical portrait is analysed)…"
-msgstr "Stúdió eszközök előkészítése (arcpontok + szegmentáció a böngésződben, csak az alapportrét elemzi)…"
+msgstr "Stúdióeszközök előkészítése (arcpontok + szegmentáció a böngésződben, csak az alapportrédat elemzi)…"
 
 #: src/components/avatars/avatar-card.tsx
 #: src/components/avatars/baseline-status-gate.tsx
@@ -839,7 +840,7 @@ msgstr "A prompt megadása kötelező."
 
 #: src/components/render/render-result.tsx
 msgid "Queued — waiting for the image model…"
-msgstr "Sorban — várakozás a képmodellre…"
+msgstr "Várakozik — a képmodellre vár…"
 
 #: src/components/studio/studio-sidebar.tsx
 msgid "quiff"
@@ -919,7 +920,7 @@ msgstr "A render nem adott vissza képet."
 
 #: src/components/studio/studio-sidebar.tsx
 msgid "Render this look"
-msgstr "Ezt a stílust rendereld"
+msgstr "Rendereld ezt a stílust"
 
 #. placeholder {0}: payload.reason
 #: src/i18n/server-errors.ts
@@ -992,7 +993,7 @@ msgstr "Avatár mentése…"
 
 #: src/routes/index.tsx
 msgid "See yourself in any look, instantly"
-msgstr "Lásd magad bármilyen stílusban, azonnal"
+msgstr "Lásd magad bármilyen stílusban azonnal"
 
 #: src/components/avatars/avatar-uploader.tsx
 msgid "Selected photo {position}"
@@ -1116,7 +1117,7 @@ msgstr "Valami hiba történt."
 
 #: src/components/studio/studio-sidebar.tsx
 msgid "soul patch"
-msgstr "alsóajak alatti tincs"
+msgstr "alsó ajak alatti szakállfolt"
 
 #: src/components/studio/studio-sidebar.tsx
 msgid "square black-frame glasses"
@@ -1180,7 +1181,7 @@ msgstr "A stylist hibás JSON-t adott vissza."
 
 #: src/components/studio/studio-sidebar.tsx
 msgid "Subtle color on the brow polygons."
-msgstr "Finom szín a szemöldök körvonalain."
+msgstr "Finom szín a szemöldök körvonalán."
 
 #: src/components/studio/studio-sidebar.tsx
 msgid "Suggest a complete look."
@@ -1192,7 +1193,7 @@ msgstr "napsütötte ragyogás"
 
 #: src/components/avatars/avatar-uploader.tsx
 msgid "Tailors the studio tools — e.g. hides beard/mustache on a feminine persona."
-msgstr "Igazítja a stúdió eszközöket — pl. nőies személyiségnél elrejti a szakállt/bajuszt."
+msgstr "A stúdióeszközöket igazítja — pl. nőies avatárnál elrejti a szakállt és a bajuszt."
 
 #: src/components/studio/studio-sidebar.tsx
 msgid "taper fade"
@@ -1220,7 +1221,7 @@ msgstr "Ez törli az összes avatárt, mentett stílust, rendert, feltöltött e
 
 #: src/components/avatars/delete-avatar-dialog.tsx
 msgid "This removes the avatar and every saved look, render, and try-on tied to it. The original photos and renders are deleted from storage too. This can't be undone."
-msgstr "Ezzel törlöd az avatárt és minden hozzá tartozó mentett stílust, rendert és próbát. Az eredeti fotók és renderek is törlődnek a tárolóból. Ez nem visszavonható."
+msgstr "Ezzel törlöd az avatárt és minden hozzá tartozó mentett stílust, rendert és próbát. Az eredeti fotók és renderek is törlődnek a tárhelyről. Ez nem visszavonható."
 
 #: src/components/studio/studio-sidebar.tsx
 msgid "tight curls"
@@ -1229,7 +1230,7 @@ msgstr "szoros fürtök"
 #. placeholder {0}: ready.name
 #: src/routes/studio.$avatarId.tsx
 msgid "Tint makeup live, pick extras, ask the stylist, then render the look — every saved look stays under {0}."
-msgstr "Színezz sminket élőben, válassz extrákat, kérdezd a stylistot, majd renderelj — minden mentett stílus {0} alatt marad."
+msgstr "Színezd a sminket élőben, válassz extrákat, kérdezd a stylistot, majd rendereld a stílust — minden mentett stílus {0} alatt marad."
 
 #: src/components/studio/studio-sidebar.tsx
 msgid "Tints the lid above each eye."
@@ -1277,7 +1278,7 @@ msgstr "Tölts fel egy fotót az első privát avatárod létrehozásához."
 
 #: src/routes/avatars.new.tsx
 msgid "Upload a photo. We compress and strip metadata in your browser before it leaves your device."
-msgstr "Tölts fel egy fotót. A böngésződben tömörítjük és töröljük a metaadatokat, mielőtt elhagyná az eszközöd."
+msgstr "Tölts fel egy fotót. A böngésződben tömörítjük és eltávolítjuk a metaadatokat, mielőtt a kép elhagyná az eszközöd."
 
 #: src/components/studio/uploaded-item-uploader.tsx
 msgid "Upload added."
