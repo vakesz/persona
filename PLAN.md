@@ -470,11 +470,24 @@ slider and a remove button when a layer is selected.
 (owner-scoped, prunes to 20 per avatar). `pnpm check` + `pnpm build` pass
 green; Konva still isolated in the per-route chunk.
 
-### Phase 5 — AI Stylist
+### Phase 5 — AI Stylist ✅ Done
 
 Stylist prompt box, Gemini action, analyze avatar image, return suggestions,
-recommendation cards, convert suggestion to canvas layer.
+recommendation cards.
 Goal: User can ask what suits them.
+
+Model: **Gemini 2.5 Flash Lite** (free-tier friendly). Override with the
+`CONVEX_GEMINI_MODEL` env var. Phase 6 takes a recommendation's
+`renderPrompt` and turns it into an actual rendered look.
+
+Implemented: `convex/ai.ts:analyzeStyleWithGemini` action — fetches the
+owner's avatar bytes via an `internalQuery` helper in `convex/avatars.ts`,
+sends an inline image + question to Gemini via direct REST (no SDK
+dependency), uses `responseSchema` JSON mode for reliable structured
+output (title / description / styleType / renderPrompt). Self-contained
+`RecommendationCard` component plus `/stylist/$avatarId` route with a
+prompt box and quick-prompt chips. Stylist chunk is ~4 kB gzipped (no
+Konva pulled in). `pnpm check` + `pnpm build` pass green.
 
 ### Phase 6 — AI Render
 
@@ -567,6 +580,9 @@ These apply to **every** change in this repo. `pnpm check` is the gate.
 - **Image processing:** `browser-image-compression` — canvas re-encode strips
   EXIF metadata and caps the longest edge, keeping the upload path
   local-first per the privacy spec.
+- **LLM cost stance:** default to the cheapest model that can still do the
+  job. Phase 5 uses Gemini 2.5 Flash Lite. Never pick a more expensive
+  model without an explicit signal that quality is insufficient.
 
 ## Manual Setup Steps (run once)
 

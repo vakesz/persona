@@ -1,7 +1,7 @@
 import { getAuthUserId } from '@convex-dev/auth/server';
 import { v } from 'convex/values';
 
-import { mutation, query } from './_generated/server';
+import { internalQuery, mutation, query } from './_generated/server';
 
 const MAX_AVATARS_PER_USER = 3;
 
@@ -53,6 +53,25 @@ export const getAvatar = query({
       name: avatar.name,
       type: avatar.type,
       baseImageUrl: await ctx.storage.getUrl(avatar.baseImageStorageId),
+    };
+  },
+});
+
+/**
+ * Internal helper for actions that need an avatar's raw storage handle (e.g.
+ * to fetch image bytes for Gemini). Not exposed to clients.
+ */
+export const getAvatarStorageForUser = internalQuery({
+  args: { id: v.id('avatars'), userId: v.id('users') },
+  handler: async (ctx, { id, userId }) => {
+    const avatar = await ctx.db.get(id);
+    if (avatar === null) return null;
+    if (avatar.userId !== userId) return null;
+    return {
+      _id: avatar._id,
+      name: avatar.name,
+      type: avatar.type,
+      baseImageStorageId: avatar.baseImageStorageId,
     };
   },
 });
