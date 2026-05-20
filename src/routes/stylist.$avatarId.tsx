@@ -1,11 +1,12 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { useAction, useQuery } from 'convex/react';
+import { useAction, useMutation, useQuery } from 'convex/react';
 import { Loader2, Sparkles } from 'lucide-react';
 import { type SyntheticEvent, useState } from 'react';
 import { toast } from 'sonner';
 
 import { RequireAuth } from '@/components/require-auth';
 import { type Recommendation, RecommendationCard } from '@/components/stylist/recommendation-card';
+import { RenderResult } from '@/components/stylist/render-result';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -32,15 +33,23 @@ const QUICK_PROMPTS = [
   'What outfit would flatter my features?',
 ];
 
+interface ActiveRender {
+  jobId: Id<'renderJobs'>;
+  title: string;
+}
+
 function Stylist() {
   const { avatarId } = Route.useParams();
   const typedAvatarId = avatarId as Id<'avatars'>;
   const avatar = useQuery(api.avatars.getAvatar, { id: typedAvatarId });
   const analyze = useAction(api.ai.analyzeStyleWithGemini);
+  const createRenderJob = useMutation(api.renderJobs.createRenderJob);
 
   const [question, setQuestion] = useState('');
   const [busy, setBusy] = useState(false);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
+  const [activeRender, setActiveRender] = useState<ActiveRender | null>(null);
+  const [startingRender, setStartingRender] = useState(false);
 
   const ask = async (next: string) => {
     setBusy(true);
@@ -58,6 +67,25 @@ function Stylist() {
   const handleSubmit = (event: SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     void ask(question);
+  };
+
+  const handleRender = (recommendation: Recommendation) => {
+    setStartingRender(true);
+    createRenderJob({
+      avatarId: typedAvatarId,
+      prompt: recommendation.renderPrompt,
+      title: recommendation.title,
+    })
+      .then((jobId) => {
+        setActiveRender({ jobId, title: recommendation.title });
+      })
+      .catch((error: unknown) => {
+        console.error(error);
+        toast.error(error instanceof Error ? error.message : 'Could not start render.');
+      })
+      .finally(() => {
+        setStartingRender(false);
+      });
   };
 
   if (avatar === undefined) {
@@ -88,7 +116,8 @@ function Stylist() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Stylist for {avatar.name}</h1>
           <p className="text-muted-foreground text-sm">
-            Ask what would suit you. Free-tier Gemini reads your photo and suggests looks.
+            Ask what would suit you. Free-tier Gemini reads your photo and suggests looks. Render
+            any of them to a real image and save it.
           </p>
         </div>
         <Button asChild variant="outline" size="sm">
@@ -144,10 +173,27 @@ function Stylist() {
         </div>
       ) : null}
 
+      {activeRender !== null && (
+        <RenderResult
+          jobId={activeRender.jobId}
+          title={activeRender.title}
+          onClose={() => {
+            setActiveRender(null);
+          }}
+        />
+      )}
+
       {recommendations.length > 0 && (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
           {recommendations.map((recommendation, index) => (
-            <RecommendationCard key={index} recommendation={recommendation} />
+            <RecommendationCard
+              key={index}
+              recommendation={recommendation}
+              busy={startingRender || activeRender !== null}
+              onRender={() => {
+                handleRender(recommendation);
+              }}
+            />
           ))}
         </div>
       )}

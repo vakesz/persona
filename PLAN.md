@@ -489,11 +489,30 @@ output (title / description / styleType / renderPrompt). Self-contained
 prompt box and quick-prompt chips. Stylist chunk is ~4 kB gzipped (no
 Konva pulled in). `pnpm check` + `pnpm build` pass green.
 
-### Phase 6 — AI Render
+### Phase 6 — AI Render ✅ Done
 
-render_jobs table, render action, send image + prompt + layer metadata to
-provider, store result, realtime job updates, save final look.
+render_jobs table, render action, send image + prompt to provider, store
+result, realtime job updates, save final look.
 Goal: User gets a polished realistic image.
+
+Provider: **Gemini 2.5 Flash Image** (multimodal output — accepts the
+avatar photo plus a text prompt and returns an edited image). Same free
+Gemini API key as Phase 5; the model is overridable via
+`CONVEX_GEMINI_IMAGE_MODEL`.
+
+Implemented: `convex/renderJobs.ts` (createRenderJob mutation auto-schedules
+the internal action; internal helpers for status transitions; getRenderJob
+query returns a signed result URL once done). `convex/ai.ts:renderLookWithGemini`
+internal action fetches the avatar bytes via the internalQuery from Phase 5,
+calls Gemini Flash Image with `responseModalities: ["IMAGE"]`, decodes the
+returned inline base64 into a blob, stores it, and patches the job to
+`done` (or `failed` with the error). `convex/savedLooks.ts` exposes
+`listSavedLooks`, `saveLookFromJob` (promotes the job's storage ref —
+no byte copy), and `deleteSavedLook` (cascades the storage delete).
+Self-contained `RenderResult` component handles the queued/processing/done/failed
+states reactively; `RecommendationCard` got a "Render this look" button.
+`/saved` route renders the gallery with per-look delete. `pnpm check` +
+`pnpm build` pass green.
 
 ### Phase 7 — Clothing Upload
 

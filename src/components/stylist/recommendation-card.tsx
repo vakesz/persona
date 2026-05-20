@@ -1,3 +1,6 @@
+import { Loader2, Sparkles } from 'lucide-react';
+
+import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 
 type RecommendationStyleType = 'hair' | 'makeup' | 'nails' | 'clothes';
@@ -11,6 +14,8 @@ export interface Recommendation {
 
 export interface RecommendationCardProps {
   recommendation: Recommendation;
+  onRender: () => void;
+  busy: boolean;
 }
 
 const STYLE_LABELS: Record<RecommendationStyleType, string> = {
@@ -20,7 +25,7 @@ const STYLE_LABELS: Record<RecommendationStyleType, string> = {
   clothes: 'Clothes',
 };
 
-export function RecommendationCard({ recommendation }: RecommendationCardProps) {
+export function RecommendationCard({ recommendation, onRender, busy }: RecommendationCardProps) {
   return (
     <Card>
       <CardContent className="flex flex-col gap-3">
@@ -37,6 +42,17 @@ export function RecommendationCard({ recommendation }: RecommendationCardProps) 
           <summary className="cursor-pointer select-none">Render prompt</summary>
           <p className="mt-1 font-mono leading-snug">{recommendation.renderPrompt}</p>
         </details>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={onRender}
+          disabled={busy}
+          className="mt-1"
+        >
+          {busy ? <Loader2 className="animate-spin" /> : <Sparkles />}
+          Render this look
+        </Button>
       </CardContent>
     </Card>
   );

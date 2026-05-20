@@ -13,6 +13,8 @@ import type * as auth from "../auth.js";
 import type * as avatars from "../avatars.js";
 import type * as http from "../http.js";
 import type * as recentItems from "../recentItems.js";
+import type * as renderJobs from "../renderJobs.js";
+import type * as savedLooks from "../savedLooks.js";
 import type * as storage from "../storage.js";
 import type * as users from "../users.js";
 
@@ -28,6 +30,8 @@ declare const fullApi: ApiFromModules<{
   avatars: typeof avatars;
   http: typeof http;
   recentItems: typeof recentItems;
+  renderJobs: typeof renderJobs;
+  savedLooks: typeof savedLooks;
   storage: typeof storage;
   users: typeof users;
 }>;

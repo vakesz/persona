@@ -2,7 +2,7 @@ import { getAuthUserId } from '@convex-dev/auth/server';
 import { v } from 'convex/values';
 
 import { internal } from './_generated/api';
-import { action } from './_generated/server';
+import { action, internalAction } from './_generated/server';
 
 // Declared locally so this file type-checks under both the convex tsconfig
 // (which loads @types/node) and the app tsconfig (which reaches us via
@@ -182,3 +182,139 @@ function bytesToBase64(bytes: Uint8Array): string {
   }
   return btoa(binary);
 }
+
+function base64ToArrayBuffer(base64: string): ArrayBuffer {
+  const binary = atob(base64);
+  const buffer = new ArrayBuffer(binary.length);
+  const bytes = new Uint8Array(buffer);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return buffer;
+}
+
+const DEFAULT_GEMINI_IMAGE_MODEL = 'gemini-2.5-flash-image';
+
+interface GeminiInlineDataPart {
+  inlineData?: { mimeType?: string; data?: string };
+}
+
+interface GeminiImageResponse {
+  candidates?: {
+    content?: { parts?: GeminiInlineDataPart[] };
+  }[];
+  promptFeedback?: { blockReason?: string };
+}
+
+interface RenderInputJson {
+  prompt: string;
+  title?: string;
+}
+
+const RENDER_INSTRUCTION = (prompt: string) =>
+  `Edit the attached photo to apply this look while preserving the person's identity, face, pose, lighting, and the rest of their body and background as much as possible. Style change to apply: ${prompt}. Return only the edited image.`;
+
+export const renderLookWithGemini = internalAction({
+  args: { jobId: v.id('renderJobs') },
+  returns: v.null(),
+  handler: async (ctx, { jobId }) => {
+    const apiKey = process.env['GEMINI_API_KEY'];
+    if (apiKey === undefined || apiKey === '') {
+      await ctx.runMutation(internal.renderJobs.markRenderJobFailed, {
+        id: jobId,
+        errorMessage: 'GEMINI_API_KEY is not configured.',
+      });
+      return null;
+    }
+
+    const job = await ctx.runQuery(internal.renderJobs.getRenderJobInternal, { id: jobId });
+    if (job === null) return null;
+
+    await ctx.runMutation(internal.renderJobs.markRenderJobProcessing, { id: jobId });
+
+    try {
+      const avatar = await ctx.runQuery(internal.avatars.getAvatarStorageForUser, {
+        id: job.avatarId,
+        userId: job.userId,
+      });
+      if (avatar === null) {
+        throw new Error('Avatar not found.');
+      }
+
+      const blob = await ctx.storage.get(avatar.baseImageStorageId);
+      if (blob === null) {
+        throw new Error('Avatar image is missing from storage.');
+      }
+      const inputMime = blob.type === '' ? 'image/jpeg' : blob.type;
+      const inputBase64 = bytesToBase64(new Uint8Array(await blob.arrayBuffer()));
+
+      const input = JSON.parse(job.inputJson) as RenderInputJson;
+      const prompt = input.prompt;
+
+      const model = process.env['CONVEX_GEMINI_IMAGE_MODEL'] ?? DEFAULT_GEMINI_IMAGE_MODEL;
+
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [
+              {
+                role: 'user',
+                parts: [
+                  { text: RENDER_INSTRUCTION(prompt) },
+                  { inlineData: { mimeType: inputMime, data: inputBase64 } },
+                ],
+              },
+            ],
+            generationConfig: {
+              responseModalities: ['IMAGE'],
+              temperature: 0.7,
+            },
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Render failed (HTTP ${response.status}): ${errorText.slice(0, 200)}`);
+      }
+
+      const data = (await response.json()) as GeminiImageResponse;
+      const blockReason = data.promptFeedback?.blockReason;
+      if (blockReason !== undefined) {
+        throw new Error(`Render was blocked: ${blockReason}`);
+      }
+
+      const imagePart = data.candidates?.[0]?.content?.parts?.find(
+        (part) => part.inlineData?.data !== undefined,
+      );
+      const inlineData = imagePart?.inlineData;
+      if (inlineData === undefined) {
+        throw new Error('Render returned no image.');
+      }
+      if (inlineData.data === undefined) {
+        throw new Error('Render returned no image.');
+      }
+
+      const outputMime = inlineData.mimeType ?? 'image/png';
+      const outputBuffer = base64ToArrayBuffer(inlineData.data);
+      const outputBlob = new Blob([outputBuffer], { type: outputMime });
+      const resultStorageId = await ctx.storage.store(outputBlob);
+
+      await ctx.runMutation(internal.renderJobs.markRenderJobDone, {
+        id: jobId,
+        resultStorageId,
+      });
+    } catch (error) {
+      console.error('Render job failed:', error);
+      await ctx.runMutation(internal.renderJobs.markRenderJobFailed, {
+        id: jobId,
+        errorMessage: error instanceof Error ? error.message : 'Render failed.',
+      });
+    }
+
+    return null;
+  },
+});
