@@ -4,9 +4,9 @@ import { Loader2, Sparkles } from 'lucide-react';
 import { type SyntheticEvent, useState } from 'react';
 import { toast } from 'sonner';
 
+import { RenderResult } from '@/components/render/render-result';
 import { RequireAuth } from '@/components/require-auth';
 import { type Recommendation, RecommendationCard } from '@/components/stylist/recommendation-card';
-import { RenderResult } from '@/components/stylist/render-result';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';

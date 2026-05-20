@@ -16,6 +16,7 @@ import type * as recentItems from "../recentItems.js";
 import type * as renderJobs from "../renderJobs.js";
 import type * as savedLooks from "../savedLooks.js";
 import type * as storage from "../storage.js";
+import type * as uploadedItems from "../uploadedItems.js";
 import type * as users from "../users.js";
 
 import type {
@@ -33,6 +34,7 @@ declare const fullApi: ApiFromModules<{
   renderJobs: typeof renderJobs;
   savedLooks: typeof savedLooks;
   storage: typeof storage;
+  uploadedItems: typeof uploadedItems;
   users: typeof users;
 }>;
 

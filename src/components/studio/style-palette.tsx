@@ -1,7 +1,10 @@
+import { type ReactNode } from 'react';
+
 import { type OverlayCategory, type SampleOverlay } from '@/lib/studio/sample-overlays';
 import { cn } from '@/lib/utils';
+import type { Id } from '@convex/_generated/dataModel';
 
-export type PaletteTab = OverlayCategory | 'recent';
+export type PaletteTab = OverlayCategory | 'recent' | 'uploads';
 
 export interface RecentPaletteEntry {
   id: string;
@@ -9,13 +12,22 @@ export interface RecentPaletteEntry {
   overlay: SampleOverlay;
 }
 
+export interface UploadedPaletteEntry {
+  _id: Id<'uploadedItems'>;
+  imageUrl: string;
+  label: string;
+}
+
 export interface StylePaletteProps {
   activeTab: PaletteTab;
   onTabChange: (tab: PaletteTab) => void;
   samples: SampleOverlay[];
   recent: RecentPaletteEntry[];
+  uploads: UploadedPaletteEntry[];
   onPickSample: (overlay: SampleOverlay) => void;
   onPickRecent: (entry: RecentPaletteEntry) => void;
+  onPickUpload: (entry: UploadedPaletteEntry) => void;
+  uploadButton: ReactNode;
 }
 
 const TAB_LABELS: Record<PaletteTab, string> = {
@@ -23,17 +35,21 @@ const TAB_LABELS: Record<PaletteTab, string> = {
   makeup: 'Makeup',
   nails: 'Nails',
   recent: 'Recent',
+  uploads: 'Uploads',
 };
 
-const TABS: PaletteTab[] = ['hair', 'makeup', 'nails', 'recent'];
+const TABS: PaletteTab[] = ['hair', 'makeup', 'nails', 'uploads', 'recent'];
 
 export function StylePalette({
   activeTab,
   onTabChange,
   samples,
   recent,
+  uploads,
   onPickSample,
   onPickRecent,
+  onPickUpload,
+  uploadButton,
 }: StylePaletteProps) {
   return (
     <div className="flex flex-col gap-3">
@@ -58,26 +74,13 @@ export function StylePalette({
         ))}
       </nav>
 
-      {activeTab === 'recent' ? (
-        recent.length === 0 ? (
-          <p className="text-muted-foreground text-sm">
-            Items you try will appear here so you can re-apply them.
-          </p>
-        ) : (
-          <div className="flex gap-3 overflow-x-auto pb-1">
-            {recent.map((entry) => (
-              <PaletteTile
-                key={entry.id}
-                label={entry.label}
-                imageUrl={entry.overlay.imageUrl}
-                onClick={() => {
-                  onPickRecent(entry);
-                }}
-              />
-            ))}
-          </div>
-        )
-      ) : (
+      {activeTab === 'recent' && <RecentTab recent={recent} onPickRecent={onPickRecent} />}
+
+      {activeTab === 'uploads' && (
+        <UploadsTab uploads={uploads} onPickUpload={onPickUpload} uploadButton={uploadButton} />
+      )}
+
+      {activeTab !== 'recent' && activeTab !== 'uploads' && (
         <div className="flex gap-3 overflow-x-auto pb-1">
           {samples
             .filter((s) => s.category === activeTab)
@@ -93,6 +96,59 @@ export function StylePalette({
             ))}
         </div>
       )}
+    </div>
+  );
+}
+
+interface RecentTabProps {
+  recent: RecentPaletteEntry[];
+  onPickRecent: (entry: RecentPaletteEntry) => void;
+}
+
+function RecentTab({ recent, onPickRecent }: RecentTabProps) {
+  if (recent.length === 0) {
+    return (
+      <p className="text-muted-foreground text-sm">
+        Items you try will appear here so you can re-apply them.
+      </p>
+    );
+  }
+  return (
+    <div className="flex gap-3 overflow-x-auto pb-1">
+      {recent.map((entry) => (
+        <PaletteTile
+          key={entry.id}
+          label={entry.label}
+          imageUrl={entry.overlay.imageUrl}
+          onClick={() => {
+            onPickRecent(entry);
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+interface UploadsTabProps {
+  uploads: UploadedPaletteEntry[];
+  onPickUpload: (entry: UploadedPaletteEntry) => void;
+  uploadButton: ReactNode;
+}
+
+function UploadsTab({ uploads, onPickUpload, uploadButton }: UploadsTabProps) {
+  return (
+    <div className="flex gap-3 overflow-x-auto pb-1">
+      {uploadButton}
+      {uploads.map((entry) => (
+        <PaletteTile
+          key={entry._id}
+          label={entry.label}
+          imageUrl={entry.imageUrl}
+          onClick={() => {
+            onPickUpload(entry);
+          }}
+        />
+      ))}
     </div>
   );
 }

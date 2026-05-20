@@ -2,6 +2,7 @@ import { getAuthUserId } from '@convex-dev/auth/server';
 import { v } from 'convex/values';
 
 import { internal } from './_generated/api';
+import type { Id } from './_generated/dataModel';
 import { action, internalAction } from './_generated/server';
 
 // Declared locally so this file type-checks under both the convex tsconfig
@@ -209,10 +210,14 @@ interface GeminiImageResponse {
 interface RenderInputJson {
   prompt: string;
   title?: string;
+  referenceUploadedItemId?: string;
 }
 
 const RENDER_INSTRUCTION = (prompt: string) =>
   `Edit the attached photo to apply this look while preserving the person's identity, face, pose, lighting, and the rest of their body and background as much as possible. Style change to apply: ${prompt}. Return only the edited image.`;
+
+const TRY_ON_INSTRUCTION = (prompt: string) =>
+  `The first image is a photo of a person. The second image is a clothing or accessory reference. Edit the first photo so the person is realistically wearing the item from the second image, preserving their identity, face, pose, lighting, and the rest of their body and background as much as possible. Additional guidance: ${prompt}. Return only the edited image.`;
 
 export const renderLookWithGemini = internalAction({
   args: { jobId: v.id('renderJobs') },
@@ -251,6 +256,29 @@ export const renderLookWithGemini = internalAction({
       const input = JSON.parse(job.inputJson) as RenderInputJson;
       const prompt = input.prompt;
 
+      const parts: { text?: string; inlineData?: { mimeType: string; data: string } }[] = [];
+      if (input.referenceUploadedItemId !== undefined) {
+        const referenceItem = await ctx.runQuery(
+          internal.uploadedItems.getUploadedItemStorageForUser,
+          { id: input.referenceUploadedItemId as Id<'uploadedItems'>, userId: job.userId },
+        );
+        if (referenceItem === null) {
+          throw new Error('Reference item not found.');
+        }
+        const refBlob = await ctx.storage.get(referenceItem.imageStorageId);
+        if (refBlob === null) {
+          throw new Error('Reference item bytes are missing from storage.');
+        }
+        const refMime = refBlob.type === '' ? 'image/jpeg' : refBlob.type;
+        const refBase64 = bytesToBase64(new Uint8Array(await refBlob.arrayBuffer()));
+        parts.push({ text: TRY_ON_INSTRUCTION(prompt) });
+        parts.push({ inlineData: { mimeType: inputMime, data: inputBase64 } });
+        parts.push({ inlineData: { mimeType: refMime, data: refBase64 } });
+      } else {
+        parts.push({ text: RENDER_INSTRUCTION(prompt) });
+        parts.push({ inlineData: { mimeType: inputMime, data: inputBase64 } });
+      }
+
       const model = process.env['CONVEX_GEMINI_IMAGE_MODEL'] ?? DEFAULT_GEMINI_IMAGE_MODEL;
 
       const response = await fetch(
@@ -259,15 +287,7 @@ export const renderLookWithGemini = internalAction({
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            contents: [
-              {
-                role: 'user',
-                parts: [
-                  { text: RENDER_INSTRUCTION(prompt) },
-                  { inlineData: { mimeType: inputMime, data: inputBase64 } },
-                ],
-              },
-            ],
+            contents: [{ role: 'user', parts }],
             generationConfig: {
               responseModalities: ['IMAGE'],
               temperature: 0.7,

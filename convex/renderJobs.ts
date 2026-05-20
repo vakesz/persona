@@ -9,8 +9,9 @@ export const createRenderJob = mutation({
     avatarId: v.id('avatars'),
     prompt: v.string(),
     title: v.optional(v.string()),
+    referenceUploadedItemId: v.optional(v.id('uploadedItems')),
   },
-  handler: async (ctx, { avatarId, prompt, title }) => {
+  handler: async (ctx, { avatarId, prompt, title, referenceUploadedItemId }) => {
     const userId = await getAuthUserId(ctx);
     if (userId === null) {
       throw new Error('Not authenticated.');
@@ -27,6 +28,16 @@ export const createRenderJob = mutation({
       throw new Error('Prompt is required.');
     }
 
+    if (referenceUploadedItemId !== undefined) {
+      const item = await ctx.db.get(referenceUploadedItemId);
+      if (item === null) {
+        throw new Error('Reference item not found.');
+      }
+      if (item.userId !== userId) {
+        throw new Error('Reference item not found.');
+      }
+    }
+
     const jobId = await ctx.db.insert('renderJobs', {
       userId,
       avatarId,
@@ -35,6 +46,7 @@ export const createRenderJob = mutation({
       inputJson: JSON.stringify({
         prompt: trimmedPrompt,
         ...(title !== undefined && { title }),
+        ...(referenceUploadedItemId !== undefined && { referenceUploadedItemId }),
       }),
       updatedAt: Date.now(),
     });

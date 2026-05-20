@@ -514,11 +514,26 @@ states reactively; `RecommendationCard` got a "Render this look" button.
 `/saved` route renders the gallery with per-look delete. `pnpm check` +
 `pnpm build` pass green.
 
-### Phase 7 — Clothing Upload
+### Phase 7 — Clothing Upload ✅ Done
 
 Upload clothing image, store as uploaded_item, show in studio, rough overlay
 preview, manual adjustment, final AI try-on render.
 Goal: User can upload a dress and try it on.
+
+Implemented: `convex/uploadedItems.ts` (listUploadedItems, createUploadedItem,
+deleteUploadedItem, internalQuery `getUploadedItemStorageForUser`). The
+existing `createRenderJob` mutation now accepts an optional
+`referenceUploadedItemId`; the render action branches to a dedicated
+two-image prompt (`TRY_ON_INSTRUCTION`) sending avatar + reference image to
+Gemini Flash Image. `CanvasLayer` carries a discriminated `origin` field
+(`sample` or `upload`), so the same drag/transform/opacity machinery serves
+both kinds of layer. New `Uploads` palette tab + self-contained
+`UploadedItemUploader` widget (re-uses the EXIF-stripping
+`processAvatarImage`). `LayerControls` exposes a conditional "Try this on"
+button that only appears when the selected layer is an upload. Render
+result reuses the Phase 6 `RenderResult` component, now lifted to
+`src/components/render/` since both stylist and studio consume it.
+`pnpm check` + `pnpm build` pass green.
 
 ---
 
