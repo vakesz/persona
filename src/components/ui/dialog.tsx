@@ -43,7 +43,9 @@ export function Dialog({ open, onOpenChange, children, ariaLabel, className }: D
       }}
       onClick={handleBackdropClick}
       className={cn(
-        'bg-card text-card-foreground w-[min(28rem,calc(100vw-2rem))] rounded-xl border p-0 shadow-lg',
+        // `m-auto` + `inset-0` re-centers the modal — Tailwind preflight zeroes
+        // the `margin: auto` the UA stylesheet sets on <dialog>:modal.
+        'bg-card text-card-foreground fixed inset-0 m-auto w-[min(28rem,calc(100vw-2rem))] rounded-xl border p-0 shadow-lg',
         'backdrop:bg-black/50 backdrop:backdrop-blur-sm',
         'open:animate-in open:fade-in-0',
         className,

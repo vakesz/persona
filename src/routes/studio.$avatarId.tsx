@@ -16,6 +16,7 @@ import {
 } from '@/components/studio/studio-sidebar';
 import { translateServerError } from '@/i18n/server-errors';
 import { Button } from '@/components/ui/button';
+import { Slider } from '@/components/ui/slider';
 import { useAvatarFace } from '@/lib/mediapipe/use-avatar-face';
 import {
   composeRenderPrompt,
@@ -200,11 +201,19 @@ function Studio() {
   return (
     <BaselineStatusGate avatar={avatar}>
       {(ready) => (
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-6">
           <header className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-semibold tracking-tight">{ready.name}</h1>
-              <p className="text-muted-foreground text-sm">
+            <div className="flex flex-col gap-1">
+              <Link
+                to="/avatars"
+                className="text-muted-foreground hover:text-foreground text-xs font-medium tracking-wide uppercase transition"
+              >
+                <Trans>Avatars</Trans>
+                <span className="px-1">/</span>
+                <span className="text-foreground">{ready.name}</span>
+              </Link>
+              <h1 className="text-3xl font-semibold tracking-tight">{ready.name}</h1>
+              <p className="text-muted-foreground max-w-2xl text-sm">
                 <Trans>
                   Tint makeup live, pick extras, ask the stylist, then render the look — every saved
                   look stays under {ready.name}.
@@ -212,11 +221,6 @@ function Studio() {
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <Button asChild variant="outline" size="sm">
-                <Link to="/avatars">
-                  <Trans>All avatars</Trans>
-                </Link>
-              </Button>
               <Button asChild variant="outline" size="sm">
                 <Link to="/saved" search={{ avatarId }}>
                   <Bookmark />
@@ -234,37 +238,40 @@ function Studio() {
 
           <FaceStatusBanner status={face.status} error={face.error} />
 
-          <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
-            <div className="flex flex-col gap-2">
-              <StudioCanvas
-                ref={canvasRef}
-                baseImage={baselineImage}
-                altText={ready.name}
-                face={face.face?.landmarks ?? null}
-                state={studioState}
-                compareSliderX={compareSliderX}
-              />
+          <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
+            <div className="flex flex-col gap-3">
+              <div className="border-border/60 bg-card overflow-hidden rounded-xl border shadow-sm">
+                <StudioCanvas
+                  ref={canvasRef}
+                  baseImage={baselineImage}
+                  altText={ready.name}
+                  face={face.face?.landmarks ?? null}
+                  state={studioState}
+                  compareSliderX={compareSliderX}
+                />
+              </div>
               {anyTints && (
-                <label className="flex items-center gap-3 text-xs">
-                  <span className="text-muted-foreground w-24 shrink-0">
+                <div className="border-border/60 bg-card flex items-center gap-3 rounded-xl border px-4 py-3 text-xs shadow-sm">
+                  <span className="text-muted-foreground shrink-0 font-medium">
                     <Trans>Before · After</Trans>
                   </span>
-                  <input
-                    type="range"
+                  <Slider
                     min={0}
                     max={1}
                     step={0.01}
-                    value={compareSliderX}
-                    onChange={(event) => {
-                      setCompareSliderX(Number(event.currentTarget.value));
+                    value={[compareSliderX]}
+                    onValueChange={(v) => {
+                      const x = v[0];
+                      if (x === undefined) return;
+                      setCompareSliderX(x);
                     }}
-                    className="studio-slider flex-1"
+                    className="flex-1"
                     aria-label={t`Before / after slider`}
                   />
-                  <span className="text-muted-foreground w-12 shrink-0 text-right tabular-nums">
+                  <span className="text-muted-foreground w-10 shrink-0 text-right tabular-nums">
                     {Math.round(compareSliderX * 100)}%
                   </span>
-                </label>
+                </div>
               )}
             </div>
             <div className="flex flex-col gap-3">
@@ -284,6 +291,7 @@ function Studio() {
               />
               <Button
                 type="button"
+                size="lg"
                 onClick={() => {
                   void handleRender();
                 }}
@@ -294,7 +302,7 @@ function Studio() {
               </Button>
               <Button
                 type="button"
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 onClick={() => {
                   setStudioState(DEFAULT_STUDIO_STATE);

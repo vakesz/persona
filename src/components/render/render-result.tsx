@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 
 import { translateServerError, translateStoredErrorMessage } from '@/i18n/server-errors';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -74,9 +75,9 @@ export function RenderResult({
       className="w-[min(56rem,calc(100vw-2rem))]"
     >
       <DialogHeader>
-        <span className="text-muted-foreground text-[11px] font-medium tracking-wide uppercase">
+        <Badge variant="accent" className="mb-1 w-fit">
           <Trans>Render</Trans>
-        </span>
+        </Badge>
         <DialogTitle>{title}</DialogTitle>
       </DialogHeader>
 

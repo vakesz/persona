@@ -64,10 +64,10 @@ function AvatarsList() {
   const atLimit = avatars.length >= MAX_AVATARS;
 
   return (
-    <div className="flex flex-col gap-6">
-      <header className="flex items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
+    <div className="flex flex-col gap-8">
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-3xl font-semibold tracking-tight">
             <Trans>Your avatars</Trans>
           </h1>
           <p className="text-muted-foreground text-sm">
@@ -96,14 +96,14 @@ function AvatarsList() {
       </header>
 
       {avatars.length === 0 ? (
-        <Card className="border-dashed p-10 text-center">
+        <Card className="bg-card/40 border-dashed p-12 text-center">
           <h2 className="text-lg font-medium">
             <Trans>No avatars yet</Trans>
           </h2>
           <p className="text-muted-foreground mt-1 text-sm">
             <Trans>Upload a photo to create your first private avatar.</Trans>
           </p>
-          <Button asChild className="mt-4">
+          <Button asChild className="mt-5 w-fit self-center">
             <Link to="/avatars/new">
               <Trans>Get started</Trans>
             </Link>

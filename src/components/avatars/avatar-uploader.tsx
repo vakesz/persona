@@ -347,10 +347,10 @@ function TypeOption({ value, selected, onSelect, children }: TypeOptionProps) {
       }}
       aria-pressed={selected}
       className={cn(
-        'rounded-md border px-4 py-2 text-sm transition',
+        'rounded-md border px-4 py-2 text-sm font-medium transition-colors',
         selected
-          ? 'border-foreground bg-foreground text-background'
-          : 'border-input hover:bg-accent',
+          ? 'border-primary bg-primary/15 text-primary'
+          : 'border-input text-muted-foreground hover:border-foreground/30 hover:text-foreground',
       )}
     >
       {children}
@@ -374,10 +374,10 @@ function GenderOption({ value, selected, onSelect, children }: GenderOptionProps
       }}
       aria-pressed={selected}
       className={cn(
-        'rounded-md border px-3 py-2 text-sm transition',
+        'rounded-md border px-3 py-2 text-sm font-medium transition-colors',
         selected
-          ? 'border-foreground bg-foreground text-background'
-          : 'border-input hover:bg-accent',
+          ? 'border-primary bg-primary/15 text-primary'
+          : 'border-input text-muted-foreground hover:border-foreground/30 hover:text-foreground',
       )}
     >
       {children}

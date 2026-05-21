@@ -77,10 +77,10 @@ function SavedLooks() {
     focusAvatarId === undefined ? grouped : grouped.filter((g) => g.avatar._id === focusAvatarId);
 
   return (
-    <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
+    <div className="flex flex-col gap-8">
+      <header className="flex flex-col gap-4">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-3xl font-semibold tracking-tight">
             <Trans>Saved looks</Trans>
           </h1>
           <p className="text-muted-foreground text-sm">
@@ -111,21 +111,21 @@ function SavedLooks() {
       </header>
 
       {totalLooks === 0 ? (
-        <Card className="border-dashed p-10 text-center">
+        <Card className="bg-card/40 border-dashed p-12 text-center">
           <h2 className="text-lg font-medium">
             <Trans>No saved looks yet</Trans>
           </h2>
           <p className="text-muted-foreground mt-1 text-sm">
             <Trans>Open an avatar, render a look, then click Save.</Trans>
           </p>
-          <Button asChild className="mt-4">
+          <Button asChild className="mt-5 w-fit self-center">
             <Link to="/avatars">
               <Trans>Choose an avatar</Trans>
             </Link>
           </Button>
         </Card>
       ) : visibleGroups.length === 0 ? (
-        <Card className="border-dashed p-10 text-center">
+        <Card className="bg-card/40 border-dashed p-12 text-center">
           <h2 className="text-lg font-medium">
             <Trans>No looks for this avatar yet</Trans>
           </h2>
@@ -134,7 +134,7 @@ function SavedLooks() {
           </p>
         </Card>
       ) : (
-        <div className="flex flex-col gap-8">
+        <div className="flex flex-col gap-10">
           {visibleGroups.map((group) => (
             <AvatarLookSection
               key={group.avatar._id}
@@ -162,10 +162,10 @@ function FilterChip({ to, search, active, label }: FilterChipProps) {
       to={to}
       search={search}
       className={cn(
-        'rounded-full border px-3 py-1 text-xs transition',
+        'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
         active
-          ? 'border-foreground bg-foreground text-background'
-          : 'border-input text-muted-foreground hover:bg-accent hover:text-foreground',
+          ? 'border-primary bg-primary/15 text-primary'
+          : 'border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground',
       )}
     >
       {label}
@@ -243,7 +243,7 @@ function SavedLookCard({ renderUrl, metadataJson, onDelete }: SavedLookCardProps
   const { t } = useLingui();
   const title = parseTitle(metadataJson) ?? t`Look`;
   return (
-    <Card className="overflow-hidden p-0">
+    <Card className="group hover:border-primary/40 hover:shadow-primary/5 overflow-hidden p-0 transition hover:shadow-md">
       <div className="bg-muted aspect-[4/5] w-full overflow-hidden">
         {renderUrl === null ? (
           <div className="text-muted-foreground flex size-full items-center justify-center text-xs">
@@ -253,7 +253,7 @@ function SavedLookCard({ renderUrl, metadataJson, onDelete }: SavedLookCardProps
           <img
             src={renderUrl}
             alt={title}
-            className="size-full object-cover"
+            className="size-full object-cover transition duration-500 group-hover:scale-[1.03]"
             loading="lazy"
             decoding="async"
           />

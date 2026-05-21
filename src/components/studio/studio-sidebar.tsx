@@ -1,11 +1,15 @@
 import { type MessageDescriptor } from '@lingui/core';
 import { msg } from '@lingui/core/macro';
 import { Trans, useLingui } from '@lingui/react/macro';
-import { Loader2, Sparkles, Trash2 } from 'lucide-react';
+import { Check, Loader2, Pipette, Sparkles, Trash2 } from 'lucide-react';
 import { type SyntheticEvent, useMemo, useState } from 'react';
 
 import { UploadedItemUploader } from '@/components/studio/uploaded-item-uploader';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import { Slider } from '@/components/ui/slider';
+import { Switch } from '@/components/ui/switch';
 import type {
   ColorTint,
   GeometryPlan,
@@ -362,214 +366,222 @@ export function StudioSidebar({
         : HAIRSTYLES_UNSPECIFIED;
 
   return (
-    <div className="border-border bg-card scroll-stable flex max-h-[calc(100dvh-7rem)] flex-col gap-3 overflow-y-auto rounded-lg border p-3 lg:max-h-[calc(100dvh-12rem)]">
-      <nav
-        className="bg-card sticky -top-3 z-10 -mx-3 -mt-3 flex flex-wrap gap-1 px-3 pt-3 pb-2"
+    <div className="border-border/60 bg-card text-card-foreground scroll-stable flex max-h-[calc(100dvh-7rem)] flex-col overflow-y-auto rounded-xl border shadow-sm lg:max-h-[calc(100dvh-13rem)]">
+      <div
+        className="bg-card/95 supports-[backdrop-filter]:bg-card/80 border-border/60 sticky top-0 z-10 border-b px-3 pt-3 pb-2 backdrop-blur"
+        role="tablist"
         aria-label={t`Studio tool`}
       >
-        {visibleTabs.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => {
-              setActive(tab.id);
-            }}
-            className={cn(
-              'rounded-md px-3 py-1.5 text-xs font-medium transition',
-              safeActive === tab.id
-                ? 'bg-foreground text-background'
-                : 'text-muted-foreground hover:bg-accent hover:text-foreground',
-            )}
-            aria-current={safeActive === tab.id ? 'page' : undefined}
-          >
-            {i18n._(tab.label)}
-          </button>
-        ))}
-      </nav>
+        <div className="flex flex-wrap gap-1">
+          {visibleTabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={safeActive === tab.id}
+              onClick={() => {
+                setActive(tab.id);
+              }}
+              className={cn(
+                'rounded-md px-2.5 py-1 text-xs font-medium transition-colors',
+                safeActive === tab.id
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+              )}
+            >
+              {i18n._(tab.label)}
+            </button>
+          ))}
+        </div>
+      </div>
 
-      <div className="border-border -mt-3 border-t pt-2" />
+      <div className="flex flex-col gap-4 p-3">
+        {!faceReady && isColorTab(safeActive) && (
+          <p className="text-muted-foreground bg-muted/40 rounded-md px-3 py-2 text-xs">
+            <Trans>Color tools become available once face landmarks finish computing.</Trans>
+          </p>
+        )}
 
-      {!faceReady && isColorTab(safeActive) && (
-        <p className="text-muted-foreground text-xs">
-          <Trans>Color tools become available once face landmarks finish computing.</Trans>
-        </p>
-      )}
+        {safeActive === 'lips' && (
+          <div className="flex flex-col gap-4">
+            <ColorTintPanel
+              title={t`Lipstick`}
+              subtitle={t`Live preview — clips to your lip polygons.`}
+              tint={state.lip}
+              onChange={(next) => {
+                onStateChange({ ...state, lip: { ...next, finish: state.lip.finish } });
+              }}
+              palette={LIP_COLORS}
+              finish={state.lip.finish}
+              onFinishChange={(finish) => {
+                onStateChange({ ...state, lip: { ...state.lip, finish } });
+              }}
+            />
+            <Separator />
+            <GeometryPanel
+              title={t`Lip shape`}
+              subtitle={t`Reshape via AI render — preserves identity.`}
+              plan={state.lipShape}
+              presets={LIP_SHAPE_PRESETS}
+              onChange={(next) => {
+                onStateChange({ ...state, lipShape: next });
+              }}
+            />
+          </div>
+        )}
 
-      {safeActive === 'lips' && (
-        <div className="flex flex-col gap-4">
+        {safeActive === 'eyes' && (
           <ColorTintPanel
-            title={t`Lipstick`}
-            subtitle={t`Live preview — clips to your lip polygons.`}
-            tint={state.lip}
+            title={t`Eyeshadow`}
+            subtitle={t`Tints the lid above each eye.`}
+            tint={state.eyeshadow}
             onChange={(next) => {
-              onStateChange({ ...state, lip: { ...next, finish: state.lip.finish } });
+              onStateChange({ ...state, eyeshadow: next });
             }}
-            palette={LIP_COLORS}
-            finish={state.lip.finish}
-            onFinishChange={(finish) => {
-              onStateChange({ ...state, lip: { ...state.lip, finish } });
-            }}
+            palette={EYE_COLORS}
           />
-          <GeometryPanel
-            title={t`Lip shape`}
-            subtitle={t`Reshape via AI render — preserves identity.`}
-            plan={state.lipShape}
-            presets={LIP_SHAPE_PRESETS}
-            onChange={(next) => {
-              onStateChange({ ...state, lipShape: next });
-            }}
-          />
-        </div>
-      )}
+        )}
 
-      {safeActive === 'eyes' && (
-        <ColorTintPanel
-          title={t`Eyeshadow`}
-          subtitle={t`Tints the lid above each eye.`}
-          tint={state.eyeshadow}
-          onChange={(next) => {
-            onStateChange({ ...state, eyeshadow: next });
-          }}
-          palette={EYE_COLORS}
-        />
-      )}
+        {safeActive === 'brows' && (
+          <div className="flex flex-col gap-4">
+            <ColorTintPanel
+              title={t`Brow tint`}
+              subtitle={t`Subtle color on the brow polygons.`}
+              tint={state.browTint}
+              onChange={(next) => {
+                onStateChange({ ...state, browTint: next });
+              }}
+              palette={BROW_COLORS}
+            />
+            <Separator />
+            <GeometryPanel
+              title={t`Brow shape`}
+              subtitle={t`Reshape via AI render — preserves identity.`}
+              plan={state.browShape}
+              presets={BROW_SHAPE_PRESETS}
+              onChange={(next) => {
+                onStateChange({ ...state, browShape: next });
+              }}
+            />
+          </div>
+        )}
 
-      {safeActive === 'brows' && (
-        <div className="flex flex-col gap-4">
+        {safeActive === 'cheeks' && (
           <ColorTintPanel
-            title={t`Brow tint`}
-            subtitle={t`Subtle color on the brow polygons.`}
-            tint={state.browTint}
+            title={t`Blush`}
+            subtitle={t`Feathered ellipse on each cheekbone.`}
+            tint={state.blush}
             onChange={(next) => {
-              onStateChange({ ...state, browTint: next });
+              onStateChange({ ...state, blush: next });
             }}
-            palette={BROW_COLORS}
+            palette={BLUSH_COLORS}
           />
+        )}
+
+        {safeActive === 'beard' && (
           <GeometryPanel
-            title={t`Brow shape`}
-            subtitle={t`Reshape via AI render — preserves identity.`}
-            plan={state.browShape}
-            presets={BROW_SHAPE_PRESETS}
+            title={t`Beard`}
+            subtitle={t`Geometry change — runs the AI render.`}
+            plan={state.beard}
+            presets={BEARD_PRESETS}
             onChange={(next) => {
-              onStateChange({ ...state, browShape: next });
+              onStateChange({ ...state, beard: next });
             }}
           />
-        </div>
-      )}
+        )}
 
-      {safeActive === 'cheeks' && (
-        <ColorTintPanel
-          title={t`Blush`}
-          subtitle={t`Feathered ellipse on each cheekbone.`}
-          tint={state.blush}
-          onChange={(next) => {
-            onStateChange({ ...state, blush: next });
-          }}
-          palette={BLUSH_COLORS}
-        />
-      )}
-
-      {safeActive === 'beard' && (
-        <GeometryPanel
-          title={t`Beard`}
-          subtitle={t`Geometry change — runs the AI render.`}
-          plan={state.beard}
-          presets={BEARD_PRESETS}
-          onChange={(next) => {
-            onStateChange({ ...state, beard: next });
-          }}
-        />
-      )}
-
-      {safeActive === 'mustache' && (
-        <GeometryPanel
-          title={t`Mustache`}
-          subtitle={t`Geometry change — runs the AI render.`}
-          plan={state.mustache}
-          presets={MUSTACHE_PRESETS}
-          onChange={(next) => {
-            onStateChange({ ...state, mustache: next });
-          }}
-        />
-      )}
-
-      {safeActive === 'hair' && (
-        <GroupedGeometryPanel
-          title={t`Hairstyle`}
-          subtitle={t`Pick a length, then refine with detail text.`}
-          plan={state.hairstyle}
-          groups={hairGroups}
-          onChange={(next) => {
-            onStateChange({ ...state, hairstyle: next });
-          }}
-        />
-      )}
-
-      {safeActive === 'extras' && (
-        <div className="flex flex-col gap-4">
+        {safeActive === 'mustache' && (
           <GeometryPanel
-            title={t`Eyewear`}
-            subtitle={t`Glasses or sunglasses.`}
-            plan={state.eyewear}
-            presets={EYEWEAR_PRESETS}
+            title={t`Mustache`}
+            subtitle={t`Geometry change — runs the AI render.`}
+            plan={state.mustache}
+            presets={MUSTACHE_PRESETS}
             onChange={(next) => {
-              onStateChange({ ...state, eyewear: next });
+              onStateChange({ ...state, mustache: next });
             }}
           />
+        )}
+
+        {safeActive === 'hair' && (
+          <GroupedGeometryPanel
+            title={t`Hairstyle`}
+            subtitle={t`Pick a length, then refine with detail text.`}
+            plan={state.hairstyle}
+            groups={hairGroups}
+            onChange={(next) => {
+              onStateChange({ ...state, hairstyle: next });
+            }}
+          />
+        )}
+
+        {safeActive === 'extras' && (
+          <div className="flex flex-col gap-4">
+            <GeometryPanel
+              title={t`Eyewear`}
+              subtitle={t`Glasses or sunglasses.`}
+              plan={state.eyewear}
+              presets={EYEWEAR_PRESETS}
+              onChange={(next) => {
+                onStateChange({ ...state, eyewear: next });
+              }}
+            />
+            <Separator />
+            <GeometryPanel
+              title={t`Headwear`}
+              subtitle={t`Hats and head coverings.`}
+              plan={state.headwear}
+              presets={HEADWEAR_PRESETS}
+              onChange={(next) => {
+                onStateChange({ ...state, headwear: next });
+              }}
+            />
+            <Separator />
+            <GeometryPanel
+              title={t`Jewelry`}
+              subtitle={t`Earrings, necklaces, layered chains.`}
+              plan={state.jewelry}
+              presets={JEWELRY_PRESETS}
+              onChange={(next) => {
+                onStateChange({ ...state, jewelry: next });
+              }}
+            />
+          </div>
+        )}
+
+        {safeActive === 'vibe' && (
           <GeometryPanel
-            title={t`Headwear`}
-            subtitle={t`Hats and head coverings.`}
-            plan={state.headwear}
-            presets={HEADWEAR_PRESETS}
+            title={t`Vibe`}
+            subtitle={t`Skin finish, freckles, expression.`}
+            plan={state.vibe}
+            presets={VIBE_PRESETS}
             onChange={(next) => {
-              onStateChange({ ...state, headwear: next });
+              onStateChange({ ...state, vibe: next });
             }}
           />
-          <GeometryPanel
-            title={t`Jewelry`}
-            subtitle={t`Earrings, necklaces, layered chains.`}
-            plan={state.jewelry}
-            presets={JEWELRY_PRESETS}
-            onChange={(next) => {
-              onStateChange({ ...state, jewelry: next });
+        )}
+
+        {safeActive === 'uploads' && (
+          <UploadsPanel
+            uploads={uploads}
+            selectedId={state.selectedUploadId}
+            onSelect={(id) => {
+              onStateChange({ ...state, selectedUploadId: id });
             }}
+            onDelete={onDeleteUpload}
           />
-        </div>
-      )}
+        )}
 
-      {safeActive === 'vibe' && (
-        <GeometryPanel
-          title={t`Vibe`}
-          subtitle={t`Skin finish, freckles, expression.`}
-          plan={state.vibe}
-          presets={VIBE_PRESETS}
-          onChange={(next) => {
-            onStateChange({ ...state, vibe: next });
-          }}
-        />
-      )}
-
-      {safeActive === 'uploads' && (
-        <UploadsPanel
-          uploads={uploads}
-          selectedId={state.selectedUploadId}
-          onSelect={(id) => {
-            onStateChange({ ...state, selectedUploadId: id });
-          }}
-          onDelete={onDeleteUpload}
-        />
-      )}
-
-      {safeActive === 'ask' && (
-        <AskPanel
-          busy={askBusy}
-          renderBusy={renderBusy}
-          error={askError}
-          recommendations={recommendations}
-          onAsk={onAsk}
-          onRenderRecommendation={onRenderRecommendation}
-        />
-      )}
+        {safeActive === 'ask' && (
+          <AskPanel
+            busy={askBusy}
+            renderBusy={renderBusy}
+            error={askError}
+            recommendations={recommendations}
+            onAsk={onAsk}
+            onRenderRecommendation={onRenderRecommendation}
+          />
+        )}
+      </div>
     </div>
   );
 }
@@ -599,46 +611,58 @@ function ColorTintPanel({
 }: ColorTintPanelProps) {
   const { i18n, t } = useLingui();
   return (
-    <div className="flex flex-col gap-3">
-      <PanelHeader title={title} subtitle={subtitle} />
-      <label className="flex items-center justify-between gap-3 text-sm">
-        <span className="text-muted-foreground">
-          <Trans>Enabled</Trans>
-        </span>
-        <input
-          type="checkbox"
-          checked={tint.enabled}
-          onChange={(event) => {
-            onChange({ ...tint, enabled: event.currentTarget.checked });
-          }}
-          className="accent-foreground"
-        />
-      </label>
+    <div className="flex flex-col gap-4">
+      <div className="flex items-start justify-between gap-3">
+        <PanelHeader title={title} subtitle={subtitle} />
+        <label className="bg-muted/50 border-border/60 hover:border-foreground/30 flex shrink-0 cursor-pointer items-center gap-2 rounded-full border py-1 pr-1.5 pl-3 text-xs font-medium transition">
+          <span className={cn(tint.enabled ? 'text-foreground' : 'text-muted-foreground')}>
+            {tint.enabled ? <Trans>On</Trans> : <Trans>Off</Trans>}
+          </span>
+          <Switch
+            checked={tint.enabled}
+            onCheckedChange={(checked) => {
+              onChange({ ...tint, enabled: checked });
+            }}
+            aria-label={t`Toggle ${title.toLowerCase()}`}
+          />
+        </label>
+      </div>
 
       <div className="flex flex-col gap-2">
-        <span className="text-muted-foreground text-xs">
+        <span className="text-muted-foreground text-[11px] font-medium tracking-wide uppercase">
           <Trans>Color</Trans>
         </span>
-        <div className="grid grid-cols-6 gap-1.5">
-          {palette.map((swatch) => (
-            <button
-              key={swatch}
-              type="button"
-              aria-label={swatch}
-              onClick={() => {
-                onChange({ ...tint, color: swatch, enabled: true });
-              }}
-              className={cn(
-                'aspect-square rounded-md border-2 transition',
-                tint.color === swatch && tint.enabled
-                  ? 'border-foreground ring-foreground/40 ring-2'
-                  : 'border-transparent',
-              )}
-              style={{ backgroundColor: swatch }}
-            />
-          ))}
+        <div className="grid grid-cols-7 gap-1.5">
+          {palette.map((swatch) => {
+            const isSelected = tint.color === swatch && tint.enabled;
+            return (
+              <button
+                key={swatch}
+                type="button"
+                aria-label={swatch}
+                aria-pressed={isSelected}
+                onClick={() => {
+                  onChange({ ...tint, color: swatch, enabled: true });
+                }}
+                className={cn(
+                  'group ring-offset-card relative aspect-square rounded-md ring-offset-2 transition focus-visible:outline-none',
+                  isSelected
+                    ? 'ring-foreground scale-105 ring-2'
+                    : 'ring-border hover:ring-foreground/30 ring-1 hover:scale-105',
+                )}
+                style={{ backgroundColor: swatch }}
+              >
+                {isSelected && (
+                  <Check
+                    className="absolute inset-0 m-auto size-3.5 text-white drop-shadow"
+                    strokeWidth={3}
+                  />
+                )}
+              </button>
+            );
+          })}
           <label
-            className="border-input hover:border-foreground/40 relative aspect-square cursor-pointer rounded-md border"
+            className="border-input hover:border-foreground/40 text-muted-foreground hover:text-foreground relative flex aspect-square cursor-pointer items-center justify-center rounded-md border border-dashed transition"
             aria-label={t`Custom color`}
           >
             <input
@@ -649,40 +673,38 @@ function ColorTintPanel({
               }}
               className="absolute inset-0 size-full cursor-pointer opacity-0"
             />
-            <span className="text-muted-foreground absolute inset-0 flex items-center justify-center text-[10px]">
-              ±
-            </span>
+            <Pipette className="size-3" />
           </label>
         </div>
       </div>
 
-      <label className="flex flex-col gap-1.5 text-xs">
-        <div className="text-muted-foreground flex items-center justify-between">
-          <span>
+      <div className="flex flex-col gap-2">
+        <div className="text-muted-foreground flex items-center justify-between text-xs">
+          <span className="text-[11px] font-medium tracking-wide uppercase">
             <Trans>Intensity</Trans>
           </span>
-          <span className="tabular-nums">{Math.round(tint.intensity * 100)}%</span>
+          <span className="text-foreground tabular-nums">{Math.round(tint.intensity * 100)}%</span>
         </div>
-        <input
-          type="range"
+        <Slider
           min={0}
           max={1}
           step={0.05}
-          value={tint.intensity}
+          value={[tint.intensity]}
           disabled={!tint.enabled}
-          onChange={(event) => {
-            onChange({ ...tint, intensity: Number(event.currentTarget.value) });
+          onValueChange={(next) => {
+            const v = next[0];
+            if (v === undefined) return;
+            onChange({ ...tint, intensity: v });
           }}
-          className="studio-slider"
         />
-      </label>
+      </div>
 
       {finish !== undefined && onFinishChange !== undefined && (
         <div className="flex flex-col gap-2">
-          <span className="text-muted-foreground text-xs">
+          <span className="text-muted-foreground text-[11px] font-medium tracking-wide uppercase">
             <Trans>Finish</Trans>
           </span>
-          <div className="grid grid-cols-3 gap-1">
+          <div className="bg-muted/60 grid grid-cols-3 gap-1 rounded-md p-1">
             {FINISH_OPTIONS.map((option) => (
               <button
                 key={option.id}
@@ -691,11 +713,12 @@ function ColorTintPanel({
                   onFinishChange(option.id);
                 }}
                 disabled={!tint.enabled}
+                aria-pressed={finish === option.id}
                 className={cn(
-                  'rounded-md border px-2 py-1.5 text-xs transition disabled:opacity-50',
+                  'rounded px-2 py-1 text-xs font-medium transition-colors disabled:opacity-50',
                   finish === option.id
-                    ? 'border-foreground bg-foreground text-background'
-                    : 'border-input hover:bg-accent',
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground',
                 )}
               >
                 {i18n._(FINISH_LABEL_MESSAGES[option.id])}
@@ -707,7 +730,7 @@ function ColorTintPanel({
 
       <Button
         type="button"
-        variant="outline"
+        variant="ghost"
         size="sm"
         disabled={!tint.enabled}
         onClick={() => {
@@ -749,7 +772,7 @@ function GeometryPanel({ title, subtitle, plan, presets, onChange }: GeometryPan
       />
       <Button
         type="button"
-        variant="outline"
+        variant="ghost"
         size="sm"
         disabled={plan.preset === null && plan.custom.length === 0}
         onClick={() => {
@@ -809,7 +832,7 @@ function GroupedGeometryPanel({
       />
       <Button
         type="button"
-        variant="outline"
+        variant="ghost"
         size="sm"
         disabled={plan.preset === null && plan.custom.length === 0}
         onClick={() => {
@@ -842,10 +865,10 @@ function PresetChips({ presets, selected, onSelect }: PresetChipsProps) {
               onSelect(isSelected ? null : preset.value);
             }}
             className={cn(
-              'rounded-full border px-3 py-1 text-xs transition',
+              'rounded-full border px-3 py-1 text-xs transition-colors',
               isSelected
-                ? 'border-foreground bg-foreground text-background'
-                : 'border-input hover:bg-accent',
+                ? 'border-primary bg-primary/15 text-primary'
+                : 'border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground',
             )}
             aria-pressed={isSelected}
           >
@@ -865,8 +888,8 @@ interface CustomDetailInputProps {
 
 function CustomDetailInput({ value, onChange, placeholder }: CustomDetailInputProps) {
   return (
-    <label className="flex flex-col gap-1 text-xs">
-      <span className="text-muted-foreground">
+    <label className="flex flex-col gap-1.5 text-xs">
+      <span className="text-muted-foreground text-[11px] font-medium tracking-wide uppercase">
         <Trans>Detail (optional)</Trans>
       </span>
       <input
@@ -876,7 +899,7 @@ function CustomDetailInput({ value, onChange, placeholder }: CustomDetailInputPr
           onChange(event.currentTarget.value);
         }}
         placeholder={placeholder}
-        className="border-input rounded-md border px-3 py-2 text-sm"
+        className="border-input bg-background focus-visible:border-ring focus-visible:ring-ring/40 rounded-md border px-3 py-2 text-sm shadow-xs transition outline-none focus-visible:ring-[3px]"
         maxLength={80}
       />
     </label>
@@ -908,10 +931,10 @@ function UploadsPanel({ uploads, selectedId, onSelect, onDelete }: UploadsPanelP
                 onSelect(selectedId === item._id ? null : item._id);
               }}
               className={cn(
-                'aspect-square w-full overflow-hidden rounded-md border-2 transition',
+                'aspect-square w-full overflow-hidden rounded-md ring-1 transition',
                 selectedId === item._id
-                  ? 'border-foreground ring-foreground/40 ring-2'
-                  : 'hover:border-foreground/40 border-transparent',
+                  ? 'ring-primary ring-2'
+                  : 'ring-border hover:ring-foreground/40',
               )}
             >
               <img
@@ -929,7 +952,7 @@ function UploadsPanel({ uploads, selectedId, onSelect, onDelete }: UploadsPanelP
                 onDelete(item._id);
               }}
               aria-label={t`Delete ${item.label}`}
-              className="bg-background/80 absolute top-1 right-1 rounded-full p-1 opacity-0 shadow transition group-hover:opacity-100"
+              className="bg-background/90 hover:bg-background absolute top-1 right-1 rounded-full p-1 opacity-0 shadow transition group-hover:opacity-100"
             >
               <Trash2 className="size-3" />
             </button>
@@ -939,7 +962,7 @@ function UploadsPanel({ uploads, selectedId, onSelect, onDelete }: UploadsPanelP
       {selectedId !== null && (
         <Button
           type="button"
-          variant="outline"
+          variant="ghost"
           size="sm"
           onClick={() => {
             onSelect(null);
@@ -993,7 +1016,7 @@ function AskPanel({
           placeholder={t`e.g. What hairstyle would suit me?`}
           disabled={busy}
           rows={2}
-          className="border-input min-h-16 resize-none rounded-md border px-3 py-2 text-sm"
+          className="border-input bg-background focus-visible:border-ring focus-visible:ring-ring/40 min-h-16 resize-none rounded-md border px-3 py-2 text-sm shadow-xs transition outline-none focus-visible:ring-[3px]"
           maxLength={300}
         />
         <Button type="submit" size="sm" disabled={busy || question.trim().length === 0}>
@@ -1014,7 +1037,7 @@ function AskPanel({
                 setQuestion(text);
                 onAsk(text);
               }}
-              className="border-border text-muted-foreground hover:border-foreground/40 hover:text-foreground rounded-full border px-3 py-1 text-xs transition disabled:opacity-50"
+              className="border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground rounded-full border px-3 py-1 text-xs transition disabled:opacity-50"
             >
               {text}
             </button>
@@ -1023,45 +1046,50 @@ function AskPanel({
       </div>
 
       {error !== null && (
-        <p className="text-destructive text-xs leading-snug" role="alert">
+        <p
+          className="text-destructive bg-destructive/5 border-destructive/30 rounded-md border px-3 py-2 text-xs leading-snug"
+          role="alert"
+        >
           {error}
         </p>
       )}
 
       {recommendations.length > 0 && (
-        <div className="border-border flex flex-col gap-2 border-t pt-3">
-          <span className="text-muted-foreground text-[11px] font-medium tracking-wide uppercase">
-            <Trans>Recommendations</Trans>
-          </span>
-          {recommendations.map((recommendation) => (
-            <div
-              key={`${recommendation.styleType}:${recommendation.title}`}
-              className="border-border flex flex-col gap-1.5 rounded-md border p-2.5"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <h4 className="text-sm leading-tight font-semibold">{recommendation.title}</h4>
-                <span className="bg-muted text-muted-foreground shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium">
-                  {i18n._(STYLE_LABEL_MESSAGES[recommendation.styleType])}
-                </span>
-              </div>
-              <p className="text-muted-foreground text-xs leading-snug">
-                {recommendation.description}
-              </p>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  onRenderRecommendation(recommendation);
-                }}
-                disabled={renderBusy}
+        <>
+          <Separator />
+          <div className="flex flex-col gap-2">
+            <span className="text-muted-foreground text-[11px] font-medium tracking-wide uppercase">
+              <Trans>Recommendations</Trans>
+            </span>
+            {recommendations.map((recommendation) => (
+              <div
+                key={`${recommendation.styleType}:${recommendation.title}`}
+                className="bg-muted/40 border-border/60 flex flex-col gap-2 rounded-lg border p-3"
               >
-                {renderBusy ? <Loader2 className="animate-spin" /> : <Sparkles />}
-                <Trans>Render this look</Trans>
-              </Button>
-            </div>
-          ))}
-        </div>
+                <div className="flex items-start justify-between gap-2">
+                  <h4 className="text-sm leading-tight font-semibold">{recommendation.title}</h4>
+                  <Badge variant="accent" className="shrink-0">
+                    {i18n._(STYLE_LABEL_MESSAGES[recommendation.styleType])}
+                  </Badge>
+                </div>
+                <p className="text-muted-foreground text-xs leading-snug">
+                  {recommendation.description}
+                </p>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => {
+                    onRenderRecommendation(recommendation);
+                  }}
+                  disabled={renderBusy}
+                >
+                  {renderBusy ? <Loader2 className="animate-spin" /> : <Sparkles />}
+                  <Trans>Render this look</Trans>
+                </Button>
+              </div>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );
@@ -1075,8 +1103,8 @@ interface PanelHeaderProps {
 function PanelHeader({ title, subtitle }: PanelHeaderProps) {
   return (
     <div className="flex flex-col gap-0.5">
-      <h3 className="text-sm font-semibold">{title}</h3>
-      <p className="text-muted-foreground text-xs">{subtitle}</p>
+      <h3 className="text-sm font-semibold tracking-tight">{title}</h3>
+      <p className="text-muted-foreground text-xs leading-snug">{subtitle}</p>
     </div>
   );
 }

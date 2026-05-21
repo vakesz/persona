@@ -346,10 +346,10 @@ export async function cascadeDeleteAvatar(
     .collect();
   for (const look of savedLooks) {
     if (look.previewStorageId !== undefined) {
-      await ctx.storage.delete(look.previewStorageId);
+      await bestEffortDeleteStorage(ctx, look.previewStorageId);
     }
     if (look.renderStorageId !== undefined) {
-      await ctx.storage.delete(look.renderStorageId);
+      await bestEffortDeleteStorage(ctx, look.renderStorageId);
     }
     await ctx.db.delete(look._id);
   }
@@ -360,21 +360,31 @@ export async function cascadeDeleteAvatar(
     .collect();
   for (const job of renderJobs) {
     if (job.resultStorageId !== undefined) {
-      await ctx.storage.delete(job.resultStorageId);
+      await bestEffortDeleteStorage(ctx, job.resultStorageId);
     }
     await ctx.db.delete(job._id);
   }
 
   for (const storageId of avatar.sourcePhotoStorageIds ?? []) {
-    await ctx.storage.delete(storageId);
+    await bestEffortDeleteStorage(ctx, storageId);
   }
   if (avatar.baseImageStorageId !== undefined) {
-    await ctx.storage.delete(avatar.baseImageStorageId);
+    await bestEffortDeleteStorage(ctx, avatar.baseImageStorageId);
   }
   if (avatar.thumbnailStorageId !== undefined) {
-    await ctx.storage.delete(avatar.thumbnailStorageId);
+    await bestEffortDeleteStorage(ctx, avatar.thumbnailStorageId);
   }
   await ctx.db.delete(avatarId);
+}
+
+// Storage deletes aren't transactional with the DB, so an orphan reference
+// (blob gone, row still points at it) shouldn't block the cascade.
+async function bestEffortDeleteStorage(ctx: MutationCtx, storageId: Id<'_storage'>): Promise<void> {
+  try {
+    await ctx.storage.delete(storageId);
+  } catch (error) {
+    console.warn(`Storage delete skipped (id ${storageId} not found):`, error);
+  }
 }
 
 async function cleanupOnReject(

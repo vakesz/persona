@@ -309,6 +309,7 @@ export const generateAvatarBaseline = internalAction({
             contents: [{ role: 'user', parts }],
             generationConfig: {
               responseModalities: ['IMAGE'],
+              responseFormat: { image: { imageSize: '1K' } },
               temperature: 0.4,
             },
           }),
@@ -460,6 +461,7 @@ export const renderLookWithGemini = internalAction({
             contents: [{ role: 'user', parts }],
             generationConfig: {
               responseModalities: ['IMAGE'],
+              responseFormat: { image: { imageSize: '1K' } },
               temperature: 0.7,
             },
           }),

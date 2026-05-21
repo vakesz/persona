@@ -64,8 +64,8 @@ msgid "All ({0})"
 msgstr "Összes ({0})"
 
 #: src/routes/studio.$avatarId.tsx
-msgid "All avatars"
-msgstr "Összes avatár"
+#~ msgid "All avatars"
+#~ msgstr "Összes avatár"
 
 #: src/routes/auth.tsx
 msgid "Already have an account? "
@@ -125,6 +125,7 @@ msgstr "Avatár nem található."
 
 #: src/components/app-shell.tsx
 #: src/routes/settings.tsx
+#: src/routes/studio.$avatarId.tsx
 msgid "Avatars"
 msgstr "Avatárok"
 
@@ -401,8 +402,8 @@ msgid "Email"
 msgstr "E-mail"
 
 #: src/components/studio/studio-sidebar.tsx
-msgid "Enabled"
-msgstr "Bekapcsolva"
+#~ msgid "Enabled"
+#~ msgstr "Bekapcsolva"
 
 #: src/components/studio/studio-sidebar.tsx
 msgid "Extras"
@@ -669,6 +670,10 @@ msgstr "férfikonty"
 msgid "Manage avatars"
 msgstr "Avatárok kezelése"
 
+#: src/routes/settings.tsx
+msgid "Manage your account, language, and avatars."
+msgstr "Fiókod, nyelved és avatáraid kezelése."
+
 #: src/components/avatars/avatar-card.tsx
 #: src/components/avatars/avatar-uploader.tsx
 msgid "Masculine"
@@ -728,6 +733,14 @@ msgstr "Ehhez az avatárhoz még nincs stílus"
 #: src/routes/saved.tsx
 msgid "No saved looks yet"
 msgstr "Még nincs mentett stílus"
+
+#: src/components/studio/studio-sidebar.tsx
+msgid "Off"
+msgstr "Ki"
+
+#: src/components/studio/studio-sidebar.tsx
+msgid "On"
+msgstr "Be"
 
 #: src/components/avatars/avatar-uploader.tsx
 msgid "Only the first {MAX_PHOTOS} photos are used."
@@ -1235,6 +1248,11 @@ msgstr "Színezd a sminket élőben, válassz extrákat, kérdezd a stylistot, m
 #: src/components/studio/studio-sidebar.tsx
 msgid "Tints the lid above each eye."
 msgstr "Színezi a szemhéjat a szemek fölött."
+
+#. placeholder {0}: title.toLowerCase()
+#: src/components/studio/studio-sidebar.tsx
+msgid "Toggle {0}"
+msgstr "{0} be/ki"
 
 #: src/components/studio/studio-sidebar.tsx
 msgid "top knot"

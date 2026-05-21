@@ -64,8 +64,8 @@ msgid "All ({0})"
 msgstr "All ({0})"
 
 #: src/routes/studio.$avatarId.tsx
-msgid "All avatars"
-msgstr "All avatars"
+#~ msgid "All avatars"
+#~ msgstr "All avatars"
 
 #: src/routes/auth.tsx
 msgid "Already have an account? "
@@ -125,6 +125,7 @@ msgstr "Avatar not found."
 
 #: src/components/app-shell.tsx
 #: src/routes/settings.tsx
+#: src/routes/studio.$avatarId.tsx
 msgid "Avatars"
 msgstr "Avatars"
 
@@ -401,8 +402,8 @@ msgid "Email"
 msgstr "Email"
 
 #: src/components/studio/studio-sidebar.tsx
-msgid "Enabled"
-msgstr "Enabled"
+#~ msgid "Enabled"
+#~ msgstr "Enabled"
 
 #: src/components/studio/studio-sidebar.tsx
 msgid "Extras"
@@ -669,6 +670,10 @@ msgstr "man bun"
 msgid "Manage avatars"
 msgstr "Manage avatars"
 
+#: src/routes/settings.tsx
+msgid "Manage your account, language, and avatars."
+msgstr "Manage your account, language, and avatars."
+
 #: src/components/avatars/avatar-card.tsx
 #: src/components/avatars/avatar-uploader.tsx
 msgid "Masculine"
@@ -728,6 +733,14 @@ msgstr "No looks for this avatar yet"
 #: src/routes/saved.tsx
 msgid "No saved looks yet"
 msgstr "No saved looks yet"
+
+#: src/components/studio/studio-sidebar.tsx
+msgid "Off"
+msgstr "Off"
+
+#: src/components/studio/studio-sidebar.tsx
+msgid "On"
+msgstr "On"
 
 #: src/components/avatars/avatar-uploader.tsx
 msgid "Only the first {MAX_PHOTOS} photos are used."
@@ -1235,6 +1248,11 @@ msgstr "Tint makeup live, pick extras, ask the stylist, then render the look —
 #: src/components/studio/studio-sidebar.tsx
 msgid "Tints the lid above each eye."
 msgstr "Tints the lid above each eye."
+
+#. placeholder {0}: title.toLowerCase()
+#: src/components/studio/studio-sidebar.tsx
+msgid "Toggle {0}"
+msgstr "Toggle {0}"
 
 #: src/components/studio/studio-sidebar.tsx
 msgid "top knot"

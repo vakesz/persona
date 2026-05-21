@@ -2,7 +2,7 @@ import { useAuthActions } from '@convex-dev/auth/react';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute, Navigate, useNavigate } from '@tanstack/react-router';
 import { useConvexAuth } from 'convex/react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Sparkles } from 'lucide-react';
 import { type SyntheticEvent, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -54,8 +54,11 @@ function AuthPage() {
 
   return (
     <div className="flex min-h-[60vh] items-center justify-center">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
+      <Card className="w-full max-w-sm shadow-lg">
+        <CardHeader className="items-center text-center">
+          <span className="from-primary/30 to-primary/10 ring-primary/30 mx-auto mb-2 inline-flex size-10 items-center justify-center rounded-xl bg-gradient-to-br ring-1">
+            <Sparkles className="text-primary size-5" />
+          </span>
           <CardTitle>
             {isSignIn ? <Trans>Welcome back</Trans> : <Trans>Create your account</Trans>}
           </CardTitle>

@@ -41,7 +41,7 @@ export function AvatarCard({
   const failed = baselineStatus === 'failed';
   const { t } = useLingui();
   return (
-    <Card className="group-hover:border-foreground/30 overflow-hidden p-0 transition">
+    <Card className="group hover:border-primary/40 hover:shadow-primary/5 overflow-hidden p-0 transition hover:shadow-md">
       <ConditionalLink ready={ready} avatarId={id}>
         <div className="bg-muted relative aspect-[4/5] w-full overflow-hidden">
           {thumbnailUrl === null ? (
@@ -56,7 +56,7 @@ export function AvatarCard({
             <img
               src={thumbnailUrl}
               alt={name}
-              className="size-full object-cover transition hover:scale-[1.02]"
+              className="size-full object-cover transition duration-500 group-hover:scale-[1.03]"
               loading="lazy"
               decoding="async"
             />
