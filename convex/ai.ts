@@ -20,15 +20,17 @@ const styleType = v.union(
   v.literal('clothes'),
 );
 
-const STYLIST_SYSTEM_PROMPT = `You are a friendly, confident stylist helping someone explore looks that would suit them. Look at the user's photo and read their question carefully.
+const STYLIST_SYSTEM_PROMPT = `You are a confident, warm stylist helping someone preview looks that would suit them. Read their photo and question, then propose three concrete looks they should try.
 
-Return exactly 3 concrete recommendations that genuinely complement them. For each:
-- Short, memorable title (max 6 words).
-- Friendly description in 1-2 sentences focused on WHY it suits them (skin tone, hair, face shape, vibe).
-- Exactly one styleType: "hair", "makeup", "nails", or "clothes".
-- A detailed renderPrompt (1-2 sentences) ready for an image-generation model — specify colour, texture, length, finish, and other visual specifics.
+The user's question may be in any language (English, Hungarian, etc.); interpret it faithfully. Write title and description in the user's language. styleType must stay in English (one of the four enum values below). renderPrompt must stay in English (it is fed to an image-edit model that responds best to English directives).
 
-If the user's question targets a specific style type (e.g. "what hair?"), make all 3 recommendations that type. Otherwise spread across types based on what would genuinely benefit them most. Be specific, not generic. Avoid hedging.`;
+Output exactly 3 recommendations as structured JSON. For each:
+- title: short, memorable, max 6 words.
+- description: 1-2 sentences explaining WHY this suits them (skin tone, hair, face shape, vibe). Specific, not generic. No hedging.
+- styleType: exactly one of "hair", "makeup", "nails", "clothes".
+- renderPrompt: 1-2 directive sentences in English for an image-edit model. Use replace/render/apply verbs — never "change" or "add" alone, because the model interprets those as partial edits. Specify colour, texture, length, finish, fit, and any other visual specifics needed to render the look faithfully on the existing photo.
+
+If the question targets a specific style type, make all 3 recommendations that type. Otherwise spread across types based on what would genuinely benefit the user most.`;
 
 const RESPONSE_SCHEMA = {
   type: 'object',
@@ -252,16 +254,45 @@ interface GeminiImageResponse {
   promptFeedback?: { blockReason?: string };
 }
 
-const BASELINE_INSTRUCTION = `Generate a single clean studio portrait of the person shown in the attached reference photo(s). Strict requirements:
+const IMAGE_SYSTEM_INSTRUCTION = `This is a personal styling app. The user uploads photos of themselves to preview hairstyles, makeup, clothing, and accessories on their own portrait. Every reference image is of the user, supplied by the user, and only shown back to them; outputs are private.
+
+When rendering the user, keep them photorealistic and recognizable: preserve their face, skin tone, and apparent age. Preserve every mole, beauty spot, freckle, birthmark, and scar exactly where it appears in the reference — never smooth, remove, or relocate them unless explicitly asked.
+
+Other features (hair, makeup, clothing, eyewear, headwear, jewelry, facial hair) stay as in the reference unless the request changes them. When a request asks to change, replace, restyle, add, or remove a feature, apply it fully — completely remove the existing version of that feature and render the new one in its place, not a partial blend of old and new.
+
+User descriptions may be written in any language (English, Hungarian, etc.), sometimes mixed within a single request; interpret them faithfully regardless of language. Never stylise, cartoonify, or retouch beyond what the request asks for.`;
+
+type AvatarBaselineType = 'selfie' | 'full_body';
+
+function buildBaselineInstruction(avatarType: AvatarBaselineType): string {
+  if (avatarType === 'full_body') {
+    return `Use the attached reference photo(s) of me to produce a single clean studio full-body shot of me. This is the canonical baseline that the rest of the app edits on top of, so it must look unambiguously like me. Requirements:
+- Full body in frame: head to feet, standing front-facing, arms relaxed at the sides.
+- Relaxed, neutral expression with mouth closed.
+- Even, diffuse studio lighting; no harsh shadows.
+- Plain neutral light-grey backdrop covering the full height.
+- Plain, neutral, well-fitting everyday outfit — keep it simple, since the app will edit clothing on top later.
+- No visible makeup; clean, natural skin.
+- Hair styled simply, away from the face; no accessories.
+- Photorealistic, sharp focus, no painterly, illustrated, airbrushed, or stylised effects.
+- Match my appearance to the reference(s): same face shape, eye shape and colour, hair colour and length, skin tone, apparent age, height, build, and overall proportions.
+- The references may be a mix of full-body shots and selfies (this is expected). Use selfies primarily for identity cues — face, hair, skin — and any full-body shots primarily for proportions and body shape. Infer whatever isn't directly visible from the strongest available evidence; do not refuse if a reference doesn't match the requested framing.
+- Keep every mole, beauty spot, freckle, birthmark, scar, and similar identifying mark exactly where it appears in the reference(s). Do not smooth, retouch, or erase them.
+Return only the edited portrait image — no text, no decorations.`;
+  }
+  return `Use the attached reference photo(s) of me to produce a single clean studio headshot of me. This is the canonical baseline that the rest of the app edits on top of, so it must look unambiguously like me. Requirements:
 - Front-facing, head and upper shoulders in frame.
-- Neutral, relaxed expression (slight pleasant resting face, mouth closed).
+- Relaxed, neutral expression with mouth closed.
 - Even, diffuse studio lighting; no harsh shadows.
 - Plain neutral light-grey background.
-- No visible makeup. Clean, natural skin tone.
-- Hair styled naturally and away from the face — no styling product, no accessories.
-- Photorealistic, sharp focus, no painterly effects.
-- Preserve identity exactly: same face shape, eye colour, hair colour and length, skin tone, apparent age as the reference photos. Use all references to infer 3D shape if multiple were provided.
-Return only the generated portrait image — no text, no decorations.`;
+- No visible makeup; clean, natural skin.
+- Hair styled simply, away from the face; no accessories.
+- Photorealistic, sharp focus, no painterly, illustrated, airbrushed, or stylised effects.
+- Match my appearance to the reference(s): same face shape, eye shape and colour, hair colour and length, skin tone, and apparent age. If multiple references were given, combine them to infer my 3D structure.
+- The references may include some full-body shots even though this is a headshot baseline; that's fine — crop in mentally and use them for identity cues alongside the closer selfies. Do not refuse if a reference doesn't match the requested framing.
+- Keep every mole, beauty spot, freckle, birthmark, scar, and similar identifying mark exactly where it appears in the reference(s). Do not smooth, retouch, or erase them.
+Return only the edited portrait image — no text, no decorations.`;
+}
 
 export const generateAvatarBaseline = internalAction({
   args: { avatarId: v.id('avatars') },
@@ -287,7 +318,7 @@ export const generateAvatarBaseline = internalAction({
 
     try {
       const parts: { text?: string; inlineData?: { mimeType: string; data: string } }[] = [
-        { text: BASELINE_INSTRUCTION },
+        { text: buildBaselineInstruction(avatar.type) },
       ];
       for (const storageId of avatar.sourcePhotoStorageIds) {
         const blob = await ctx.storage.get(storageId);
@@ -306,10 +337,10 @@ export const generateAvatarBaseline = internalAction({
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            systemInstruction: { parts: [{ text: IMAGE_SYSTEM_INSTRUCTION }] },
             contents: [{ role: 'user', parts }],
             generationConfig: {
               responseModalities: ['IMAGE'],
-              responseFormat: { image: { imageSize: '1K' } },
               temperature: 0.4,
             },
           }),
@@ -323,6 +354,13 @@ export const generateAvatarBaseline = internalAction({
       const data = (await response.json()) as GeminiImageResponse;
       const blockReason = data.promptFeedback?.blockReason;
       if (blockReason !== undefined) {
+        console.error(
+          'Gemini blocked baseline:',
+          JSON.stringify({
+            promptFeedback: data.promptFeedback,
+            candidate: data.candidates?.[0],
+          }),
+        );
         throw errors.baselineBlocked(blockReason);
       }
 
@@ -363,10 +401,10 @@ interface RenderInputJson {
 }
 
 const RENDER_INSTRUCTION = (prompt: string) =>
-  `Edit the attached photo to apply this look while preserving the person's identity, face, pose, lighting, and the rest of their body and background as much as possible. Style change to apply: ${prompt}. Return only the edited image.`;
+  `Edit the attached photo of me to apply the requested look. Preserve my face, pose, lighting, body, and background. Keep every mole, beauty spot, freckle, birthmark, and scar exactly where it appears — do not retouch or smooth them. When the request asks to change, replace, restyle, add, or remove a feature, apply that change fully: completely remove the existing version of the affected feature and render the new one in its place, not a partial blend. The request may be written in any language; interpret it faithfully. Requested change: ${prompt}. Return only the edited image.`;
 
 const TRY_ON_INSTRUCTION = (prompt: string) =>
-  `The first image is a photo of a person. The second image is a clothing or accessory reference. Edit the first photo so the person is realistically wearing the item from the second image, preserving their identity, face, pose, lighting, and the rest of their body and background as much as possible. Additional guidance: ${prompt}. Return only the edited image.`;
+  `The first image is a photo of me; the second is a clothing or accessory reference. Edit the first photo so I am realistically wearing the item from the second — fitted naturally to my body, matched to my lighting and pose. If I am already wearing a similar garment or accessory in the first photo, replace it with the reference item rather than layering on top. Preserve my face, pose, lighting, and background. Keep every mole, beauty spot, freckle, birthmark, and scar exactly where it appears — do not retouch or smooth them. Additional guidance (may be in any language; interpret faithfully): ${prompt}. Return only the edited image.`;
 
 export const renderLookWithGemini = internalAction({
   args: { jobId: v.id('renderJobs') },
@@ -458,10 +496,10 @@ export const renderLookWithGemini = internalAction({
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            systemInstruction: { parts: [{ text: IMAGE_SYSTEM_INSTRUCTION }] },
             contents: [{ role: 'user', parts }],
             generationConfig: {
               responseModalities: ['IMAGE'],
-              responseFormat: { image: { imageSize: '1K' } },
               temperature: 0.7,
             },
           }),
@@ -475,6 +513,13 @@ export const renderLookWithGemini = internalAction({
       const data = (await response.json()) as GeminiImageResponse;
       const blockReason = data.promptFeedback?.blockReason;
       if (blockReason !== undefined) {
+        console.error(
+          'Gemini blocked render:',
+          JSON.stringify({
+            promptFeedback: data.promptFeedback,
+            candidate: data.candidates?.[0],
+          }),
+        );
         throw errors.renderBlocked(blockReason);
       }
 

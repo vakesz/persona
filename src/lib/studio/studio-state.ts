@@ -97,6 +97,13 @@ export function hasAnyChange(state: StudioState): boolean {
  * The flattening guarantee is enforced by `composeRenderInputs` in the studio
  * route — if any tint is enabled, the canvas is exported to PNG and uploaded
  * as the render input; otherwise we pass through the canonical baseline.
+ *
+ * Wording note: Gemini image-edit models read soft verbs ("change X to Y",
+ * "add a beard") as partial / blended edits. Every line below uses directive
+ * verbs (replace, render me with, fully remove) and an explicit "replace if
+ * present" clause for features that can already exist on the user. Custom
+ * user-supplied descriptions may be in any language — that hint is set
+ * server-side via IMAGE_SYSTEM_INSTRUCTION.
  */
 export function composeRenderPrompt(state: StudioState): string {
   const parts: string[] = [];
@@ -116,42 +123,60 @@ export function composeRenderPrompt(state: StudioState): string {
       tints.push(`brow tint (${state.browTint.color})`);
     }
     parts.push(
-      `Preserve the makeup already visible in the photo — ${tints.join(', ')} — exactly as shown.`,
+      `Preserve the makeup already visible in the photo — ${tints.join(', ')} — exactly as shown; do not clean or remove it.`,
     );
   } else {
     parts.push('Preserve the existing look exactly.');
   }
 
   if (planActive(state.lipShape)) {
-    parts.push(`Reshape the lips to ${describePlan(state.lipShape)}.`);
+    parts.push(
+      `Reshape my lips to: ${describePlan(state.lipShape)}. Replace the current lip contour with the new shape entirely.`,
+    );
   }
   if (planActive(state.browShape)) {
-    parts.push(`Reshape the eyebrows to ${describePlan(state.browShape)}.`);
+    parts.push(
+      `Reshape my eyebrows to: ${describePlan(state.browShape)}. Replace the current brow shape entirely.`,
+    );
   }
   if (planActive(state.beard)) {
-    parts.push(`Add a ${describePlan(state.beard)}.`);
+    parts.push(
+      `Render me with this beard: ${describePlan(state.beard)}. If I already have facial hair, fully replace it with the described beard; otherwise add it as described.`,
+    );
   }
   if (planActive(state.mustache)) {
-    parts.push(`Add a ${describePlan(state.mustache)}.`);
+    parts.push(
+      `Render me with this mustache: ${describePlan(state.mustache)}. If I already have a mustache, fully replace it; otherwise add it as described.`,
+    );
   }
   if (planActive(state.hairstyle)) {
-    parts.push(`Change the hairstyle to ${describePlan(state.hairstyle)}.`);
+    parts.push(
+      `Completely replace my hairstyle with: ${describePlan(state.hairstyle)}. Fully remove all of my current hair — length, cut, colour, texture, and hairline — and render the new style in its place. The result must be the described style, not a modification of my current hair.`,
+    );
   }
   if (planActive(state.eyewear)) {
-    parts.push(`Add ${describePlan(state.eyewear)}.`);
+    parts.push(
+      `Render me wearing this eyewear: ${describePlan(state.eyewear)}. If I am already wearing glasses or similar, replace them with the described item rather than layering.`,
+    );
   }
   if (planActive(state.headwear)) {
-    parts.push(`Add ${describePlan(state.headwear)}.`);
+    parts.push(
+      `Render me wearing this headwear: ${describePlan(state.headwear)}. If I am already wearing a hat or similar, replace it with the described item.`,
+    );
   }
   if (planActive(state.jewelry)) {
-    parts.push(`Add ${describePlan(state.jewelry)}.`);
+    parts.push(
+      `Render me wearing this jewelry: ${describePlan(state.jewelry)}. If similar jewelry is already visible in the same position, replace it with the described item.`,
+    );
   }
   if (planActive(state.vibe)) {
-    parts.push(`Apply ${describePlan(state.vibe)}.`);
+    parts.push(`Apply this overall styling vibe to me: ${describePlan(state.vibe)}.`);
   }
 
   if (state.selectedUploadId !== null) {
-    parts.push('Use the second attached image as the clothing or accessory to wear naturally.');
+    parts.push(
+      'Use the second attached image as the clothing or accessory to wear naturally; if I am already wearing a similar item, replace it rather than layering.',
+    );
   }
 
   if (parts.length === 1) {

@@ -124,6 +124,7 @@ export const getAvatarForBaseline = internalQuery({
     return {
       _id: avatar._id,
       userId: avatar.userId,
+      type: avatar.type,
       sourcePhotoStorageIds: avatar.sourcePhotoStorageIds ?? [],
       baselineStatus: avatar.baselineStatus ?? 'done',
     };
