@@ -104,7 +104,7 @@ function SettingsContent() {
           </p>
           <Button asChild variant="outline" size="sm">
             <Link to="/avatars">
-              <Trans>Manage avatars</Trans>
+              <Trans>Manage</Trans>
             </Link>
           </Button>
         </CardContent>

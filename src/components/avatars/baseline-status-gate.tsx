@@ -13,7 +13,7 @@ interface AvatarStub {
   name: string;
   gender: AvatarGender;
   baselineStatus: AvatarBaselineStatus;
-  baselineErrorMessage: string | undefined;
+  baselineErrorMessage?: string;
   baseImageUrl: string | null;
 }
 
@@ -51,7 +51,7 @@ export function BaselineStatusGate({ avatar, children }: BaselineStatusGateProps
         </p>
         <Button asChild variant="outline" className="w-fit">
           <Link to="/avatars">
-            <Trans>Back to avatars</Trans>
+            <Trans>Back</Trans>
           </Link>
         </Button>
       </div>
@@ -77,7 +77,7 @@ export function BaselineStatusGate({ avatar, children }: BaselineStatusGateProps
         )}
         <Button asChild variant="outline" size="sm">
           <Link to="/avatars">
-            <Trans>Back to avatars</Trans>
+            <Trans>Back</Trans>
           </Link>
         </Button>
       </div>
@@ -99,7 +99,7 @@ export function BaselineStatusGate({ avatar, children }: BaselineStatusGateProps
         </p>
         <Button asChild variant="outline" size="sm">
           <Link to="/avatars">
-            <Trans>Back to avatars</Trans>
+            <Trans>Back</Trans>
           </Link>
         </Button>
       </div>

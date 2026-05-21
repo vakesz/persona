@@ -98,15 +98,15 @@ export function hasAnyChange(state: StudioState): boolean {
  * route — if any tint is enabled, the canvas is exported to PNG and uploaded
  * as the render input; otherwise we pass through the canonical baseline.
  *
- * Wording note: Gemini image-edit models read soft verbs ("change X to Y",
- * "add a beard") as partial / blended edits. Every line below uses directive
- * verbs (replace, render me with, fully remove) and an explicit "replace if
- * present" clause for features that can already exist on the user. Custom
+ * Wording note: Gemini image-edit models work best when an edit is described
+ * as a specific local change with the untouched areas named explicitly. Custom
  * user-supplied descriptions may be in any language — that hint is set
  * server-side via IMAGE_SYSTEM_INSTRUCTION.
  */
 export function composeRenderPrompt(state: StudioState): string {
-  const parts: string[] = [];
+  const parts: string[] = [
+    'Keep the original crop, aspect ratio, background, lighting, pose, expression, face shape, eyes, nose, mouth, skin texture, moles, neck, shoulders, clothing, and accessories unchanged unless a later sentence explicitly changes that area.',
+  ];
 
   if (hasAnyTint(state)) {
     const tints: string[] = [];
@@ -123,63 +123,65 @@ export function composeRenderPrompt(state: StudioState): string {
       tints.push(`brow tint (${state.browTint.color})`);
     }
     parts.push(
-      `Preserve the makeup already visible in the photo — ${tints.join(', ')} — exactly as shown; do not clean or remove it.`,
+      `Preserve the makeup already visible in the photo - ${tints.join(', ')} - exactly as shown; do not clean, soften, retouch, recolor, or remove it.`,
     );
   } else {
-    parts.push('Preserve the existing look exactly.');
+    parts.push('Preserve the existing makeup and skin finish exactly.');
   }
 
   if (planActive(state.lipShape)) {
     parts.push(
-      `Reshape my lips to: ${describePlan(state.lipShape)}. Replace the current lip contour with the new shape entirely.`,
+      `Edit only my lips: reshape the lip contour to ${describePlan(state.lipShape)}. Keep my mouth position, expression, teeth if visible, surrounding skin, nose, chin, and the rest of the face unchanged.`,
     );
   }
   if (planActive(state.browShape)) {
     parts.push(
-      `Reshape my eyebrows to: ${describePlan(state.browShape)}. Replace the current brow shape entirely.`,
+      `Edit only my eyebrows: reshape them to ${describePlan(state.browShape)}. Keep brow placement natural on my brow bone and preserve my eyes, eyelids, forehead, glasses if present, and facial expression unchanged.`,
     );
   }
   if (planActive(state.beard)) {
     parts.push(
-      `Render me with this beard: ${describePlan(state.beard)}. If I already have facial hair, fully replace it with the described beard; otherwise add it as described.`,
+      `Edit only the beard area: render this beard, ${describePlan(state.beard)}. If facial hair is already present, replace it cleanly with the described beard; otherwise add it naturally. Preserve my jaw shape, lips, skin marks, expression, hair, clothing, and background.`,
     );
   }
   if (planActive(state.mustache)) {
     parts.push(
-      `Render me with this mustache: ${describePlan(state.mustache)}. If I already have a mustache, fully replace it; otherwise add it as described.`,
+      `Edit only the upper-lip facial-hair area: render this mustache, ${describePlan(state.mustache)}. If a mustache is already present, replace it cleanly; otherwise add it naturally. Preserve my lips, nose, skin marks, expression, beard if not requested, hair, clothing, and background.`,
     );
   }
   if (planActive(state.hairstyle)) {
     parts.push(
-      `Completely replace my hairstyle with: ${describePlan(state.hairstyle)}. Fully remove all of my current hair — length, cut, colour, texture, and hairline — and render the new style in its place. The result must be the described style, not a modification of my current hair.`,
+      `Edit only the hair on my head: restyle it into ${describePlan(state.hairstyle)}. Replace the visible hairstyle with a coherent, realistic version of that exact cut, length, silhouette, texture, and fringe/bangs if specified. Preserve my natural hair color unless the hairstyle description explicitly asks for another color. Keep my real face, forehead size, ears, jaw, neck, shoulders, glasses, makeup, clothing, background, lighting, crop, head size, and image aspect ratio unchanged. Do not alter facial features, expression, skin texture, apparent age, or body shape. Keep the hairline natural and attached to my head; only cover or reveal the forehead where the requested hairstyle naturally does so.`,
     );
   }
   if (planActive(state.eyewear)) {
     parts.push(
-      `Render me wearing this eyewear: ${describePlan(state.eyewear)}. If I am already wearing glasses or similar, replace them with the described item rather than layering.`,
+      `Edit only the eyewear: render me wearing ${describePlan(state.eyewear)}. If I am already wearing glasses or similar, replace them with the described item rather than layering. Preserve my eyes, brows, face, hair, lighting, and background.`,
     );
   }
   if (planActive(state.headwear)) {
     parts.push(
-      `Render me wearing this headwear: ${describePlan(state.headwear)}. If I am already wearing a hat or similar, replace it with the described item.`,
+      `Edit only the headwear area: render me wearing ${describePlan(state.headwear)}. If I am already wearing a hat or similar, replace it with the described item. Preserve my face, hair that remains visible, clothing, lighting, crop, and background.`,
     );
   }
   if (planActive(state.jewelry)) {
     parts.push(
-      `Render me wearing this jewelry: ${describePlan(state.jewelry)}. If similar jewelry is already visible in the same position, replace it with the described item.`,
+      `Edit only the jewelry area: render me wearing ${describePlan(state.jewelry)}. If similar jewelry is already visible in the same position, replace it with the described item. Preserve my face, hair, clothing, pose, lighting, and background.`,
     );
   }
   if (planActive(state.vibe)) {
-    parts.push(`Apply this overall styling vibe to me: ${describePlan(state.vibe)}.`);
+    parts.push(
+      `Apply this styling finish subtly and photorealistically: ${describePlan(state.vibe)}. Do not retouch away skin texture, moles, freckles, scars, or identity details.`,
+    );
   }
 
   if (state.selectedUploadId !== null) {
     parts.push(
-      'Use the second attached image as the clothing or accessory to wear naturally; if I am already wearing a similar item, replace it rather than layering.',
+      'Use the second attached image as the clothing or accessory to wear naturally; if I am already wearing a similar item, replace it rather than layering. Preserve my face, hair, pose, lighting, background, crop, and aspect ratio.',
     );
   }
 
-  if (parts.length === 1) {
+  if (parts.length === 2) {
     parts.push('No structural changes requested.');
   }
 

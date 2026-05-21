@@ -45,7 +45,7 @@ function NewAvatarFlow() {
         </p>
         <Button asChild variant="outline" className="w-fit">
           <Link to="/avatars">
-            <Trans>Back to avatars</Trans>
+            <Trans>Back</Trans>
           </Link>
         </Button>
       </div>

@@ -1,8 +1,9 @@
 import { getAuthUserId } from '@convex-dev/auth/server';
+import { v } from 'convex/values';
 
 import { cascadeDeleteAvatar } from './avatars';
 import { mutation, query } from './_generated/server';
-import { errors } from './lib/errors';
+import { requireAuth } from './lib/auth';
 
 /**
  * Returns the currently authenticated user, or `null` when signed out.
@@ -10,12 +11,28 @@ import { errors } from './lib/errors';
  */
 export const getCurrentUser = query({
   args: {},
+  returns: v.union(
+    v.object({
+      _id: v.id('users'),
+      _creationTime: v.number(),
+      email: v.optional(v.string()),
+      name: v.optional(v.string()),
+    }),
+    v.null(),
+  ),
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
-    if (userId === null) {
-      return null;
-    }
-    return await ctx.db.get(userId);
+    if (userId === null) return null;
+    const row = await ctx.db.get(userId);
+    if (row === null) return null;
+    // Project explicitly so future additions to `authTables.users` don't
+    // leak by default. Phone / verification timestamps stay server-side.
+    return {
+      _id: row._id,
+      _creationTime: row._creationTime,
+      ...(typeof row.email === 'string' && { email: row.email }),
+      ...(typeof row.name === 'string' && { name: row.name }),
+    };
   },
 });
 
@@ -23,6 +40,7 @@ export const getCurrentUser = query({
  * Hard-deletes the signed-in user's account and every owned resource:
  * - cascades every avatar (savedLooks / renderJobs and their storage blobs)
  * - removes user-scoped uploadedItems (clothing references)
+ * - clears pendingRenderInputs claims
  * - deletes the `users` row itself
  *
  * Convex Auth bookkeeping rows (`authAccounts`, `authSessions`) reference
@@ -32,11 +50,9 @@ export const getCurrentUser = query({
  */
 export const deleteAccount = mutation({
   args: {},
+  returns: v.null(),
   handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (userId === null) {
-      throw errors.notAuthenticated();
-    }
+    const userId = await requireAuth(ctx);
 
     const prefs = await ctx.db
       .query('userPreferences')
@@ -61,6 +77,21 @@ export const deleteAccount = mutation({
     for (const item of uploads) {
       await ctx.storage.delete(item.imageStorageId);
       await ctx.db.delete(item._id);
+    }
+
+    // Pending render-input claims for this user — the blobs would orphan
+    // otherwise (no row references them after `claimRenderInput`).
+    const pending = await ctx.db
+      .query('pendingRenderInputs')
+      .withIndex('by_user', (q) => q.eq('userId', userId))
+      .collect();
+    for (const row of pending) {
+      try {
+        await ctx.storage.delete(row.storageId);
+      } catch (error) {
+        console.warn(`Pending input storage delete skipped (${row.storageId}):`, error);
+      }
+      await ctx.db.delete(row._id);
     }
 
     // Paranoid sweep — any rows that slipped past the per-avatar cascade
@@ -90,5 +121,6 @@ export const deleteAccount = mutation({
     }
 
     await ctx.db.delete(userId);
+    return null;
   },
 });

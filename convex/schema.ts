@@ -40,9 +40,7 @@ export default defineSchema({
     masksJson: v.optional(v.string()),
     // Optional for the same reason as `sourcePhotoStorageIds` — legacy rows
     // are treated as `'done'` on read. New rows always set this field.
-    baselineStatus: v.optional(
-      v.union(v.literal('queued'), v.literal('processing'), v.literal('done'), v.literal('failed')),
-    ),
+    baselineStatus: v.optional(renderStatus),
     baselineErrorMessage: v.optional(v.string()),
     updatedAt: v.number(),
   }).index('by_user', ['userId']),
@@ -96,4 +94,20 @@ export default defineSchema({
     locale: v.union(v.literal('en'), v.literal('hu')),
     updatedAt: v.number(),
   }).index('by_user', ['userId']),
+
+  // Ownership ledger for the studio's single-use canvas snapshot. The studio
+  // uploads its flattened PNG, then claims the resulting `_storage` id here.
+  // `createRenderJob` and `discardRenderInput` validate against this table so
+  // an attacker who somehow learns another user's storage id can't trick
+  // Gemini into reading those bytes, and can't delete the blob either.
+  // Rows are deleted on consume; stale rows (upload happened but the user
+  // never queued/discarded the job) age out via `sweepStalePendingInputs`.
+  pendingRenderInputs: defineTable({
+    userId: v.id('users'),
+    storageId: v.id('_storage'),
+    createdAt: v.number(),
+  })
+    .index('by_user', ['userId'])
+    .index('by_storage', ['storageId'])
+    .index('by_createdAt', ['createdAt']),
 });

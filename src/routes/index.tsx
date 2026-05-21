@@ -29,7 +29,7 @@ function LandingPage() {
         <Authenticated>
           <Button asChild size="lg">
             <Link to="/avatars">
-              <Trans>Go to your avatars</Trans>
+              <Trans>Open</Trans>
             </Link>
           </Button>
         </Authenticated>

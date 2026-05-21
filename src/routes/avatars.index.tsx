@@ -84,12 +84,12 @@ function AvatarsList() {
         </div>
         {atLimit ? (
           <Button disabled>
-            <Trans>New avatar</Trans>
+            <Trans>New</Trans>
           </Button>
         ) : (
           <Button asChild>
             <Link to="/avatars/new">
-              <Trans>New avatar</Trans>
+              <Trans>New</Trans>
             </Link>
           </Button>
         )}

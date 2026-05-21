@@ -10,6 +10,7 @@ import {
   type MutationCtx,
   query,
 } from './_generated/server';
+import { ensureOwned, ownedOrNull, requireAuth } from './lib/auth';
 import { errors } from './lib/errors';
 
 const MAX_AVATARS_PER_USER = 3;
@@ -17,14 +18,43 @@ const MAX_SOURCE_PHOTOS = 5;
 
 const avatarType = v.union(v.literal('selfie'), v.literal('full_body'));
 const avatarGender = v.union(v.literal('male'), v.literal('female'), v.literal('unspecified'));
+const baselineStatus = v.union(
+  v.literal('queued'),
+  v.literal('processing'),
+  v.literal('done'),
+  v.literal('failed'),
+);
+
+const listAvatarReturn = v.object({
+  _id: v.id('avatars'),
+  _creationTime: v.number(),
+  name: v.string(),
+  type: avatarType,
+  gender: avatarGender,
+  baselineStatus,
+  baselineErrorMessage: v.optional(v.string()),
+  thumbnailUrl: v.union(v.string(), v.null()),
+});
+
+const getAvatarReturn = v.object({
+  _id: v.id('avatars'),
+  _creationTime: v.number(),
+  name: v.string(),
+  type: avatarType,
+  gender: avatarGender,
+  baselineStatus,
+  baselineErrorMessage: v.optional(v.string()),
+  baseImageUrl: v.union(v.string(), v.null()),
+  landmarksJson: v.optional(v.string()),
+  masksJson: v.optional(v.string()),
+});
 
 export const listAvatars = query({
   args: {},
+  returns: v.array(listAvatarReturn),
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
-    if (userId === null) {
-      return [];
-    }
+    if (userId === null) return [];
     const avatars = await ctx.db
       .query('avatars')
       .withIndex('by_user', (q) => q.eq('userId', userId))
@@ -34,13 +64,12 @@ export const listAvatars = query({
       avatars.map(async (avatar) => {
         // Pre-Phase-8 rows have no `baselineStatus`; treat them as ready —
         // their `baseImageStorageId` already points at a finished image.
-        const baselineStatus = avatar.baselineStatus ?? 'done';
-        // Prefer the Gemini-generated baseline once it's ready — that's the
-        // canonical portrait the user sees in the studio, so the avatar card
-        // should match. Fall back to the raw upload thumbnail only while the
-        // baseline is still being generated (queued / processing / failed).
+        const status = avatar.baselineStatus ?? 'done';
+        // Prefer the Gemini-generated baseline once it's ready. Fall back
+        // to the raw upload thumbnail only while the baseline is still
+        // being generated (queued / processing / failed).
         const previewStorageId =
-          baselineStatus === 'done' && avatar.baseImageStorageId !== undefined
+          status === 'done' && avatar.baseImageStorageId !== undefined
             ? avatar.baseImageStorageId
             : (avatar.thumbnailStorageId ?? avatar.baseImageStorageId);
         return {
@@ -49,8 +78,10 @@ export const listAvatars = query({
           name: avatar.name,
           type: avatar.type,
           gender: avatar.gender ?? 'unspecified',
-          baselineStatus,
-          baselineErrorMessage: avatar.baselineErrorMessage,
+          baselineStatus: status,
+          ...(avatar.baselineErrorMessage !== undefined && {
+            baselineErrorMessage: avatar.baselineErrorMessage,
+          }),
           thumbnailUrl:
             previewStorageId !== undefined ? await ctx.storage.getUrl(previewStorageId) : null,
         };
@@ -61,18 +92,12 @@ export const listAvatars = query({
 
 export const getAvatar = query({
   args: { id: v.id('avatars') },
+  returns: v.union(getAvatarReturn, v.null()),
   handler: async (ctx, { id }) => {
     const userId = await getAuthUserId(ctx);
-    if (userId === null) {
-      return null;
-    }
-    const avatar = await ctx.db.get(id);
-    if (avatar === null) {
-      return null;
-    }
-    if (avatar.userId !== userId) {
-      return null;
-    }
+    if (userId === null) return null;
+    const avatar = ownedOrNull(await ctx.db.get(id), userId);
+    if (avatar === null) return null;
     return {
       _id: avatar._id,
       _creationTime: avatar._creationTime,
@@ -80,13 +105,15 @@ export const getAvatar = query({
       type: avatar.type,
       gender: avatar.gender ?? 'unspecified',
       baselineStatus: avatar.baselineStatus ?? 'done',
-      baselineErrorMessage: avatar.baselineErrorMessage,
+      ...(avatar.baselineErrorMessage !== undefined && {
+        baselineErrorMessage: avatar.baselineErrorMessage,
+      }),
       baseImageUrl:
         avatar.baseImageStorageId !== undefined
           ? await ctx.storage.getUrl(avatar.baseImageStorageId)
           : null,
-      landmarksJson: avatar.landmarksJson,
-      masksJson: avatar.masksJson,
+      ...(avatar.landmarksJson !== undefined && { landmarksJson: avatar.landmarksJson }),
+      ...(avatar.masksJson !== undefined && { masksJson: avatar.masksJson }),
     };
   },
 });
@@ -98,10 +125,18 @@ export const getAvatar = query({
  */
 export const getAvatarStorageForUser = internalQuery({
   args: { id: v.id('avatars'), userId: v.id('users') },
+  returns: v.union(
+    v.object({
+      _id: v.id('avatars'),
+      name: v.string(),
+      type: avatarType,
+      baseImageStorageId: v.id('_storage'),
+    }),
+    v.null(),
+  ),
   handler: async (ctx, { id, userId }) => {
-    const avatar = await ctx.db.get(id);
+    const avatar = ownedOrNull(await ctx.db.get(id), userId);
     if (avatar === null) return null;
-    if (avatar.userId !== userId) return null;
     if (avatar.baseImageStorageId === undefined) return null;
     return {
       _id: avatar._id,
@@ -118,6 +153,16 @@ export const getAvatarStorageForUser = internalQuery({
  */
 export const getAvatarForBaseline = internalQuery({
   args: { id: v.id('avatars') },
+  returns: v.union(
+    v.object({
+      _id: v.id('avatars'),
+      userId: v.id('users'),
+      type: avatarType,
+      sourcePhotoStorageIds: v.array(v.id('_storage')),
+      baselineStatus,
+    }),
+    v.null(),
+  ),
   handler: async (ctx, { id }) => {
     const avatar = await ctx.db.get(id);
     if (avatar === null) return null;
@@ -139,11 +184,9 @@ export const createAvatar = mutation({
     sourcePhotoStorageIds: v.array(v.id('_storage')),
     thumbnailStorageId: v.id('_storage'),
   },
+  returns: v.id('avatars'),
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (userId === null) {
-      throw errors.notAuthenticated();
-    }
+    const userId = await requireAuth(ctx);
     const name = args.name.trim();
     if (name.length === 0) {
       await cleanupOnReject(ctx, args.sourcePhotoStorageIds, args.thumbnailStorageId);
@@ -186,61 +229,49 @@ export const saveAvatarLandmarks = mutation({
     landmarksJson: v.string(),
     masksJson: v.string(),
   },
+  returns: v.null(),
   handler: async (ctx, { id, landmarksJson, masksJson }) => {
-    const userId = await getAuthUserId(ctx);
-    if (userId === null) {
-      throw errors.notAuthenticated();
-    }
-    const avatar = await ctx.db.get(id);
-    if (avatar === null) {
-      throw errors.avatarNotFound();
-    }
-    if (avatar.userId !== userId) {
-      throw errors.avatarNotFound();
+    const userId = await requireAuth(ctx);
+    const avatar = ensureOwned(await ctx.db.get(id), userId, errors.avatarNotFound);
+    // First-writer-wins: if landmarks are already cached server-side, skip
+    // the re-persist. Saves a write in the rare case the client re-runs
+    // MediaPipe before the realtime query updates.
+    if (avatar.landmarksJson !== undefined && avatar.masksJson !== undefined) {
+      return null;
     }
     await ctx.db.patch(id, {
       landmarksJson,
       masksJson,
       updatedAt: Date.now(),
     });
+    return null;
   },
 });
 
 export const updateAvatar = mutation({
   args: { id: v.id('avatars'), name: v.string() },
+  returns: v.null(),
   handler: async (ctx, { id, name }) => {
-    const userId = await getAuthUserId(ctx);
-    if (userId === null) {
-      throw errors.notAuthenticated();
-    }
-    const avatar = await ctx.db.get(id);
-    if (avatar === null) {
-      throw errors.avatarNotFound();
-    }
-    if (avatar.userId !== userId) {
-      throw errors.avatarNotFound();
-    }
+    const userId = await requireAuth(ctx);
+    ensureOwned(await ctx.db.get(id), userId, errors.avatarNotFound);
     const trimmed = name.trim();
     if (trimmed.length === 0) {
       throw errors.nameRequired();
     }
     await ctx.db.patch(id, { name: trimmed, updatedAt: Date.now() });
+    return null;
   },
 });
 
 export const deleteAvatar = mutation({
   args: { id: v.id('avatars') },
+  returns: v.null(),
   handler: async (ctx, { id }) => {
-    const userId = await getAuthUserId(ctx);
-    if (userId === null) {
-      throw errors.notAuthenticated();
-    }
-    const avatar = await ctx.db.get(id);
-    if (avatar === null) return;
-    if (avatar.userId !== userId) {
-      throw errors.avatarNotFound();
-    }
+    const userId = await requireAuth(ctx);
+    const avatar = ownedOrNull(await ctx.db.get(id), userId);
+    if (avatar === null) return null;
     await cascadeDeleteAvatar(ctx, id);
+    return null;
   },
 });
 
@@ -251,18 +282,10 @@ export const deleteAvatar = mutation({
  */
 export const retryAvatarBaseline = mutation({
   args: { id: v.id('avatars') },
+  returns: v.null(),
   handler: async (ctx, { id }) => {
-    const userId = await getAuthUserId(ctx);
-    if (userId === null) {
-      throw errors.notAuthenticated();
-    }
-    const avatar = await ctx.db.get(id);
-    if (avatar === null) {
-      throw errors.avatarNotFound();
-    }
-    if (avatar.userId !== userId) {
-      throw errors.avatarNotFound();
-    }
+    const userId = await requireAuth(ctx);
+    const avatar = ensureOwned(await ctx.db.get(id), userId, errors.avatarNotFound);
     if (avatar.baselineStatus !== 'failed') {
       throw errors.baselineNotFailed();
     }
@@ -275,29 +298,42 @@ export const retryAvatarBaseline = mutation({
       updatedAt: Date.now(),
     });
     await ctx.scheduler.runAfter(0, internal.ai.generateAvatarBaseline, { avatarId: id });
+    return null;
   },
 });
 
-export const markBaselineProcessing = internalMutation({
+/**
+ * Atomic `queued|failed → processing` transition. The render action calls this
+ * once instead of a separate read + `markBaselineProcessing` pair, so two
+ * concurrent invocations (e.g. a fast double-tap on Retry that escaped client
+ * de-duping) can't both pass the gate and double-bill Gemini. Returns true
+ * iff this caller actually claimed the work.
+ */
+export const claimBaselineGeneration = internalMutation({
   args: { id: v.id('avatars') },
+  returns: v.boolean(),
   handler: async (ctx, { id }) => {
     const avatar = await ctx.db.get(id);
-    if (avatar === null) return;
+    if (avatar === null) return false;
+    const status = avatar.baselineStatus ?? 'done';
+    if (status !== 'queued' && status !== 'failed') return false;
     await ctx.db.patch(id, {
       baselineStatus: 'processing',
       updatedAt: Date.now(),
     });
+    return true;
   },
 });
 
 export const markBaselineDone = internalMutation({
   args: { id: v.id('avatars'), baseImageStorageId: v.id('_storage') },
+  returns: v.null(),
   handler: async (ctx, { id, baseImageStorageId }) => {
     const avatar = await ctx.db.get(id);
     if (avatar === null) {
       // Avatar was deleted while baseline was rendering — clean up the orphan blob.
       await ctx.storage.delete(baseImageStorageId);
-      return;
+      return null;
     }
     // If a previous baseline somehow exists (re-render path), free it.
     if (avatar.baseImageStorageId !== undefined) {
@@ -309,19 +345,22 @@ export const markBaselineDone = internalMutation({
       baselineErrorMessage: undefined,
       updatedAt: Date.now(),
     });
+    return null;
   },
 });
 
 export const markBaselineFailed = internalMutation({
   args: { id: v.id('avatars'), errorMessage: v.string() },
+  returns: v.null(),
   handler: async (ctx, { id, errorMessage }) => {
     const avatar = await ctx.db.get(id);
-    if (avatar === null) return;
+    if (avatar === null) return null;
     await ctx.db.patch(id, {
       baselineStatus: 'failed',
       baselineErrorMessage: errorMessage,
       updatedAt: Date.now(),
     });
+    return null;
   },
 });
 
@@ -394,7 +433,8 @@ async function cleanupOnReject(
   thumbnailId: Id<'_storage'>,
 ): Promise<void> {
   // Delete whichever blobs were uploaded so they don't orphan in storage.
-  await Promise.all([
+  // `allSettled` so one failed delete doesn't strand the siblings.
+  await Promise.allSettled([
     ...sourceIds.map((id) => ctx.storage.delete(id)),
     ctx.storage.delete(thumbnailId),
   ]);

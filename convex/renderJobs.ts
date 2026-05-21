@@ -3,7 +3,25 @@ import { v } from 'convex/values';
 
 import { internal } from './_generated/api';
 import { internalMutation, internalQuery, mutation, query } from './_generated/server';
+import { ensureOwned, ownedOrNull, requireAuth } from './lib/auth';
 import { errors } from './lib/errors';
+import { renderStatus } from './schema';
+import { consumePendingRenderInput } from './storage';
+
+const renderJobInternalReturn = v.object({
+  _id: v.id('renderJobs'),
+  userId: v.id('users'),
+  avatarId: v.id('avatars'),
+  inputJson: v.string(),
+});
+
+const renderJobPublicReturn = v.object({
+  _id: v.id('renderJobs'),
+  status: renderStatus,
+  provider: v.string(),
+  errorMessage: v.optional(v.string()),
+  resultUrl: v.union(v.string(), v.null()),
+});
 
 export const createRenderJob = mutation({
   args: {
@@ -17,34 +35,35 @@ export const createRenderJob = mutation({
      * Konva canvas (baseline + applied color tints) here so geometry edits
      * stack on top of any makeup the user already chose. The blob is
      * single-use — the action consumes and deletes it.
+     *
+     * Must have been claimed by the same user via `storage.claimRenderInput`
+     * — see `pendingRenderInputs` in `schema.ts` for the threat model.
      */
     inputStorageId: v.optional(v.id('_storage')),
   },
+  returns: v.id('renderJobs'),
   handler: async (ctx, { avatarId, prompt, title, referenceUploadedItemId, inputStorageId }) => {
-    const userId = await getAuthUserId(ctx);
-    if (userId === null) {
-      throw errors.notAuthenticated();
-    }
-    const avatar = await ctx.db.get(avatarId);
-    if (avatar === null) {
-      throw errors.avatarNotFound();
-    }
-    if (avatar.userId !== userId) {
-      throw errors.avatarNotFound();
-    }
+    const userId = await requireAuth(ctx);
+    ensureOwned(await ctx.db.get(avatarId), userId, errors.avatarNotFound);
     const trimmedPrompt = prompt.trim();
     if (trimmedPrompt.length === 0) {
       throw errors.promptRequired();
     }
 
     if (referenceUploadedItemId !== undefined) {
-      const item = await ctx.db.get(referenceUploadedItemId);
-      if (item === null) {
-        throw errors.referenceItemNotFound();
-      }
-      if (item.userId !== userId) {
-        throw errors.referenceItemNotFound();
-      }
+      ensureOwned(
+        await ctx.db.get(referenceUploadedItemId),
+        userId,
+        errors.referenceItemNotFound,
+      );
+    }
+
+    // Validate the studio's flattened-canvas blob is one this user actually
+    // uploaded. Without this check, an authenticated attacker who learned
+    // another user's storage id could ship those bytes to Gemini and read
+    // them back from the rendered output.
+    if (inputStorageId !== undefined) {
+      await consumePendingRenderInput(ctx, userId, inputStorageId);
     }
 
     const jobId = await ctx.db.insert('renderJobs', {
@@ -68,17 +87,17 @@ export const createRenderJob = mutation({
 
 export const getRenderJob = query({
   args: { id: v.id('renderJobs') },
+  returns: v.union(renderJobPublicReturn, v.null()),
   handler: async (ctx, { id }) => {
     const userId = await getAuthUserId(ctx);
     if (userId === null) return null;
-    const job = await ctx.db.get(id);
+    const job = ownedOrNull(await ctx.db.get(id), userId);
     if (job === null) return null;
-    if (job.userId !== userId) return null;
     return {
       _id: job._id,
       status: job.status,
       provider: job.provider,
-      errorMessage: job.errorMessage,
+      ...(job.errorMessage !== undefined && { errorMessage: job.errorMessage }),
       resultUrl:
         job.resultStorageId !== undefined ? await ctx.storage.getUrl(job.resultStorageId) : null,
     };
@@ -92,6 +111,7 @@ export const getRenderJob = query({
  */
 export const getRenderJobInternal = internalQuery({
   args: { id: v.id('renderJobs') },
+  returns: v.union(renderJobInternalReturn, v.null()),
   handler: async (ctx, { id }) => {
     const job = await ctx.db.get(id);
     if (job === null) return null;
@@ -104,36 +124,61 @@ export const getRenderJobInternal = internalQuery({
   },
 });
 
-export const markRenderJobProcessing = internalMutation({
+/**
+ * Atomic `queued → processing` transition mirroring `claimBaselineGeneration`.
+ * Returns true iff this caller actually claimed the work, false if the job
+ * has already been claimed (status moved past `queued`) or deleted.
+ */
+export const claimRenderJob = internalMutation({
   args: { id: v.id('renderJobs') },
+  returns: v.boolean(),
   handler: async (ctx, { id }) => {
+    const job = await ctx.db.get(id);
+    if (job === null) return false;
+    if (job.status !== 'queued') return false;
     await ctx.db.patch(id, { status: 'processing', updatedAt: Date.now() });
+    return true;
   },
 });
 
 export const markRenderJobDone = internalMutation({
   args: { id: v.id('renderJobs'), resultStorageId: v.id('_storage') },
+  returns: v.null(),
   handler: async (ctx, { id, resultStorageId }) => {
+    const job = await ctx.db.get(id);
+    if (job === null) {
+      // Job was cascade-deleted (avatar removed mid-render). Free the orphan
+      // blob so it doesn't sit in storage forever — the periodic sweep walks
+      // `renderJobs`, not storage, so it wouldn't catch this otherwise.
+      await ctx.storage.delete(resultStorageId);
+      return null;
+    }
     await ctx.db.patch(id, {
       status: 'done',
       resultStorageId,
       updatedAt: Date.now(),
     });
+    return null;
   },
 });
 
 export const markRenderJobFailed = internalMutation({
   args: { id: v.id('renderJobs'), errorMessage: v.string() },
+  returns: v.null(),
   handler: async (ctx, { id, errorMessage }) => {
+    const job = await ctx.db.get(id);
+    if (job === null) return null;
     await ctx.db.patch(id, {
       status: 'failed',
       errorMessage,
       updatedAt: Date.now(),
     });
+    return null;
   },
 });
 
 const RENDER_JOB_TTL_MS = 14 * 24 * 60 * 60 * 1000;
+const PENDING_INPUT_TTL_MS = 24 * 60 * 60 * 1000; // 1 day — far longer than a render takes.
 
 /**
  * Hourly sweep (see `convex/crons.ts`). Removes render jobs older than 14
@@ -144,6 +189,7 @@ const RENDER_JOB_TTL_MS = 14 * 24 * 60 * 60 * 1000;
  */
 export const sweepStaleRenderJobs = internalMutation({
   args: {},
+  returns: v.null(),
   handler: async (ctx) => {
     const cutoff = Date.now() - RENDER_JOB_TTL_MS;
     const stale = await ctx.db
@@ -167,10 +213,42 @@ export const sweepStaleRenderJobs = internalMutation({
                 .first()
             : null;
         if (referencingRender === null && referencingPreview === null) {
-          await ctx.storage.delete(resultStorageId);
+          try {
+            await ctx.storage.delete(resultStorageId);
+          } catch (error) {
+            console.warn(`Sweep storage delete skipped (${resultStorageId}):`, error);
+          }
         }
       }
       await ctx.db.delete(job._id);
     }
+    return null;
+  },
+});
+
+/**
+ * Hourly sweep of `pendingRenderInputs` claims that nobody consumed (the
+ * studio uploaded a snapshot but neither queued the job nor discarded it,
+ * e.g. tab crash mid-flow). Older than 1 day → frees the blob and removes
+ * the row.
+ */
+export const sweepStalePendingInputs = internalMutation({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    const cutoff = Date.now() - PENDING_INPUT_TTL_MS;
+    const stale = await ctx.db
+      .query('pendingRenderInputs')
+      .withIndex('by_createdAt', (q) => q.lt('createdAt', cutoff))
+      .collect();
+    for (const row of stale) {
+      try {
+        await ctx.storage.delete(row.storageId);
+      } catch (error) {
+        console.warn(`Pending input storage delete skipped (${row.storageId}):`, error);
+      }
+      await ctx.db.delete(row._id);
+    }
+    return null;
   },
 });

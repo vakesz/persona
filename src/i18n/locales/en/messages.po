@@ -135,8 +135,13 @@ msgstr "aviator sunglasses"
 
 #: src/components/avatars/baseline-status-gate.tsx
 #: src/routes/avatars.new.tsx
-msgid "Back to avatars"
-msgstr "Back to avatars"
+msgid "Back"
+msgstr "Back"
+
+#: src/components/avatars/baseline-status-gate.tsx
+#: src/routes/avatars.new.tsx
+#~ msgid "Back to avatars"
+#~ msgstr "Back to avatars"
 
 #: src/components/studio/studio-sidebar.tsx
 msgid "baseball cap"
@@ -230,8 +235,12 @@ msgid "chin-length bob"
 msgstr "chin-length bob"
 
 #: src/routes/saved.tsx
-msgid "Choose an avatar"
-msgstr "Choose an avatar"
+msgid "Choose"
+msgstr "Choose"
+
+#: src/routes/saved.tsx
+#~ msgid "Choose an avatar"
+#~ msgstr "Choose an avatar"
 
 #: src/components/studio/studio-sidebar.tsx
 msgid "classic chignon"
@@ -289,6 +298,10 @@ msgstr "Could not sign in. Check your email and password."
 msgid "Could not upload the canvas snapshot."
 msgstr "Could not upload the canvas snapshot."
 
+#: src/components/avatars/avatar-uploader.tsx
+msgid "Create"
+msgstr "Create"
+
 #: src/routes/auth.tsx
 msgid "Create account"
 msgstr "Create account"
@@ -298,8 +311,8 @@ msgid "Create an avatar"
 msgstr "Create an avatar"
 
 #: src/components/avatars/avatar-uploader.tsx
-msgid "Create avatar"
-msgstr "Create avatar"
+#~ msgid "Create avatar"
+#~ msgstr "Create avatar"
 
 #. placeholder {0}: avatars.length
 #: src/routes/avatars.index.tsx
@@ -531,8 +544,8 @@ msgid "Gloss"
 msgstr "Gloss"
 
 #: src/routes/index.tsx
-msgid "Go to your avatars"
-msgstr "Go to your avatars"
+#~ msgid "Go to your avatars"
+#~ msgstr "Go to your avatars"
 
 #: src/components/studio/studio-sidebar.tsx
 msgid "goatee"
@@ -667,8 +680,12 @@ msgid "man bun"
 msgstr "man bun"
 
 #: src/routes/settings.tsx
-msgid "Manage avatars"
-msgstr "Manage avatars"
+msgid "Manage"
+msgstr "Manage"
+
+#: src/routes/settings.tsx
+#~ msgid "Manage avatars"
+#~ msgstr "Manage avatars"
 
 #: src/routes/settings.tsx
 msgid "Manage your account, language, and avatars."
@@ -719,8 +736,12 @@ msgid "Name is required."
 msgstr "Name is required."
 
 #: src/routes/avatars.index.tsx
-msgid "New avatar"
-msgstr "New avatar"
+msgid "New"
+msgstr "New"
+
+#: src/routes/avatars.index.tsx
+#~ msgid "New avatar"
+#~ msgstr "New avatar"
 
 #: src/routes/avatars.index.tsx
 msgid "No avatars yet"
@@ -745,6 +766,10 @@ msgstr "On"
 #: src/components/avatars/avatar-uploader.tsx
 msgid "Only the first {MAX_PHOTOS} photos are used."
 msgstr "Only the first {MAX_PHOTOS} photos are used."
+
+#: src/routes/index.tsx
+msgid "Open"
+msgstr "Open"
 
 #: src/routes/saved.tsx
 msgid "Open an avatar, render a look, then click Save."
@@ -879,6 +904,10 @@ msgstr "Reference item bytes are missing from storage."
 msgid "Reference item not found."
 msgstr "Reference item not found."
 
+#: src/components/error-boundary.tsx
+msgid "Reload"
+msgstr "Reload"
+
 #: src/components/avatars/avatar-uploader.tsx
 msgid "Remove photo {position}"
 msgstr "Remove photo {position}"
@@ -900,6 +929,8 @@ msgid "Renamed."
 msgstr "Renamed."
 
 #: src/components/render/render-result.tsx
+#: src/components/studio/studio-sidebar.tsx
+#: src/routes/studio.$avatarId.tsx
 msgid "Render"
 msgstr "Render"
 
@@ -920,8 +951,8 @@ msgid "Render is not finished."
 msgstr "Render is not finished."
 
 #: src/routes/studio.$avatarId.tsx
-msgid "Render look"
-msgstr "Render look"
+#~ msgid "Render look"
+#~ msgstr "Render look"
 
 #: src/i18n/server-errors.ts
 msgid "Render not found."
@@ -932,8 +963,8 @@ msgid "Render returned no image."
 msgstr "Render returned no image."
 
 #: src/components/studio/studio-sidebar.tsx
-msgid "Render this look"
-msgstr "Render this look"
+#~ msgid "Render this look"
+#~ msgstr "Render this look"
 
 #. placeholder {0}: payload.reason
 #: src/i18n/server-errors.ts
@@ -977,12 +1008,13 @@ msgid "Satin"
 msgstr "Satin"
 
 #: src/components/avatars/rename-avatar-dialog.tsx
+#: src/components/render/render-result.tsx
 msgid "Save"
 msgstr "Save"
 
 #: src/components/render/render-result.tsx
-msgid "Save look"
-msgstr "Save look"
+#~ msgid "Save look"
+#~ msgstr "Save look"
 
 #: src/components/app-shell.tsx
 msgid "Saved"
@@ -1119,6 +1151,10 @@ msgstr "soft tan"
 msgid "softer, more natural lips"
 msgstr "softer, more natural lips"
 
+#: src/components/error-boundary.tsx
+msgid "Something went wrong"
+msgstr "Something went wrong"
+
 #. placeholder {0}: payload.detail
 #: src/i18n/server-errors.ts
 msgid "Something went wrong: {0}"
@@ -1215,6 +1251,10 @@ msgstr "taper fade"
 #: src/components/studio/studio-sidebar.tsx
 msgid "textured crop"
 msgstr "textured crop"
+
+#: src/components/error-boundary.tsx
+msgid "The app hit an unexpected error. Reload to start fresh."
+msgstr "The app hit an unexpected error. Reload to start fresh."
 
 #: src/components/studio/studio-sidebar.tsx
 msgid "thick mustache"

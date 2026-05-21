@@ -120,7 +120,7 @@ function SavedLooks() {
           </p>
           <Button asChild className="mt-5 w-fit self-center">
             <Link to="/avatars">
-              <Trans>Choose an avatar</Trans>
+              <Trans>Choose</Trans>
             </Link>
           </Button>
         </Card>

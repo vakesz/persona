@@ -2,7 +2,7 @@ import { getAuthUserId } from '@convex-dev/auth/server';
 import { v } from 'convex/values';
 
 import { internalQuery, mutation, query } from './_generated/server';
-import { errors } from './lib/errors';
+import { ownedOrNull, requireAuth } from './lib/auth';
 
 const uploadedItemType = v.union(
   v.literal('dress'),
@@ -12,8 +12,17 @@ const uploadedItemType = v.union(
   v.literal('hair_reference'),
 );
 
+const uploadedItemReturn = v.object({
+  _id: v.id('uploadedItems'),
+  _creationTime: v.number(),
+  type: uploadedItemType,
+  label: v.optional(v.string()),
+  imageUrl: v.union(v.string(), v.null()),
+});
+
 export const listUploadedItems = query({
   args: {},
+  returns: v.array(uploadedItemReturn),
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
     if (userId === null) return [];
@@ -27,7 +36,7 @@ export const listUploadedItems = query({
         _id: item._id,
         _creationTime: item._creationTime,
         type: item.type,
-        label: item.label,
+        ...(item.label !== undefined && { label: item.label }),
         imageUrl: await ctx.storage.getUrl(item.imageStorageId),
       })),
     );
@@ -40,11 +49,9 @@ export const createUploadedItem = mutation({
     imageStorageId: v.id('_storage'),
     label: v.optional(v.string()),
   },
+  returns: v.id('uploadedItems'),
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (userId === null) {
-      throw errors.notAuthenticated();
-    }
+    const userId = await requireAuth(ctx);
     return await ctx.db.insert('uploadedItems', {
       userId,
       type: args.type,
@@ -56,16 +63,14 @@ export const createUploadedItem = mutation({
 
 export const deleteUploadedItem = mutation({
   args: { id: v.id('uploadedItems') },
+  returns: v.null(),
   handler: async (ctx, { id }) => {
-    const userId = await getAuthUserId(ctx);
-    if (userId === null) {
-      throw errors.notAuthenticated();
-    }
-    const item = await ctx.db.get(id);
-    if (item === null) return;
-    if (item.userId !== userId) return;
+    const userId = await requireAuth(ctx);
+    const item = ownedOrNull(await ctx.db.get(id), userId);
+    if (item === null) return null;
     await ctx.storage.delete(item.imageStorageId);
     await ctx.db.delete(id);
+    return null;
   },
 });
 
@@ -75,10 +80,17 @@ export const deleteUploadedItem = mutation({
  */
 export const getUploadedItemStorageForUser = internalQuery({
   args: { id: v.id('uploadedItems'), userId: v.id('users') },
+  returns: v.union(
+    v.object({
+      _id: v.id('uploadedItems'),
+      type: uploadedItemType,
+      imageStorageId: v.id('_storage'),
+    }),
+    v.null(),
+  ),
   handler: async (ctx, { id, userId }) => {
-    const item = await ctx.db.get(id);
+    const item = ownedOrNull(await ctx.db.get(id), userId);
     if (item === null) return null;
-    if (item.userId !== userId) return null;
     return {
       _id: item._id,
       type: item.type,

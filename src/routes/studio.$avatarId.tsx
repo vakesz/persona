@@ -298,7 +298,7 @@ function Studio() {
                 disabled={renderBusy || !hasAnyChange(studioState)}
               >
                 {renderBusy ? <Loader2 className="animate-spin" /> : <Sparkles />}
-                <Trans>Render look</Trans>
+                <Trans>Render</Trans>
               </Button>
               <Button
                 type="button"

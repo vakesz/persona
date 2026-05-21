@@ -28,7 +28,7 @@ Output exactly 3 recommendations as structured JSON. For each:
 - title: short, memorable, max 6 words.
 - description: 1-2 sentences explaining WHY this suits them (skin tone, hair, face shape, vibe). Specific, not generic. No hedging.
 - styleType: exactly one of "hair", "makeup", "nails", "clothes".
-- renderPrompt: 1-2 directive sentences in English for an image-edit model. Use replace/render/apply verbs — never "change" or "add" alone, because the model interprets those as partial edits. Specify colour, texture, length, finish, fit, and any other visual specifics needed to render the look faithfully on the existing photo.
+- renderPrompt: 2-3 directive sentences in English for an image-edit model. Describe the edit as a local change and name the important areas that must stay untouched. For hair, specify cut, length, silhouette, texture, fringe/bangs, and whether hair colour should stay natural. For makeup, specify exact region, colour, finish, and intensity while preserving skin texture and identity marks. Use replace/render/apply/restyle verbs — never "change" or "add" alone, because the model interprets those as partial edits.
 
 If the question targets a specific style type, make all 3 recommendations that type. Otherwise spread across types based on what would genuinely benefit the user most.`;
 
@@ -256,9 +256,9 @@ interface GeminiImageResponse {
 
 const IMAGE_SYSTEM_INSTRUCTION = `This is a personal styling app. The user uploads photos of themselves to preview hairstyles, makeup, clothing, and accessories on their own portrait. Every reference image is of the user, supplied by the user, and only shown back to them; outputs are private.
 
-When rendering the user, keep them photorealistic and recognizable: preserve their face, skin tone, and apparent age. Preserve every mole, beauty spot, freckle, birthmark, and scar exactly where it appears in the reference — never smooth, remove, or relocate them unless explicitly asked.
+When rendering the user, keep them photorealistic and recognizable: preserve their face shape, facial features, expression, skin tone, skin texture, body shape, and apparent age. Preserve every mole, beauty spot, freckle, birthmark, and scar exactly where it appears in the reference — never smooth, remove, or relocate them unless explicitly asked.
 
-Other features (hair, makeup, clothing, eyewear, headwear, jewelry, facial hair) stay as in the reference unless the request changes them. When a request asks to change, replace, restyle, add, or remove a feature, apply it fully — completely remove the existing version of that feature and render the new one in its place, not a partial blend of old and new.
+Other features (hair, makeup, clothing, eyewear, headwear, jewelry, facial hair) stay as in the reference unless the request changes them. Treat requested styling changes as targeted local edits: edit the requested feature cleanly, integrate it with the original lighting and perspective, and leave the rest of the image unchanged. For hairstyle requests, edit only the hair on the head; keep the user's face, forehead size, skull/head size, ears, neck, shoulders, clothing, background, crop, and aspect ratio unchanged. Keep hair attached naturally to the head and keep the natural hair colour unless the request explicitly asks for a different colour.
 
 User descriptions may be written in any language (English, Hungarian, etc.), sometimes mixed within a single request; interpret them faithfully regardless of language. Never stylise, cartoonify, or retouch beyond what the request asks for.`;
 
@@ -401,10 +401,10 @@ interface RenderInputJson {
 }
 
 const RENDER_INSTRUCTION = (prompt: string) =>
-  `Edit the attached photo of me to apply the requested look. Preserve my face, pose, lighting, body, and background. Keep every mole, beauty spot, freckle, birthmark, and scar exactly where it appears — do not retouch or smooth them. When the request asks to change, replace, restyle, add, or remove a feature, apply that change fully: completely remove the existing version of the affected feature and render the new one in its place, not a partial blend. The request may be written in any language; interpret it faithfully. Requested change: ${prompt}. Return only the edited image.`;
+  `Edit the attached photo of me to apply the requested look as a targeted local edit. Keep the original crop, aspect ratio, background, lighting, pose, expression, face shape, facial features, skin tone, skin texture, body shape, clothing, and accessories unchanged unless the request explicitly changes one of those areas. Keep every mole, beauty spot, freckle, birthmark, and scar exactly where it appears - do not retouch, smooth, erase, or relocate identity marks. For hairstyle requests, edit only the hair on my head: render the requested cut, length, silhouette, texture, fringe/bangs if specified, and realistic hairline while preserving my face, forehead size, head size, ears, neck, shoulders, glasses, makeup, clothing, crop, and aspect ratio. Keep my natural hair colour unless the request explicitly asks for a different colour. The request may be written in any language; interpret it faithfully. Requested change: ${prompt}. Return only the edited image.`;
 
 const TRY_ON_INSTRUCTION = (prompt: string) =>
-  `The first image is a photo of me; the second is a clothing or accessory reference. Edit the first photo so I am realistically wearing the item from the second — fitted naturally to my body, matched to my lighting and pose. If I am already wearing a similar garment or accessory in the first photo, replace it with the reference item rather than layering on top. Preserve my face, pose, lighting, and background. Keep every mole, beauty spot, freckle, birthmark, and scar exactly where it appears — do not retouch or smooth them. Additional guidance (may be in any language; interpret faithfully): ${prompt}. Return only the edited image.`;
+  `The first image is a photo of me; the second is a clothing or accessory reference. Edit the first photo so I am realistically wearing the item from the second - fitted naturally to my body, matched to my lighting and pose. If I am already wearing a similar garment or accessory in the first photo, replace it with the reference item rather than layering on top. Preserve my face, hair, pose, lighting, background, crop, and aspect ratio unless the additional guidance explicitly changes them. Keep every mole, beauty spot, freckle, birthmark, and scar exactly where it appears - do not retouch, smooth, erase, or relocate identity marks. Additional guidance (may be in any language; interpret faithfully): ${prompt}. Return only the edited image.`;
 
 export const renderLookWithGemini = internalAction({
   args: { jobId: v.id('renderJobs') },
@@ -500,7 +500,7 @@ export const renderLookWithGemini = internalAction({
             contents: [{ role: 'user', parts }],
             generationConfig: {
               responseModalities: ['IMAGE'],
-              temperature: 0.7,
+              temperature: 0.4,
             },
           }),
         },

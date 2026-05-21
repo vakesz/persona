@@ -133,7 +133,7 @@ export function RenderResult({
             </Button>
             <Button type="button" onClick={handleSave} disabled={saving}>
               {saving ? <Loader2 className="animate-spin" /> : <Save />}
-              <Trans>Save look</Trans>
+              <Trans>Save</Trans>
             </Button>
           </>
         )}

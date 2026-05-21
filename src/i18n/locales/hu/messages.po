@@ -135,8 +135,13 @@ msgstr "pilóta napszemüveg"
 
 #: src/components/avatars/baseline-status-gate.tsx
 #: src/routes/avatars.new.tsx
-msgid "Back to avatars"
-msgstr "Vissza az avatárokhoz"
+msgid "Back"
+msgstr "Vissza"
+
+#: src/components/avatars/baseline-status-gate.tsx
+#: src/routes/avatars.new.tsx
+#~ msgid "Back to avatars"
+#~ msgstr "Vissza az avatárokhoz"
 
 #: src/components/studio/studio-sidebar.tsx
 msgid "baseball cap"
@@ -230,8 +235,12 @@ msgid "chin-length bob"
 msgstr "álligérő bob"
 
 #: src/routes/saved.tsx
-msgid "Choose an avatar"
-msgstr "Válassz avatárt"
+msgid "Choose"
+msgstr "Válassz"
+
+#: src/routes/saved.tsx
+#~ msgid "Choose an avatar"
+#~ msgstr "Válassz avatárt"
 
 #: src/components/studio/studio-sidebar.tsx
 msgid "classic chignon"
@@ -289,6 +298,10 @@ msgstr "Sikertelen bejelentkezés. Ellenőrizd az e-mail-címet és a jelszót."
 msgid "Could not upload the canvas snapshot."
 msgstr "Nem sikerült feltölteni a vászon pillanatképét."
 
+#: src/components/avatars/avatar-uploader.tsx
+msgid "Create"
+msgstr "Létrehozás"
+
 #: src/routes/auth.tsx
 msgid "Create account"
 msgstr "Fiók létrehozása"
@@ -298,8 +311,8 @@ msgid "Create an avatar"
 msgstr "Avatár létrehozása"
 
 #: src/components/avatars/avatar-uploader.tsx
-msgid "Create avatar"
-msgstr "Avatár létrehozása"
+#~ msgid "Create avatar"
+#~ msgstr "Avatár létrehozása"
 
 #. placeholder {0}: avatars.length
 #: src/routes/avatars.index.tsx
@@ -531,8 +544,8 @@ msgid "Gloss"
 msgstr "Fényes"
 
 #: src/routes/index.tsx
-msgid "Go to your avatars"
-msgstr "Ugrás az avatáraidhoz"
+#~ msgid "Go to your avatars"
+#~ msgstr "Ugrás az avatáraidhoz"
 
 #: src/components/studio/studio-sidebar.tsx
 msgid "goatee"
@@ -667,8 +680,12 @@ msgid "man bun"
 msgstr "férfikonty"
 
 #: src/routes/settings.tsx
-msgid "Manage avatars"
-msgstr "Avatárok kezelése"
+msgid "Manage"
+msgstr "Kezelés"
+
+#: src/routes/settings.tsx
+#~ msgid "Manage avatars"
+#~ msgstr "Avatárok kezelése"
 
 #: src/routes/settings.tsx
 msgid "Manage your account, language, and avatars."
@@ -719,8 +736,12 @@ msgid "Name is required."
 msgstr "A név megadása kötelező."
 
 #: src/routes/avatars.index.tsx
-msgid "New avatar"
-msgstr "Új avatár"
+msgid "New"
+msgstr "Új"
+
+#: src/routes/avatars.index.tsx
+#~ msgid "New avatar"
+#~ msgstr "Új avatár"
 
 #: src/routes/avatars.index.tsx
 msgid "No avatars yet"
@@ -745,6 +766,10 @@ msgstr "Be"
 #: src/components/avatars/avatar-uploader.tsx
 msgid "Only the first {MAX_PHOTOS} photos are used."
 msgstr "Csak az első {MAX_PHOTOS} fotó használható."
+
+#: src/routes/index.tsx
+msgid "Open"
+msgstr "Megnyitás"
 
 #: src/routes/saved.tsx
 msgid "Open an avatar, render a look, then click Save."
@@ -879,6 +904,10 @@ msgstr "A referenciaelem adatai hiányoznak a tárolóból."
 msgid "Reference item not found."
 msgstr "A referenciaelem nem található."
 
+#: src/components/error-boundary.tsx
+msgid "Reload"
+msgstr "Újratöltés"
+
 #: src/components/avatars/avatar-uploader.tsx
 msgid "Remove photo {position}"
 msgstr "{position}. fotó eltávolítása"
@@ -900,6 +929,8 @@ msgid "Renamed."
 msgstr "Átnevezve."
 
 #: src/components/render/render-result.tsx
+#: src/components/studio/studio-sidebar.tsx
+#: src/routes/studio.$avatarId.tsx
 msgid "Render"
 msgstr "Render"
 
@@ -920,8 +951,8 @@ msgid "Render is not finished."
 msgstr "A render még nem fejeződött be."
 
 #: src/routes/studio.$avatarId.tsx
-msgid "Render look"
-msgstr "Stílus renderelése"
+#~ msgid "Render look"
+#~ msgstr "Stílus renderelése"
 
 #: src/i18n/server-errors.ts
 msgid "Render not found."
@@ -932,8 +963,8 @@ msgid "Render returned no image."
 msgstr "A render nem adott vissza képet."
 
 #: src/components/studio/studio-sidebar.tsx
-msgid "Render this look"
-msgstr "Rendereld ezt a stílust"
+#~ msgid "Render this look"
+#~ msgstr "Rendereld ezt a stílust"
 
 #. placeholder {0}: payload.reason
 #: src/i18n/server-errors.ts
@@ -977,12 +1008,13 @@ msgid "Satin"
 msgstr "Szatén"
 
 #: src/components/avatars/rename-avatar-dialog.tsx
+#: src/components/render/render-result.tsx
 msgid "Save"
 msgstr "Mentés"
 
 #: src/components/render/render-result.tsx
-msgid "Save look"
-msgstr "Stílus mentése"
+#~ msgid "Save look"
+#~ msgstr "Stílus mentése"
 
 #: src/components/app-shell.tsx
 msgid "Saved"
@@ -1119,6 +1151,10 @@ msgstr "enyhe barnaság"
 msgid "softer, more natural lips"
 msgstr "lágyabb, természetesebb ajkak"
 
+#: src/components/error-boundary.tsx
+msgid "Something went wrong"
+msgstr "Valami hiba történt"
+
 #. placeholder {0}: payload.detail
 #: src/i18n/server-errors.ts
 msgid "Something went wrong: {0}"
@@ -1215,6 +1251,10 @@ msgstr "fokozatos fade"
 #: src/components/studio/studio-sidebar.tsx
 msgid "textured crop"
 msgstr "texturált rövid frizura"
+
+#: src/components/error-boundary.tsx
+msgid "The app hit an unexpected error. Reload to start fresh."
+msgstr "Az alkalmazás váratlan hibába futott. Töltsd újra az újrakezdéshez."
 
 #: src/components/studio/studio-sidebar.tsx
 msgid "thick mustache"

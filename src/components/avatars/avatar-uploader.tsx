@@ -292,7 +292,7 @@ function StatusLabel({ status }: { status: Status }) {
     case 'saving':
       return <Trans>Saving avatar…</Trans>;
     case 'idle':
-      return <Trans>Create avatar</Trans>;
+      return <Trans>Create</Trans>;
   }
 }
 

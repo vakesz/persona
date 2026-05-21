@@ -128,28 +128,42 @@ interface HairGroup {
 }
 
 const HAIR_SHORT_FEMALE: PresetEntry[] = [
-  { value: 'pixie cut', label: msg`pixie cut` },
-  { value: 'pixie with bangs', label: msg`pixie with bangs` },
-  { value: 'short crop', label: msg`short crop` },
-  { value: 'chin-length bob', label: msg`chin-length bob` },
-  { value: 'lob', label: msg`lob` },
+  { value: 'classic pixie cut with soft natural texture', label: msg`pixie cut` },
+  { value: 'pixie cut with soft side-swept bangs', label: msg`pixie with bangs` },
+  { value: 'short crop with neat natural texture', label: msg`short crop` },
+  { value: 'chin-length bob with a clean rounded silhouette', label: msg`chin-length bob` },
+  {
+    value: 'long bob (lob), collarbone length, soft blunt ends, natural side volume',
+    label: msg`lob`,
+  },
 ];
 
 const HAIR_MEDIUM_FEMALE: PresetEntry[] = [
-  { value: 'shoulder-length waves', label: msg`shoulder-length waves` },
-  { value: 'shaggy layers', label: msg`shaggy layers` },
-  { value: 'curtain bangs', label: msg`curtain bangs` },
-  { value: 'messy bun', label: msg`messy bun` },
-  { value: 'half-up half-down', label: msg`half-up half-down` },
+  { value: 'shoulder-length soft waves with natural volume', label: msg`shoulder-length waves` },
+  {
+    value:
+      'medium-length layered shag, face-framing layers, soft feathered texture, controlled volume',
+    label: msg`shaggy layers`,
+  },
+  {
+    value:
+      'curtain bangs parted softly in the center, cheekbone-length fringe blended into the existing hair length',
+    label: msg`curtain bangs`,
+  },
+  { value: 'messy bun with soft loose face-framing strands', label: msg`messy bun` },
+  {
+    value: 'half-up half-down hairstyle with the top section pinned back and the lower hair loose',
+    label: msg`half-up half-down`,
+  },
 ];
 
 const HAIR_LONG_FEMALE: PresetEntry[] = [
-  { value: 'long straight', label: msg`long straight` },
-  { value: 'long loose waves', label: msg`long loose waves` },
-  { value: 'tight curls', label: msg`tight curls` },
-  { value: 'box braids', label: msg`box braids` },
-  { value: 'sleek high ponytail', label: msg`sleek high ponytail` },
-  { value: 'low pony', label: msg`low pony` },
+  { value: 'long straight hair with smooth natural shine', label: msg`long straight` },
+  { value: 'long loose waves with soft natural movement', label: msg`long loose waves` },
+  { value: 'tight defined curls with realistic volume', label: msg`tight curls` },
+  { value: 'long box braids with neat even parts', label: msg`box braids` },
+  { value: 'sleek high ponytail with a smooth crown', label: msg`sleek high ponytail` },
+  { value: 'low ponytail gathered at the nape with a clean natural finish', label: msg`low pony` },
 ];
 
 const HAIR_UPDO_FEMALE: PresetEntry[] = [
@@ -160,71 +174,109 @@ const HAIR_UPDO_FEMALE: PresetEntry[] = [
 ];
 
 const HAIR_SHORT_MALE: PresetEntry[] = [
-  { value: 'buzz cut', label: msg`buzz cut` },
-  { value: 'crew cut', label: msg`crew cut` },
-  { value: 'short fade', label: msg`short fade` },
-  { value: 'french crop', label: msg`french crop` },
-  { value: 'textured crop', label: msg`textured crop` },
-  { value: 'caesar cut', label: msg`caesar cut` },
+  { value: 'even buzz cut with a clean natural hairline', label: msg`buzz cut` },
+  { value: 'classic crew cut, short sides, slightly longer top', label: msg`crew cut` },
+  { value: 'short fade with natural blending at the temples and neckline', label: msg`short fade` },
+  { value: 'french crop with a short textured fringe', label: msg`french crop` },
+  {
+    value: 'textured crop with short sides and natural matte texture on top',
+    label: msg`textured crop`,
+  },
+  { value: 'caesar cut with a short straight fringe and even texture', label: msg`caesar cut` },
 ];
 
 const HAIR_MEDIUM_MALE: PresetEntry[] = [
-  { value: 'side part', label: msg`side part` },
-  { value: 'pompadour', label: msg`pompadour` },
-  { value: 'quiff', label: msg`quiff` },
-  { value: 'messy textured', label: msg`messy textured` },
-  { value: 'undercut with slick back', label: msg`undercut with slick back` },
-  { value: 'taper fade', label: msg`taper fade` },
+  { value: 'classic side part with neat natural volume', label: msg`side part` },
+  { value: 'medium pompadour with controlled height and clean sides', label: msg`pompadour` },
+  { value: 'modern quiff with lifted front and natural texture', label: msg`quiff` },
+  {
+    value: 'messy textured medium haircut with controlled natural volume',
+    label: msg`messy textured`,
+  },
+  {
+    value: 'undercut with slicked-back top, clean sides, realistic product shine',
+    label: msg`undercut with slick back`,
+  },
+  { value: 'taper fade with natural blending and a tidy top', label: msg`taper fade` },
 ];
 
 const HAIR_LONG_MALE: PresetEntry[] = [
-  { value: 'long flow', label: msg`long flow` },
-  { value: 'man bun', label: msg`man bun` },
-  { value: 'low ponytail', label: msg`low ponytail` },
-  { value: 'shoulder-length waves', label: msg`shoulder-length waves` },
+  {
+    value: 'long flow hairstyle with natural movement around the shoulders',
+    label: msg`long flow`,
+  },
+  { value: 'man bun tied neatly at the back with natural loose strands', label: msg`man bun` },
+  {
+    value: 'low ponytail gathered at the nape with a clean natural finish',
+    label: msg`low ponytail`,
+  },
+  { value: 'shoulder-length soft waves with natural volume', label: msg`shoulder-length waves` },
 ];
 
 const HAIR_SHAVED_MALE: PresetEntry[] = [
-  { value: 'fully shaved', label: msg`fully shaved` },
-  { value: 'shaved with stubble', label: msg`shaved with stubble` },
+  {
+    value: 'fully shaved head with natural scalp texture and hairline shadow',
+    label: msg`fully shaved`,
+  },
+  {
+    value: 'shaved head with very short stubble and natural scalp texture',
+    label: msg`shaved with stubble`,
+  },
 ];
 
 const HAIR_SHORT_UNSPECIFIED: PresetEntry[] = [
-  { value: 'buzz cut', label: msg`buzz cut` },
-  { value: 'crew cut', label: msg`crew cut` },
-  { value: 'pixie cut', label: msg`pixie cut` },
-  { value: 'short crop', label: msg`short crop` },
-  { value: 'short fade', label: msg`short fade` },
-  { value: 'french crop', label: msg`french crop` },
-  { value: 'chin-length bob', label: msg`chin-length bob` },
+  { value: 'even buzz cut with a clean natural hairline', label: msg`buzz cut` },
+  { value: 'classic crew cut, short sides, slightly longer top', label: msg`crew cut` },
+  { value: 'classic pixie cut with soft natural texture', label: msg`pixie cut` },
+  { value: 'short crop with neat natural texture', label: msg`short crop` },
+  { value: 'short fade with natural blending at the temples and neckline', label: msg`short fade` },
+  { value: 'french crop with a short textured fringe', label: msg`french crop` },
+  { value: 'chin-length bob with a clean rounded silhouette', label: msg`chin-length bob` },
 ];
 
 const HAIR_MEDIUM_UNSPECIFIED: PresetEntry[] = [
-  { value: 'side part', label: msg`side part` },
-  { value: 'pompadour', label: msg`pompadour` },
-  { value: 'shoulder-length waves', label: msg`shoulder-length waves` },
-  { value: 'shaggy layers', label: msg`shaggy layers` },
-  { value: 'curtain bangs', label: msg`curtain bangs` },
-  { value: 'messy bun', label: msg`messy bun` },
-  { value: 'half-up half-down', label: msg`half-up half-down` },
+  { value: 'classic side part with neat natural volume', label: msg`side part` },
+  { value: 'medium pompadour with controlled height and clean sides', label: msg`pompadour` },
+  { value: 'shoulder-length soft waves with natural volume', label: msg`shoulder-length waves` },
+  {
+    value:
+      'medium-length layered shag, face-framing layers, soft feathered texture, controlled volume',
+    label: msg`shaggy layers`,
+  },
+  {
+    value:
+      'curtain bangs parted softly in the center, cheekbone-length fringe blended into the existing hair length',
+    label: msg`curtain bangs`,
+  },
+  { value: 'messy bun with soft loose face-framing strands', label: msg`messy bun` },
+  {
+    value: 'half-up half-down hairstyle with the top section pinned back and the lower hair loose',
+    label: msg`half-up half-down`,
+  },
 ];
 
 const HAIR_LONG_UNSPECIFIED: PresetEntry[] = [
-  { value: 'long straight', label: msg`long straight` },
-  { value: 'long loose waves', label: msg`long loose waves` },
-  { value: 'tight curls', label: msg`tight curls` },
-  { value: 'box braids', label: msg`box braids` },
-  { value: 'sleek high ponytail', label: msg`sleek high ponytail` },
-  { value: 'low pony', label: msg`low pony` },
-  { value: 'man bun', label: msg`man bun` },
+  { value: 'long straight hair with smooth natural shine', label: msg`long straight` },
+  { value: 'long loose waves with soft natural movement', label: msg`long loose waves` },
+  { value: 'tight defined curls with realistic volume', label: msg`tight curls` },
+  { value: 'long box braids with neat even parts', label: msg`box braids` },
+  { value: 'sleek high ponytail with a smooth crown', label: msg`sleek high ponytail` },
+  { value: 'low ponytail gathered at the nape with a clean natural finish', label: msg`low pony` },
+  { value: 'man bun tied neatly at the back with natural loose strands', label: msg`man bun` },
 ];
 
 const HAIR_STATEMENT_UNSPECIFIED: PresetEntry[] = [
-  { value: 'fully shaved', label: msg`fully shaved` },
-  { value: 'undercut', label: msg`undercut` },
-  { value: 'french twist updo', label: msg`french twist updo` },
-  { value: 'classic chignon', label: msg`classic chignon` },
-  { value: 'braided crown', label: msg`braided crown` },
+  {
+    value: 'fully shaved head with natural scalp texture and hairline shadow',
+    label: msg`fully shaved`,
+  },
+  { value: 'undercut with clean sides and natural top volume', label: msg`undercut` },
+  { value: 'french twist updo with a smooth elegant shape', label: msg`french twist updo` },
+  {
+    value: 'classic chignon at the nape with a polished natural finish',
+    label: msg`classic chignon`,
+  },
+  { value: 'braided crown wrapped naturally around the head', label: msg`braided crown` },
 ];
 
 const HAIRSTYLES_FEMALE: HairGroup[] = [
@@ -1084,7 +1136,7 @@ function AskPanel({
                   disabled={renderBusy}
                 >
                   {renderBusy ? <Loader2 className="animate-spin" /> : <Sparkles />}
-                  <Trans>Render this look</Trans>
+                  <Trans>Render</Trans>
                 </Button>
               </div>
             ))}
