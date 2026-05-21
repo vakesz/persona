@@ -399,6 +399,15 @@ export async function cascadeDeleteAvatar(
     .withIndex('by_avatar', (q) => q.eq('avatarId', avatarId))
     .collect();
   for (const job of renderJobs) {
+    // Free the studio's single-use canvas snapshot if one was queued — its
+    // pendingRenderInputs claim was already consumed by createRenderJob, so
+    // the blob is referenced nowhere but in this job's inputJson. The TTL
+    // sweep would eventually catch the orphan from another angle, but it's
+    // cleaner to free it here.
+    const inputStorageId = parseInputStorageId(job.inputJson);
+    if (inputStorageId !== null) {
+      await bestEffortDeleteStorage(ctx, inputStorageId);
+    }
     if (job.resultStorageId !== undefined) {
       await bestEffortDeleteStorage(ctx, job.resultStorageId);
     }
@@ -415,6 +424,18 @@ export async function cascadeDeleteAvatar(
     await bestEffortDeleteStorage(ctx, avatar.thumbnailStorageId);
   }
   await ctx.db.delete(avatarId);
+}
+
+function parseInputStorageId(inputJson: string): Id<'_storage'> | null {
+  try {
+    const parsed = JSON.parse(inputJson) as { inputStorageId?: unknown };
+    if (typeof parsed.inputStorageId === 'string') {
+      return parsed.inputStorageId as Id<'_storage'>;
+    }
+  } catch (error) {
+    console.warn('cascadeDeleteAvatar: malformed renderJobs.inputJson:', error);
+  }
+  return null;
 }
 
 // Storage deletes aren't transactional with the DB, so an orphan reference

@@ -10,7 +10,7 @@ export interface UseToastMutationOptions {
   successMessage?: string;
 }
 
-export interface UseToastMutationResult<M extends FunctionReference<'mutation', 'public'>> {
+export interface UseToastMutationResult<M extends FunctionReference<'mutation'>> {
   /**
    * Runs the mutation. Resolves to the mutation's return value on success, or
    * `undefined` if the call threw — the failure is already surfaced via
@@ -30,7 +30,7 @@ export interface UseToastMutationResult<M extends FunctionReference<'mutation', 
  * codebase. Callers that need to react to success usually chain on the
  * returned promise (e.g. `.then((result) => { if (result !== undefined) … })`).
  */
-export function useToastMutation<M extends FunctionReference<'mutation', 'public'>>(
+export function useToastMutation<M extends FunctionReference<'mutation'>>(
   mutation: M,
   options: UseToastMutationOptions = {},
 ): UseToastMutationResult<M> {
@@ -46,7 +46,7 @@ export function useToastMutation<M extends FunctionReference<'mutation', 'public
         if (successMessage !== undefined) {
           toast.success(successMessage);
         }
-        return result as FunctionReturnType<M>;
+        return result;
       } catch (error: unknown) {
         console.error(error);
         toast.error(translateServerError(error));

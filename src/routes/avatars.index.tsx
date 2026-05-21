@@ -1,15 +1,14 @@
 import { Trans } from '@lingui/react/macro';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { useMutation, useQuery } from 'convex/react';
+import { useQuery } from 'convex/react';
 import { Loader2 } from 'lucide-react';
 import { useState } from 'react';
-import { toast } from 'sonner';
 
 import { AvatarCard } from '@/components/avatars/avatar-card';
 import { DeleteAvatarDialog } from '@/components/avatars/delete-avatar-dialog';
 import { RenameAvatarDialog } from '@/components/avatars/rename-avatar-dialog';
 import { RequireAuth } from '@/components/require-auth';
-import { translateServerError } from '@/i18n/server-errors';
+import { useToastMutation } from '@/i18n/use-toast-mutation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { api } from '@convex/_generated/api';
@@ -36,21 +35,16 @@ interface DialogTarget {
 
 function AvatarsList() {
   const avatars = useQuery(api.avatars.listAvatars);
-  const retryBaseline = useMutation(api.avatars.retryAvatarBaseline);
+  const retryBaseline = useToastMutation(api.avatars.retryAvatarBaseline);
   const [renameTarget, setRenameTarget] = useState<DialogTarget | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DialogTarget | null>(null);
   const [retryingId, setRetryingId] = useState<Id<'avatars'> | null>(null);
 
   const handleRetry = (id: Id<'avatars'>) => {
     setRetryingId(id);
-    retryBaseline({ id })
-      .catch((error: unknown) => {
-        console.error(error);
-        toast.error(translateServerError(error));
-      })
-      .finally(() => {
-        setRetryingId(null);
-      });
+    void retryBaseline.run({ id }).finally(() => {
+      setRetryingId(null);
+    });
   };
 
   if (avatars === undefined) {

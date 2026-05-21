@@ -58,7 +58,7 @@ export const discardRenderInput = mutation({
       .query('pendingRenderInputs')
       .withIndex('by_storage', (q) => q.eq('storageId', storageId))
       .unique();
-    if (claim === null || claim.userId !== userId) {
+    if (claim?.userId !== userId) {
       // Mirror `errors.renderNotFound` rather than leaking whether the blob
       // exists / belongs to someone else.
       throw errors.renderNotFound();
@@ -84,7 +84,7 @@ export async function consumePendingRenderInput(
     .query('pendingRenderInputs')
     .withIndex('by_storage', (q) => q.eq('storageId', storageId))
     .unique();
-  if (claim === null || claim.userId !== userId) {
+  if (claim?.userId !== userId) {
     throw errors.renderNotFound();
   }
   await ctx.db.delete(claim._id);

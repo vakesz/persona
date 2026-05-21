@@ -1,11 +1,11 @@
 import { Trans, useLingui } from '@lingui/react/macro';
 import { Link } from '@tanstack/react-router';
-import { useMutation, useQuery } from 'convex/react';
+import { useQuery } from 'convex/react';
 import { AlertCircle, Bookmark, CheckCircle2, Loader2, Save } from 'lucide-react';
 import { useState } from 'react';
-import { toast } from 'sonner';
 
-import { translateServerError, translateStoredErrorMessage } from '@/i18n/server-errors';
+import { translateStoredErrorMessage } from '@/i18n/server-errors';
+import { useToastMutation } from '@/i18n/use-toast-mutation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -35,26 +35,17 @@ export function RenderResult({
   baselineUrl,
   onClose,
 }: RenderResultProps) {
-  const job = useQuery(api.renderJobs.getRenderJob, { id: jobId });
-  const saveLook = useMutation(api.savedLooks.saveLookFromJob);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
   const { t } = useLingui();
+  const job = useQuery(api.renderJobs.getRenderJob, { id: jobId });
+  const saveLook = useToastMutation(api.savedLooks.saveLookFromJob, {
+    successMessage: t`Saved to ${avatarName}'s looks.`,
+  });
+  const [saved, setSaved] = useState(false);
 
   const handleSave = () => {
-    setSaving(true);
-    saveLook({ jobId })
-      .then(() => {
-        setSaved(true);
-        toast.success(t`Saved to ${avatarName}'s looks.`);
-      })
-      .catch((error: unknown) => {
-        console.error(error);
-        toast.error(translateServerError(error));
-      })
-      .finally(() => {
-        setSaving(false);
-      });
+    void saveLook.run({ jobId }).then((result) => {
+      if (result !== undefined) setSaved(true);
+    });
   };
 
   const status = job?.status;
@@ -131,9 +122,9 @@ export function RenderResult({
             <Button type="button" variant="outline" onClick={onClose}>
               <Trans>Discard</Trans>
             </Button>
-            <Button type="button" onClick={handleSave} disabled={saving}>
-              {saving ? <Loader2 className="animate-spin" /> : <Save />}
-              <Trans>Save</Trans>
+            <Button type="button" onClick={handleSave} disabled={saveLook.pending}>
+              {saveLook.pending ? <Loader2 className="animate-spin" /> : <Save />}
+              <Trans>Save look</Trans>
             </Button>
           </>
         )}

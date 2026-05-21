@@ -1,7 +1,7 @@
 import { getAuthUserId } from '@convex-dev/auth/server';
 
 import type { Id } from '../_generated/dataModel';
-import type { MutationCtx, QueryCtx } from '../_generated/server';
+import type { ActionCtx, MutationCtx, QueryCtx } from '../_generated/server';
 import { errors } from './errors';
 
 /**
@@ -10,7 +10,7 @@ import { errors } from './errors';
  * directly and return an empty result for `null` (queries silently produce
  * empty state when signed out; mutations are loud).
  */
-export async function requireAuth(ctx: QueryCtx | MutationCtx): Promise<Id<'users'>> {
+export async function requireAuth(ctx: QueryCtx | MutationCtx | ActionCtx): Promise<Id<'users'>> {
   const userId = await getAuthUserId(ctx);
   if (userId === null) {
     throw errors.notAuthenticated();
@@ -29,7 +29,7 @@ export function ensureOwned<T extends { userId: Id<'users'> }>(
   userId: Id<'users'>,
   onMissing: () => Error,
 ): T {
-  if (row === null || row.userId !== userId) throw onMissing();
+  if (row?.userId !== userId) throw onMissing();
   return row;
 }
 
@@ -42,6 +42,6 @@ export function ownedOrNull<T extends { userId: Id<'users'> }>(
   row: T | null,
   userId: Id<'users'>,
 ): T | null {
-  if (row === null || row.userId !== userId) return null;
+  if (row?.userId !== userId) return null;
   return row;
 }

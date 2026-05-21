@@ -1,10 +1,10 @@
 import { Trans, useLingui } from '@lingui/react/macro';
-import { useMutation } from 'convex/react';
-import { Loader2 } from 'lucide-react';
 import { type SyntheticEvent, useState } from 'react';
 import { toast } from 'sonner';
 
-import { translateServerError } from '@/i18n/server-errors';
+import { useToastMutation } from '@/i18n/use-toast-mutation';
+import { Loader2 } from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -29,10 +29,11 @@ export interface RenameAvatarDialogProps {
 // each open — that way `useState(currentName)` always starts from the latest
 // name without a derived-state effect.
 export function RenameAvatarDialog({ avatarId, currentName, onClose }: RenameAvatarDialogProps) {
-  const updateAvatar = useMutation(api.avatars.updateAvatar);
-  const [name, setName] = useState(currentName);
-  const [submitting, setSubmitting] = useState(false);
   const { t } = useLingui();
+  const updateAvatar = useToastMutation(api.avatars.updateAvatar, {
+    successMessage: t`Renamed.`,
+  });
+  const [name, setName] = useState(currentName);
 
   const handleSubmit = (event: SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -42,19 +43,9 @@ export function RenameAvatarDialog({ avatarId, currentName, onClose }: RenameAva
       toast.error(t`Name is required.`);
       return;
     }
-    setSubmitting(true);
-    updateAvatar({ id: avatarId, name: trimmed })
-      .then(() => {
-        toast.success(t`Renamed.`);
-        onClose();
-      })
-      .catch((error: unknown) => {
-        console.error(error);
-        toast.error(translateServerError(error));
-      })
-      .finally(() => {
-        setSubmitting(false);
-      });
+    void updateAvatar.run({ id: avatarId, name: trimmed }).then((result) => {
+      if (result !== undefined) onClose();
+    });
   };
 
   return (
@@ -89,16 +80,16 @@ export function RenameAvatarDialog({ avatarId, currentName, onClose }: RenameAva
               autoFocus
               required
               maxLength={40}
-              disabled={submitting}
+              disabled={updateAvatar.pending}
             />
           </div>
         </DialogBody>
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={onClose} disabled={submitting}>
+          <Button type="button" variant="outline" onClick={onClose} disabled={updateAvatar.pending}>
             <Trans>Cancel</Trans>
           </Button>
-          <Button type="submit" disabled={submitting || name.trim() === currentName}>
-            {submitting ? <Loader2 className="animate-spin" /> : null}
+          <Button type="submit" disabled={updateAvatar.pending || name.trim() === currentName}>
+            {updateAvatar.pending ? <Loader2 className="animate-spin" /> : null}
             <Trans>Save</Trans>
           </Button>
         </DialogFooter>

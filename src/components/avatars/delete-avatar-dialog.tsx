@@ -1,10 +1,7 @@
 import { Trans, useLingui } from '@lingui/react/macro';
-import { useMutation } from 'convex/react';
 import { Loader2 } from 'lucide-react';
-import { useState } from 'react';
-import { toast } from 'sonner';
 
-import { translateServerError } from '@/i18n/server-errors';
+import { useToastMutation } from '@/i18n/use-toast-mutation';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -24,25 +21,16 @@ export interface DeleteAvatarDialogProps {
 }
 
 export function DeleteAvatarDialog({ avatarId, avatarName, onClose }: DeleteAvatarDialogProps) {
-  const deleteAvatar = useMutation(api.avatars.deleteAvatar);
-  const [submitting, setSubmitting] = useState(false);
   const { t } = useLingui();
+  const deleteAvatar = useToastMutation(api.avatars.deleteAvatar, {
+    successMessage: t`Avatar deleted.`,
+  });
 
   const handleConfirm = () => {
     if (avatarId === null) return;
-    setSubmitting(true);
-    deleteAvatar({ id: avatarId })
-      .then(() => {
-        toast.success(t`Avatar deleted.`);
-        onClose();
-      })
-      .catch((error: unknown) => {
-        console.error(error);
-        toast.error(translateServerError(error));
-      })
-      .finally(() => {
-        setSubmitting(false);
-      });
+    void deleteAvatar.run({ id: avatarId }).then((result) => {
+      if (result !== undefined) onClose();
+    });
   };
 
   return (
@@ -72,11 +60,16 @@ export function DeleteAvatarDialog({ avatarId, avatarName, onClose }: DeleteAvat
         </p>
       </DialogBody>
       <DialogFooter>
-        <Button type="button" variant="outline" onClick={onClose} disabled={submitting}>
+        <Button type="button" variant="outline" onClick={onClose} disabled={deleteAvatar.pending}>
           <Trans>Cancel</Trans>
         </Button>
-        <Button type="button" variant="destructive" onClick={handleConfirm} disabled={submitting}>
-          {submitting ? <Loader2 className="animate-spin" /> : null}
+        <Button
+          type="button"
+          variant="destructive"
+          onClick={handleConfirm}
+          disabled={deleteAvatar.pending}
+        >
+          {deleteAvatar.pending ? <Loader2 className="animate-spin" /> : null}
           <Trans>Delete avatar</Trans>
         </Button>
       </DialogFooter>

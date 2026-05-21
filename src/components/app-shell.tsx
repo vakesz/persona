@@ -6,6 +6,7 @@ import { Sparkles } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import { LocaleSwitcher } from '@/components/i18n/locale-switcher';
+import { clearStoredLocale } from '@/i18n/detect';
 import { Button } from '@/components/ui/button';
 
 export interface AppShellProps {
@@ -76,6 +77,10 @@ function SignOutButton() {
       size="sm"
       className="ml-1"
       onClick={() => {
+        // Wipe the cached locale so the next user on this browser doesn't
+        // inherit ours — Convex Auth doesn't clear app-side localStorage
+        // and our provider only reads/writes when authenticated.
+        clearStoredLocale();
         void signOut();
       }}
     >

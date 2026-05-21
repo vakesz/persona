@@ -1,19 +1,25 @@
 import { Trans, useLingui } from '@lingui/react/macro';
 import { Link } from '@tanstack/react-router';
+import type { FunctionReturnType } from 'convex/server';
 import { AlertCircle, Loader2, Pencil, RefreshCcw, Trash2, User, UserSquare2 } from 'lucide-react';
 
 import { translateStoredErrorMessage } from '@/i18n/server-errors';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
 
-type AvatarBaselineStatus = 'queued' | 'processing' | 'done' | 'failed';
-type AvatarGender = 'male' | 'female' | 'unspecified';
+// Derive from the query return so adding a status / gender variant in
+// `convex/schema.ts` lights this file up at the type level.
+type AvatarRow = FunctionReturnType<typeof api.avatars.listAvatars>[number];
+type AvatarBaselineStatus = AvatarRow['baselineStatus'];
+type AvatarGender = AvatarRow['gender'];
+type AvatarType = AvatarRow['type'];
 
 export interface AvatarCardProps {
   id: Id<'avatars'>;
   name: string;
-  type: 'selfie' | 'full_body';
+  type: AvatarType;
   gender: AvatarGender;
   thumbnailUrl: string | null;
   baselineStatus: AvatarBaselineStatus;
@@ -109,7 +115,7 @@ export function AvatarCard({
   );
 }
 
-function AvatarMeta({ type, gender }: { type: 'selfie' | 'full_body'; gender: AvatarGender }) {
+function AvatarMeta({ type, gender }: { type: AvatarType; gender: AvatarGender }) {
   const { t } = useLingui();
   const typeLabel = type === 'selfie' ? t`Selfie` : t`Full body`;
   const genderLabel = gender === 'male' ? t`Masculine` : gender === 'female' ? t`Feminine` : null;
@@ -138,7 +144,7 @@ function ConditionalLink({ ready, avatarId, children }: ConditionalLinkProps) {
 }
 
 interface BaselineBadgeProps {
-  status: 'queued' | 'processing' | 'failed';
+  status: Exclude<AvatarBaselineStatus, 'done'>;
   message: string | undefined;
   retrying: boolean;
   onRetry: () => void;

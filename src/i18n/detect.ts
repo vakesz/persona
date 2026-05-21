@@ -30,6 +30,19 @@ export function writeStoredLocale(locale: Locale): void {
   }
 }
 
+/**
+ * Removes the cached locale so the next user signing in on the same browser
+ * starts from URL / preference / browser default detection instead of
+ * inheriting the previous user's choice.
+ */
+export function clearStoredLocale(): void {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // Best-effort.
+  }
+}
+
 function detectBrowserLocale(): Locale {
   if (typeof navigator === 'undefined') return DEFAULT_LOCALE;
   const candidates = [navigator.language, ...navigator.languages];

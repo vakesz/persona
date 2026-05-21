@@ -1,9 +1,9 @@
-import { getAuthUserId } from '@convex-dev/auth/server';
 import { v } from 'convex/values';
 
 import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { action, internalAction } from './_generated/server';
+import { requireAuth } from './lib/auth';
 import { errors, serializeError } from './lib/errors';
 
 // @types/node v25 no longer exposes `process` on globalThis; Convex actions run
@@ -28,7 +28,7 @@ Output exactly 3 recommendations as structured JSON. For each:
 - title: short, memorable, max 6 words.
 - description: 1-2 sentences explaining WHY this suits them (skin tone, hair, face shape, vibe). Specific, not generic. No hedging.
 - styleType: exactly one of "hair", "makeup", "nails", "clothes".
-- renderPrompt: 2-3 directive sentences in English for an image-edit model. Describe the edit as a local change and name the important areas that must stay untouched. For hair, specify cut, length, silhouette, texture, fringe/bangs, and whether hair colour should stay natural. For makeup, specify exact region, colour, finish, and intensity while preserving skin texture and identity marks. Use replace/render/apply/restyle verbs — never "change" or "add" alone, because the model interprets those as partial edits.
+- renderPrompt: 1-2 directive sentences in English for an image-edit model. Use replace/render/apply verbs — never "change" or "add" alone, because the model interprets those as partial edits. Specify colour, texture, length, finish, fit, and any other visual specifics needed to render the look faithfully on the existing photo.
 
 If the question targets a specific style type, make all 3 recommendations that type. Otherwise spread across types based on what would genuinely benefit the user most.`;
 
@@ -112,16 +112,15 @@ export const analyzeStyleWithGemini = action({
     ),
   }),
   handler: async (ctx, { avatarId, question }) => {
+    // Auth first so an anonymous caller can't fingerprint whether the API
+    // key is configured by comparing error responses.
+    const userId = await requireAuth(ctx);
+
     const apiKey = process.env['GEMINI_API_KEY'];
     if (apiKey === undefined || apiKey === '') {
       throw errors.geminiKeyMissing();
     }
     const model = process.env['CONVEX_GEMINI_MODEL'] ?? DEFAULT_GEMINI_MODEL;
-
-    const userId = await getAuthUserId(ctx);
-    if (userId === null) {
-      throw errors.notAuthenticated();
-    }
 
     const avatar = await ctx.runQuery(internal.avatars.getAvatarStorageForUser, {
       id: avatarId,
@@ -256,9 +255,9 @@ interface GeminiImageResponse {
 
 const IMAGE_SYSTEM_INSTRUCTION = `This is a personal styling app. The user uploads photos of themselves to preview hairstyles, makeup, clothing, and accessories on their own portrait. Every reference image is of the user, supplied by the user, and only shown back to them; outputs are private.
 
-When rendering the user, keep them photorealistic and recognizable: preserve their face shape, facial features, expression, skin tone, skin texture, body shape, and apparent age. Preserve every mole, beauty spot, freckle, birthmark, and scar exactly where it appears in the reference — never smooth, remove, or relocate them unless explicitly asked.
+When rendering the user, keep them photorealistic and recognizable: preserve their face, skin tone, and apparent age. Preserve every mole, beauty spot, freckle, birthmark, and scar exactly where it appears in the reference — never smooth, remove, or relocate them unless explicitly asked.
 
-Other features (hair, makeup, clothing, eyewear, headwear, jewelry, facial hair) stay as in the reference unless the request changes them. Treat requested styling changes as targeted local edits: edit the requested feature cleanly, integrate it with the original lighting and perspective, and leave the rest of the image unchanged. For hairstyle requests, edit only the hair on the head; keep the user's face, forehead size, skull/head size, ears, neck, shoulders, clothing, background, crop, and aspect ratio unchanged. Keep hair attached naturally to the head and keep the natural hair colour unless the request explicitly asks for a different colour.
+Other features (hair, makeup, clothing, eyewear, headwear, jewelry, facial hair) stay as in the reference unless the request changes them. When a request asks to change, replace, restyle, add, or remove a feature, apply it fully — completely remove the existing version of that feature and render the new one in its place, not a partial blend of old and new.
 
 User descriptions may be written in any language (English, Hungarian, etc.), sometimes mixed within a single request; interpret them faithfully regardless of language. Never stylise, cartoonify, or retouch beyond what the request asks for.`;
 
@@ -309,12 +308,14 @@ export const generateAvatarBaseline = internalAction({
 
     const avatar = await ctx.runQuery(internal.avatars.getAvatarForBaseline, { id: avatarId });
     if (avatar === null) return null;
-    // Avatar was deleted between schedule and run, or status moved on. Bail.
-    if (avatar.baselineStatus !== 'queued' && avatar.baselineStatus !== 'failed') {
-      return null;
-    }
 
-    await ctx.runMutation(internal.avatars.markBaselineProcessing, { id: avatarId });
+    // Atomic queued|failed → processing transition. If another invocation
+    // raced ahead (e.g. a fast double-tap on Retry that escaped client
+    // de-duping), `claimed` is false and we bail without double-billing Gemini.
+    const claimed = await ctx.runMutation(internal.avatars.claimBaselineGeneration, {
+      id: avatarId,
+    });
+    if (!claimed) return null;
 
     try {
       const parts: { text?: string; inlineData?: { mimeType: string; data: string } }[] = [
@@ -401,10 +402,10 @@ interface RenderInputJson {
 }
 
 const RENDER_INSTRUCTION = (prompt: string) =>
-  `Edit the attached photo of me to apply the requested look as a targeted local edit. Keep the original crop, aspect ratio, background, lighting, pose, expression, face shape, facial features, skin tone, skin texture, body shape, clothing, and accessories unchanged unless the request explicitly changes one of those areas. Keep every mole, beauty spot, freckle, birthmark, and scar exactly where it appears - do not retouch, smooth, erase, or relocate identity marks. For hairstyle requests, edit only the hair on my head: render the requested cut, length, silhouette, texture, fringe/bangs if specified, and realistic hairline while preserving my face, forehead size, head size, ears, neck, shoulders, glasses, makeup, clothing, crop, and aspect ratio. Keep my natural hair colour unless the request explicitly asks for a different colour. The request may be written in any language; interpret it faithfully. Requested change: ${prompt}. Return only the edited image.`;
+  `Edit the attached photo of me to apply the requested look. Preserve my face, pose, lighting, body, and background. Keep every mole, beauty spot, freckle, birthmark, and scar exactly where it appears — do not retouch or smooth them. When the request asks to change, replace, restyle, add, or remove a feature, apply that change fully: completely remove the existing version of the affected feature and render the new one in its place, not a partial blend. The request may be written in any language; interpret it faithfully. Requested change: ${prompt}. Return only the edited image.`;
 
 const TRY_ON_INSTRUCTION = (prompt: string) =>
-  `The first image is a photo of me; the second is a clothing or accessory reference. Edit the first photo so I am realistically wearing the item from the second - fitted naturally to my body, matched to my lighting and pose. If I am already wearing a similar garment or accessory in the first photo, replace it with the reference item rather than layering on top. Preserve my face, hair, pose, lighting, background, crop, and aspect ratio unless the additional guidance explicitly changes them. Keep every mole, beauty spot, freckle, birthmark, and scar exactly where it appears - do not retouch, smooth, erase, or relocate identity marks. Additional guidance (may be in any language; interpret faithfully): ${prompt}. Return only the edited image.`;
+  `The first image is a photo of me; the second is a clothing or accessory reference. Edit the first photo so I am realistically wearing the item from the second — fitted naturally to my body, matched to my lighting and pose. If I am already wearing a similar garment or accessory in the first photo, replace it with the reference item rather than layering on top. Preserve my face, pose, lighting, and background. Keep every mole, beauty spot, freckle, birthmark, and scar exactly where it appears — do not retouch or smooth them. Additional guidance (may be in any language; interpret faithfully): ${prompt}. Return only the edited image.`;
 
 export const renderLookWithGemini = internalAction({
   args: { jobId: v.id('renderJobs') },
@@ -420,34 +421,50 @@ export const renderLookWithGemini = internalAction({
     }
 
     const job = await ctx.runQuery(internal.renderJobs.getRenderJobInternal, { id: jobId });
+    // Avatar was cascade-deleted between createRenderJob and this action;
+    // the cascade frees the input snapshot blob (see `cascadeDeleteAvatar`),
+    // so there's nothing for us to clean up.
     if (job === null) return null;
 
-    // Parse once up front so `finally` can free the single-use input blob even
-    // if a later step throws. The JSON was just serialized by createRenderJob,
-    // so a parse failure here is a hard corruption case we mark as failed.
-    let input: RenderInputJson;
+    // Parse `inputJson` up front so the finally block below can free the
+    // single-use input blob even if a later step throws.
+    let input: RenderInputJson | null = null;
+    let parseFailure: unknown = null;
     try {
       input = JSON.parse(job.inputJson) as RenderInputJson;
     } catch (error) {
+      parseFailure = error;
       console.error('Render job inputJson is corrupt:', error);
-      await ctx.runMutation(internal.renderJobs.markRenderJobFailed, {
-        id: jobId,
-        errorMessage: serializeError(error),
-      });
+    }
+    const inputStorageId =
+      input?.inputStorageId === undefined ? null : (input.inputStorageId as Id<'_storage'>);
+
+    // Atomic queued → processing transition. Returns false if another
+    // invocation already claimed it or the job was concurrently deleted.
+    const claimed = await ctx.runMutation(internal.renderJobs.claimRenderJob, { id: jobId });
+    if (!claimed) {
+      // We never owned this run — but the studio's pre-claimed input blob
+      // (if any) is still ours to free, since the action that claims the
+      // job will see `input.inputStorageId === undefined` in its own copy
+      // of the job (or this branch). Actually: the inputStorageId lives in
+      // the same `inputJson`, so the other action also handles it. Don't
+      // double-free here.
       return null;
     }
 
-    await ctx.runMutation(internal.renderJobs.markRenderJobProcessing, { id: jobId });
-
     try {
+      if (input === null) {
+        // serializeError below picks up the original parse failure.
+        throw parseFailure;
+      }
       const prompt = input.prompt;
 
       // Prefer the studio's flattened canvas (baseline + tints) if the client
       // uploaded one — that way AI renders stack on top of makeup. Otherwise
       // fall back to the canonical baseline.
       let inputBlob: Blob | null = null;
-      if (input.inputStorageId !== undefined) {
-        inputBlob = await ctx.storage.get(input.inputStorageId as Id<'_storage'>);
+      if (inputStorageId !== null) {
+        inputBlob = await ctx.storage.get(inputStorageId);
       }
       if (inputBlob === null) {
         const avatar = await ctx.runQuery(internal.avatars.getAvatarStorageForUser, {
@@ -500,7 +517,7 @@ export const renderLookWithGemini = internalAction({
             contents: [{ role: 'user', parts }],
             generationConfig: {
               responseModalities: ['IMAGE'],
-              temperature: 0.4,
+              temperature: 0.7,
             },
           }),
         },
@@ -527,10 +544,7 @@ export const renderLookWithGemini = internalAction({
         (part) => part.inlineData?.data !== undefined,
       );
       const inlineData = imagePart?.inlineData;
-      if (inlineData === undefined) {
-        throw errors.renderNoImage();
-      }
-      if (inlineData.data === undefined) {
+      if (inlineData?.data === undefined) {
         throw errors.renderNoImage();
       }
 
@@ -553,9 +567,9 @@ export const renderLookWithGemini = internalAction({
       // Single-use studio canvas snapshot — free the storage blob whichever
       // way the action exited (success or failure). Doesn't apply to the
       // avatar baseline or uploaded reference items, which are owned blobs.
-      if (input.inputStorageId !== undefined) {
+      if (inputStorageId !== null) {
         try {
-          await ctx.storage.delete(input.inputStorageId as Id<'_storage'>);
+          await ctx.storage.delete(inputStorageId);
         } catch (cleanupError) {
           console.warn('Render input cleanup failed:', cleanupError);
         }

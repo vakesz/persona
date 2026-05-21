@@ -59,9 +59,19 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
   selectedUploadId: null,
 };
 
+function tintApplied(tint: ColorTint): boolean {
+  // An enabled-but-intensity-0 tint produces no visible pixels — skipping
+  // the flatten-and-upload path keeps us from telling Gemini to "preserve
+  // makeup" that isn't actually visible in the input snapshot.
+  return tint.enabled && tint.intensity > 0;
+}
+
 export function hasAnyTint(state: StudioState): boolean {
   return (
-    state.lip.enabled || state.eyeshadow.enabled || state.blush.enabled || state.browTint.enabled
+    tintApplied(state.lip) ||
+    tintApplied(state.eyeshadow) ||
+    tintApplied(state.blush) ||
+    tintApplied(state.browTint)
   );
 }
 
@@ -110,16 +120,16 @@ export function composeRenderPrompt(state: StudioState): string {
 
   if (hasAnyTint(state)) {
     const tints: string[] = [];
-    if (state.lip.enabled) {
+    if (tintApplied(state.lip)) {
       tints.push(`${state.lip.finish} lipstick (${state.lip.color})`);
     }
-    if (state.eyeshadow.enabled) {
+    if (tintApplied(state.eyeshadow)) {
       tints.push(`eyeshadow (${state.eyeshadow.color})`);
     }
-    if (state.blush.enabled) {
+    if (tintApplied(state.blush)) {
       tints.push(`blush (${state.blush.color})`);
     }
-    if (state.browTint.enabled) {
+    if (tintApplied(state.browTint)) {
       tints.push(`brow tint (${state.browTint.color})`);
     }
     parts.push(
@@ -194,12 +204,18 @@ function describePlan(plan: GeometryPlan): string {
   return custom.length === 0 ? plan.preset : `${plan.preset} (${custom})`;
 }
 
+// Title is composed of English preset values. Stored verbatim in
+// `inputJson.title` and shown back in render-result + saved-look cards. It
+// stays English regardless of locale — switching to Hungarian doesn't
+// re-translate previously-saved titles. Translating would require a
+// structured tag list and a preset-value → MessageDescriptor lookup; a
+// follow-up if/when product surfaces non-English saved-look titles.
 export function composeRenderTitle(state: StudioState): string {
   const bits: string[] = [];
   if (state.hairstyle.preset !== null) bits.push(state.hairstyle.preset);
   if (state.beard.preset !== null) bits.push(`${state.beard.preset} beard`);
   if (state.mustache.preset !== null) bits.push(`${state.mustache.preset} mustache`);
-  if (state.lip.enabled) bits.push('lipstick');
+  if (tintApplied(state.lip)) bits.push('lipstick');
   if (state.lipShape.preset !== null) bits.push(`${state.lipShape.preset} lips`);
   if (state.browShape.preset !== null) bits.push(`${state.browShape.preset} brows`);
   if (state.eyewear.preset !== null) bits.push(state.eyewear.preset);

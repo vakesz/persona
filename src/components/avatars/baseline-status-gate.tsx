@@ -1,21 +1,20 @@
 import { Trans } from '@lingui/react/macro';
 import { Link } from '@tanstack/react-router';
+import type { FunctionReturnType } from 'convex/server';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import { translateStoredErrorMessage } from '@/i18n/server-errors';
 import { Button } from '@/components/ui/button';
+import { api } from '@convex/_generated/api';
 
-type AvatarBaselineStatus = 'queued' | 'processing' | 'done' | 'failed';
-type AvatarGender = 'male' | 'female' | 'unspecified';
-
-interface AvatarStub {
-  name: string;
-  gender: AvatarGender;
-  baselineStatus: AvatarBaselineStatus;
-  baselineErrorMessage?: string;
-  baseImageUrl: string | null;
-}
+// Derive the avatar shape from the public query so adding a baseline status
+// variant in `convex/schema.ts` lights this file up at the type level.
+type AvatarDetail = NonNullable<FunctionReturnType<typeof api.avatars.getAvatar>>;
+type AvatarStub = Pick<
+  AvatarDetail,
+  'name' | 'gender' | 'baselineStatus' | 'baselineErrorMessage' | 'baseImageUrl'
+>;
 
 export interface BaselineStatusGateProps {
   avatar: AvatarStub | null | undefined;

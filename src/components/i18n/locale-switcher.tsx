@@ -1,3 +1,5 @@
+import { useLingui } from '@lingui/react/macro';
+
 import { useLocale } from '@/i18n/use-locale';
 import { LOCALE_LABELS, LOCALES, type Locale } from '@/i18n/locales';
 import { cn } from '@/lib/utils';
@@ -13,6 +15,7 @@ export interface LocaleSwitcherProps {
  */
 export function LocaleSwitcher({ className, variant = 'segmented' }: LocaleSwitcherProps) {
   const { locale, setLocale } = useLocale();
+  const { t } = useLingui();
 
   if (variant === 'minimal') {
     return (
@@ -42,7 +45,7 @@ export function LocaleSwitcher({ className, variant = 'segmented' }: LocaleSwitc
   return (
     <div
       role="group"
-      aria-label="Language"
+      aria-label={t`Language`}
       className={cn('border-input inline-flex rounded-md border p-0.5 text-xs', className)}
     >
       {LOCALES.map((code) => (

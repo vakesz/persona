@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 
 import { translateServerError } from '@/i18n/server-errors';
 import { processAvatarImage } from '@/lib/image-compression';
+import { uploadBlobToConvex } from '@/lib/storage/upload';
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
 
@@ -41,18 +42,10 @@ export function UploadedItemUploader({ onUploaded }: UploadedItemUploaderProps) 
     try {
       const { base } = await processAvatarImage(picked);
       const uploadUrl = await generateUploadUrl();
-      const response = await fetch(uploadUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': base.type },
-        body: base,
-      });
-      if (!response.ok) {
-        throw new Error(t`Upload failed.`);
-      }
-      const json = (await response.json()) as { storageId: Id<'_storage'> };
+      const storageId = await uploadBlobToConvex(uploadUrl, base, t`Upload failed.`);
       const id = await createUploadedItem({
         type: 'dress',
-        imageStorageId: json.storageId,
+        imageStorageId: storageId,
         label: stripExt(picked.name),
       });
       toast.success(t`Upload added.`);

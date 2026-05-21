@@ -1,4 +1,4 @@
-import type Konva from 'konva';
+import Konva from 'konva';
 import { type Ref, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Group, Image as KonvaImage, Layer, Path, Stage } from 'react-konva';
 
@@ -13,7 +13,12 @@ import {
 import type { ColorTint, StudioState } from '@/lib/studio/studio-state';
 
 export interface StudioCanvasHandle {
-  /** Exports the current visible composition (baseline + tints) as a PNG blob. */
+  /**
+   * Exports the canonical tinted composition (baseline + tints, no
+   * before/after slider clip, no display pan/zoom) as a native-resolution
+   * PNG blob. The renderer can then stack geometry edits on top of the
+   * makeup without having to redraw it.
+   */
   exportPng: () => Promise<Blob | null>;
 }
 
@@ -86,25 +91,40 @@ export function StudioCanvas({
     };
   }, [size, baseImage]);
 
-  // Expose the export-to-PNG handle. Konva's `toBlob` renders the current
-  // visible state of the stage at native resolution; we crop to the baseline
-  // image so the output matches the upload (no chrome, no whitespace).
+  // Expose the export-to-PNG handle. The implementation clones the export
+  // group into an offscreen Konva stage of the baseline's native resolution
+  // — that way the snapshot is independent of (a) the user's pan/zoom on
+  // the visible stage and (b) the display scale-to-fit transform.
   useEffect(() => {
     if (ref === undefined || ref === null) return undefined;
     const handle: StudioCanvasHandle = {
       exportPng: async () => {
-        const group = exportGroupRef.current;
-        if (group === null || baseImage === null) return null;
-        const dataUrl = group.toDataURL({
-          x: group.getClientRect({ skipTransform: true }).x,
-          y: group.getClientRect({ skipTransform: true }).y,
-          width: baseImage.naturalWidth,
-          height: baseImage.naturalHeight,
-          pixelRatio: 1,
-          mimeType: 'image/png',
-        });
-        const response = await fetch(dataUrl);
-        return await response.blob();
+        const source = exportGroupRef.current;
+        if (source === null || baseImage === null) return null;
+
+        const container = document.createElement('div');
+        container.style.cssText = 'position:absolute;left:-99999px;top:0;width:1px;height:1px';
+        document.body.appendChild(container);
+        try {
+          const offscreen = new Konva.Stage({
+            container,
+            width: baseImage.naturalWidth,
+            height: baseImage.naturalHeight,
+          });
+          const layer = new Konva.Layer();
+          const cloned = source.clone();
+          cloned.position({ x: 0, y: 0 });
+          cloned.scale({ x: 1, y: 1 });
+          layer.add(cloned);
+          offscreen.add(layer);
+          offscreen.draw();
+          const dataUrl = offscreen.toDataURL({ pixelRatio: 1, mimeType: 'image/png' });
+          offscreen.destroy();
+          const response = await fetch(dataUrl);
+          return await response.blob();
+        } finally {
+          container.remove();
+        }
       },
     };
     if (typeof ref === 'function') {
@@ -165,9 +185,16 @@ export function StudioCanvas({
     pinchRef.current = { distance };
   };
 
-  const handleTouchEnd = () => {
-    pinchRef.current = null;
+  // The pinch ref tracks two-finger spread. Reset only when no fingers
+  // remain on the screen, so lifting one finger of a three-finger gesture
+  // doesn't mid-stream the pinch state.
+  const handleTouchEnd = (event: Konva.KonvaEventObject<TouchEvent>) => {
+    if (event.evt.touches.length === 0) {
+      pinchRef.current = null;
+    }
   };
+
+  const sliderActive = compareSliderX > 0 && compareSliderX < 1;
 
   return (
     <div
@@ -186,40 +213,63 @@ export function StudioCanvas({
         >
           <Layer>
             <Group
-              ref={exportGroupRef}
               x={initialFit.x}
               y={initialFit.y}
               scaleX={initialFit.scale}
               scaleY={initialFit.scale}
             >
-              <KonvaImage
-                image={baseImage}
-                x={0}
-                y={0}
-                width={baseImage.naturalWidth}
-                height={baseImage.naturalHeight}
-                alt={altText}
-                listening={false}
-              />
-              {face !== null && (
-                <Group
-                  clipX={compareSliderX * baseImage.naturalWidth}
-                  clipY={0}
-                  clipWidth={Math.max(
-                    0,
-                    baseImage.naturalWidth - compareSliderX * baseImage.naturalWidth,
-                  )}
-                  clipHeight={baseImage.naturalHeight}
-                >
+              {/*
+                The export group is the canonical composition: baseline +
+                tints, in native image-space coords, at identity transform.
+                `exportPng` clones it into an offscreen native-res stage so
+                pan/zoom/display-scale never bleed into the snapshot.
+              */}
+              <Group ref={exportGroupRef}>
+                <KonvaImage
+                  image={baseImage}
+                  x={0}
+                  y={0}
+                  width={baseImage.naturalWidth}
+                  height={baseImage.naturalHeight}
+                  alt={altText}
+                  listening={false}
+                />
+                {face !== null && (
                   <TintLayer
                     face={face}
                     state={state}
                     imageWidth={baseImage.naturalWidth}
                     imageHeight={baseImage.naturalHeight}
                   />
+                )}
+              </Group>
+              {/*
+                Before/after wipe overlay: re-draws the bare baseline on top
+                of the export group, clipped to the LEFT of the slider line.
+                Putting the clip on the *overlay* (not on the tints) keeps
+                the export group untouched by the slider state — the user
+                can drag the slider and the render still uses the full
+                tinted composition.
+              */}
+              {compareSliderX > 0 && (
+                <Group
+                  clipX={0}
+                  clipY={0}
+                  clipWidth={compareSliderX * baseImage.naturalWidth}
+                  clipHeight={baseImage.naturalHeight}
+                  listening={false}
+                >
+                  <KonvaImage
+                    image={baseImage}
+                    x={0}
+                    y={0}
+                    width={baseImage.naturalWidth}
+                    height={baseImage.naturalHeight}
+                    listening={false}
+                  />
                 </Group>
               )}
-              {compareSliderX > 0 && compareSliderX < 1 && (
+              {sliderActive && (
                 <Path
                   data={`M ${(compareSliderX * baseImage.naturalWidth).toString()} 0 L ${(compareSliderX * baseImage.naturalWidth).toString()} ${baseImage.naturalHeight.toString()}`}
                   stroke="#ffffff"
@@ -333,14 +383,14 @@ interface BlushSpotsProps {
 }
 
 function BlushSpots({ anchors, tint, radius }: BlushSpotsProps) {
-  const spots = [anchors.left, anchors.right].filter(
-    (anchor): anchor is { x: number; y: number } => anchor !== null,
-  );
+  const spots: { id: 'left' | 'right'; anchor: { x: number; y: number } }[] = [];
+  if (anchors.left !== null) spots.push({ id: 'left', anchor: anchors.left });
+  if (anchors.right !== null) spots.push({ id: 'right', anchor: anchors.right });
   return (
     <>
-      {spots.map((anchor, index) => (
+      {spots.map(({ id, anchor }) => (
         <Path
-          key={index}
+          key={id}
           data={ellipsePathData(anchor.x, anchor.y, radius, radius * 0.7)}
           fill={tint.color}
           opacity={tint.intensity}

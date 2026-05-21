@@ -27,15 +27,48 @@ async function getLandmarker(): Promise<FaceLandmarker> {
   return landmarkerPromise;
 }
 
+// Serializes `detect()` calls against the singleton FaceLandmarker. Tasks
+// Vision in IMAGE running mode isn't reentrant, so two concurrent avatar
+// switches would otherwise race on the same GPU context.
+let detectQueue: Promise<unknown> = Promise.resolve();
+
 /** Runs FaceLandmarker on the supplied image. Returns `null` if no face was detected. */
 export async function runFaceLandmarker(
   image: HTMLImageElement | ImageBitmap | HTMLCanvasElement,
 ): Promise<FaceLandmarksResult | null> {
   const landmarker = await getLandmarker();
-  const result = landmarker.detect(image);
+  const detectCall = detectQueue.then(() => landmarker.detect(image));
+  // Replace the queue tail with a never-rejecting promise so a failure in
+  // one call doesn't poison the next caller.
+  detectQueue = detectCall.then(
+    () => undefined,
+    () => undefined,
+  );
+  const result = await detectCall;
   const face = result.faceLandmarks[0];
   if (face === undefined) return null;
   return {
     points: face.map((p: NormalizedLandmark) => ({ x: p.x, y: p.y, z: p.z })),
   };
+}
+
+/**
+ * Runtime guard for cached landmarks JSON loaded from Convex. Without it, a
+ * silent schema drift on the persisted blob would crash the studio at
+ * landmark lookup time rather than fall back to a clean re-detection.
+ */
+export function isFaceLandmarksResult(value: unknown): value is FaceLandmarksResult {
+  if (typeof value !== 'object' || value === null) return false;
+  if (!('points' in value) || !Array.isArray(value.points)) return false;
+  const points = value.points as unknown[];
+  const first = points[0];
+  if (first === undefined) return points.length === 0;
+  return (
+    typeof first === 'object' &&
+    first !== null &&
+    'x' in first &&
+    typeof first.x === 'number' &&
+    'y' in first &&
+    typeof first.y === 'number'
+  );
 }

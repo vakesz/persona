@@ -7,6 +7,10 @@ import type { ServerErrorPayload } from '@convex/lib/errors';
 
 type AnyMessage = ReturnType<typeof msg>;
 
+function assertNever(value: never): never {
+  throw new Error(`Unhandled discriminant: ${JSON.stringify(value)}`);
+}
+
 /**
  * Translates a `ServerErrorPayload` (or JSON-encoded one stored in a DB field)
  * into a localized string using the active locale.
@@ -101,7 +105,7 @@ function messageFor(payload: ServerErrorPayload): AnyMessage {
         case 'renderPrompt':
           return msg`Stylist returned a recommendation without a render prompt.`;
       }
-      return msg`Stylist returned an incomplete recommendation.`;
+      return assertNever(payload.field);
     case 'stylist_recommendation_unknown_style':
       return msg`Stylist returned a recommendation with an unknown style type.`;
     case 'baseline_source_missing':

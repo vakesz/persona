@@ -1,16 +1,22 @@
 import { Plural, Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { useMutation, useQuery } from 'convex/react';
+import { useQuery } from 'convex/react';
+import type { FunctionReturnType } from 'convex/server';
 import { Loader2, Trash2, User, UserSquare2 } from 'lucide-react';
 import { useMemo } from 'react';
-import { toast } from 'sonner';
 
 import { RequireAuth } from '@/components/require-auth';
+import { useToastMutation } from '@/i18n/use-toast-mutation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
+
+// Derive from the API so adding a return field flows through here. Keeps
+// these in sync with `convex/avatars.ts` and `convex/savedLooks.ts`.
+type AvatarRow = FunctionReturnType<typeof api.avatars.listAvatars>[number];
+type SavedLookRow = FunctionReturnType<typeof api.savedLooks.listSavedLooks>[number];
 
 interface SavedSearch {
   avatarId?: Id<'avatars'>;
@@ -32,20 +38,6 @@ function SavedLooksPage() {
   );
 }
 
-interface SavedLookRow {
-  _id: Id<'savedLooks'>;
-  avatarId: Id<'avatars'>;
-  renderUrl: string | null;
-  metadataJson: string | undefined;
-}
-
-interface AvatarRow {
-  _id: Id<'avatars'>;
-  name: string;
-  type: 'selfie' | 'full_body';
-  thumbnailUrl: string | null;
-}
-
 function SavedLooks() {
   const search = Route.useSearch();
   const focusAvatarId = search.avatarId;
@@ -53,13 +45,10 @@ function SavedLooks() {
 
   const avatars = useQuery(api.avatars.listAvatars);
   const looks = useQuery(api.savedLooks.listSavedLooks, {});
-  const deleteLook = useMutation(api.savedLooks.deleteSavedLook);
+  const deleteLook = useToastMutation(api.savedLooks.deleteSavedLook);
 
   const handleDelete = (id: Id<'savedLooks'>) => {
-    deleteLook({ id }).catch((error: unknown) => {
-      console.error(error);
-      toast.error(t`Could not delete look.`);
-    });
+    void deleteLook.run({ id });
   };
 
   const grouped = useMemo(() => groupByAvatar(avatars, looks), [avatars, looks]);
@@ -120,7 +109,7 @@ function SavedLooks() {
           </p>
           <Button asChild className="mt-5 w-fit self-center">
             <Link to="/avatars">
-              <Trans>Choose</Trans>
+              <Trans>Choose an avatar</Trans>
             </Link>
           </Button>
         </Card>

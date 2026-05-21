@@ -1,5 +1,6 @@
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation } from 'convex/react';
+import type { FunctionArgs } from 'convex/server';
 import { Loader2, Plus, X } from 'lucide-react';
 import {
   type ChangeEvent,
@@ -17,12 +18,15 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { processAvatarImage } from '@/lib/image-compression';
+import { uploadBlobToConvex } from '@/lib/storage/upload';
 import { cn } from '@/lib/utils';
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
 
-type AvatarType = 'selfie' | 'full_body';
-type AvatarGender = 'male' | 'female' | 'unspecified';
+// Derive from the create mutation so schema changes flow through.
+type CreateAvatarArgs = FunctionArgs<typeof api.avatars.createAvatar>;
+type AvatarType = CreateAvatarArgs['type'];
+type AvatarGender = CreateAvatarArgs['gender'];
 type Status = 'idle' | 'compressing' | 'uploading' | 'saving';
 
 const MAX_PHOTOS = 5;
@@ -114,16 +118,7 @@ export function AvatarUploader({ onCreated }: AvatarUploaderProps) {
 
   async function uploadOne(blob: File): Promise<Id<'_storage'>> {
     const url = await generateUploadUrl();
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': blob.type },
-      body: blob,
-    });
-    if (!response.ok) {
-      throw new Error('Upload failed.');
-    }
-    const json = (await response.json()) as { storageId: Id<'_storage'> };
-    return json.storageId;
+    return uploadBlobToConvex(url, blob, t`Upload failed.`);
   }
 
   async function uploadAndCreate() {

@@ -32,11 +32,20 @@ async function getSegmenter(): Promise<ImageSegmenter> {
   return segmenterPromise;
 }
 
+// Serializes `segment()` against the singleton ImageSegmenter — same
+// rationale as the face landmark detect queue.
+let segmentQueue: Promise<unknown> = Promise.resolve();
+
 export async function runImageSegmenter(
   image: HTMLImageElement | ImageBitmap | HTMLCanvasElement,
 ): Promise<SegmentationResult> {
   const segmenter = await getSegmenter();
-  const result = segmenter.segment(image);
+  const segmentCall = segmentQueue.then(() => segmenter.segment(image));
+  segmentQueue = segmentCall.then(
+    () => undefined,
+    () => undefined,
+  );
+  const result = await segmentCall;
   const mask = result.categoryMask;
   if (mask === undefined) {
     result.close();
@@ -49,6 +58,19 @@ export async function runImageSegmenter(
   mask.close();
   result.close();
   return { width, height, rle };
+}
+
+/**
+ * Runtime guard for cached segmentation JSON loaded from Convex. Without it,
+ * a silent schema drift on the persisted blob would crash the studio at
+ * mask-decode time rather than fall back to a clean re-segmentation.
+ */
+export function isSegmentationResult(value: unknown): value is SegmentationResult {
+  if (typeof value !== 'object' || value === null) return false;
+  if (!('width' in value) || typeof value.width !== 'number') return false;
+  if (!('height' in value) || typeof value.height !== 'number') return false;
+  if (!('rle' in value) || !Array.isArray(value.rle)) return false;
+  return value.rle.every((n) => typeof n === 'number');
 }
 
 function encodeRunLength(data: Uint8Array): number[] {

@@ -51,11 +51,7 @@ export const createRenderJob = mutation({
     }
 
     if (referenceUploadedItemId !== undefined) {
-      ensureOwned(
-        await ctx.db.get(referenceUploadedItemId),
-        userId,
-        errors.referenceItemNotFound,
-      );
+      ensureOwned(await ctx.db.get(referenceUploadedItemId), userId, errors.referenceItemNotFound);
     }
 
     // Validate the studio's flattened-canvas blob is one this user actually

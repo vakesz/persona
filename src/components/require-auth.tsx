@@ -27,5 +27,5 @@ export function RequireAuth({ children }: RequireAuthProps) {
     return <Navigate to="/auth" />;
   }
 
-  return children;
+  return <>{children}</>;
 }

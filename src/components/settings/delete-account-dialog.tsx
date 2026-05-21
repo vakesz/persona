@@ -1,12 +1,12 @@
 import { useAuthActions } from '@convex-dev/auth/react';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useNavigate } from '@tanstack/react-router';
-import { useMutation } from 'convex/react';
 import { Loader2 } from 'lucide-react';
 import { type SyntheticEvent, useState } from 'react';
 import { toast } from 'sonner';
 
-import { translateServerError } from '@/i18n/server-errors';
+import { clearStoredLocale } from '@/i18n/detect';
+import { useToastMutation } from '@/i18n/use-toast-mutation';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -28,12 +28,13 @@ export interface DeleteAccountDialogProps {
 }
 
 export function DeleteAccountDialog({ open, onOpenChange }: DeleteAccountDialogProps) {
-  const deleteAccount = useMutation(api.users.deleteAccount);
+  const { t } = useLingui();
+  const deleteAccount = useToastMutation(api.users.deleteAccount, {
+    successMessage: t`Account deleted.`,
+  });
   const { signOut } = useAuthActions();
   const navigate = useNavigate();
   const [confirmation, setConfirmation] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const { t } = useLingui();
 
   const handleSubmit = (event: SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -41,32 +42,25 @@ export function DeleteAccountDialog({ open, onOpenChange }: DeleteAccountDialogP
       toast.error(t`Type "${CONFIRMATION_PHRASE}" to confirm.`);
       return;
     }
-    setSubmitting(true);
-    deleteAccount({})
-      .then(async () => {
-        toast.success(t`Account deleted.`);
-        try {
-          await signOut();
-        } catch (error) {
-          console.warn(
-            'Sign-out after delete-account failed (expected — user row is gone):',
-            error,
-          );
-        }
-        await navigate({ to: '/' });
-      })
-      .catch((error: unknown) => {
-        console.error(error);
-        toast.error(translateServerError(error));
-        setSubmitting(false);
-      });
+    void deleteAccount.run({}).then(async (result) => {
+      if (result === undefined) return;
+      // Wipe the cached locale so the next user on this browser doesn't
+      // inherit ours.
+      clearStoredLocale();
+      try {
+        await signOut();
+      } catch (error) {
+        console.warn('Sign-out after delete-account failed (expected — user row is gone):', error);
+      }
+      await navigate({ to: '/' });
+    });
   };
 
   return (
     <Dialog
       open={open}
       onOpenChange={(next) => {
-        if (!submitting) onOpenChange(next);
+        if (!deleteAccount.pending) onOpenChange(next);
       }}
       ariaLabel={t`Delete account`}
     >
@@ -96,7 +90,7 @@ export function DeleteAccountDialog({ open, onOpenChange }: DeleteAccountDialogP
               setConfirmation(event.currentTarget.value);
             }}
             autoFocus
-            disabled={submitting}
+            disabled={deleteAccount.pending}
             autoComplete="off"
           />
         </DialogBody>
@@ -107,16 +101,18 @@ export function DeleteAccountDialog({ open, onOpenChange }: DeleteAccountDialogP
             onClick={() => {
               onOpenChange(false);
             }}
-            disabled={submitting}
+            disabled={deleteAccount.pending}
           >
             <Trans>Cancel</Trans>
           </Button>
           <Button
             type="submit"
             variant="destructive"
-            disabled={submitting || confirmation.trim().toLowerCase() !== CONFIRMATION_PHRASE}
+            disabled={
+              deleteAccount.pending || confirmation.trim().toLowerCase() !== CONFIRMATION_PHRASE
+            }
           >
-            {submitting ? <Loader2 className="animate-spin" /> : null}
+            {deleteAccount.pending ? <Loader2 className="animate-spin" /> : null}
             <Trans>Delete account</Trans>
           </Button>
         </DialogFooter>

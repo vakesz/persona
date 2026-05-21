@@ -13,11 +13,13 @@ import {
   StudioSidebar,
   type StylistRecommendation,
   type UploadedItemSummary,
-} from '@/components/studio/studio-sidebar';
+} from '@/components/studio/sidebar';
 import { translateServerError } from '@/i18n/server-errors';
+import { useToastMutation } from '@/i18n/use-toast-mutation';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { useAvatarFace } from '@/lib/mediapipe/use-avatar-face';
+import { uploadBlobToConvex } from '@/lib/storage/upload';
 import {
   composeRenderPrompt,
   composeRenderTitle,
@@ -36,9 +38,16 @@ export const Route = createFileRoute('/studio/$avatarId')({
 });
 
 function StudioPage() {
+  const { avatarId } = Route.useParams();
   return (
     <RequireAuth>
-      <Studio />
+      {/*
+        `key={avatarId}` forces Studio to remount when the user navigates
+        between avatars. Without it, `studioState` / `activeRender` would
+        bleed across avatars since TanStack Router reuses the component on
+        same-route param changes.
+      */}
+      <Studio key={avatarId} avatarId={avatarId} />
     </RequireAuth>
   );
 }
@@ -48,16 +57,20 @@ interface ActiveRender {
   title: string;
 }
 
-function Studio() {
-  const { avatarId } = Route.useParams();
+interface StudioProps {
+  avatarId: Id<'avatars'>;
+}
+
+function Studio({ avatarId }: StudioProps) {
   const { t } = useLingui();
   const avatar = useQuery(api.avatars.getAvatar, { id: avatarId });
   const uploads = useQuery(api.uploadedItems.listUploadedItems, {});
   const savedLooks = useQuery(api.savedLooks.listSavedLooks, { avatarId });
   const generateUploadUrl = useMutation(api.storage.generateUploadUrl);
+  const claimRenderInput = useMutation(api.storage.claimRenderInput);
   const discardRenderInput = useMutation(api.storage.discardRenderInput);
   const createRenderJob = useMutation(api.renderJobs.createRenderJob);
-  const deleteUploadedItem = useMutation(api.uploadedItems.deleteUploadedItem);
+  const deleteUpload = useToastMutation(api.uploadedItems.deleteUploadedItem);
   const analyze = useAction(api.ai.analyzeStyleWithGemini);
 
   const baselineImage = useImage(avatar?.baseImageUrl ?? '');
@@ -74,6 +87,10 @@ function Studio() {
 
   const anyTints = hasAnyTint(studioState);
   const savedCount = savedLooks?.length ?? 0;
+  // A render is "occupying the studio" while activeRender is set — we only
+  // free the next-render slot when the user closes the result dialog, so a
+  // fast double-click can't queue two Gemini calls.
+  const renderSlotBusy = renderBusy || activeRender !== null;
 
   const uploadSummaries = useMemo<UploadedItemSummary[]>(() => {
     if (uploads === undefined) return [];
@@ -90,13 +107,12 @@ function Studio() {
   }, [uploads]);
 
   const handleDeleteUpload = (id: Id<'uploadedItems'>) => {
-    void deleteUploadedItem({ id }).catch((error: unknown) => {
-      console.error(error);
-      toast.error(t`Could not delete upload.`);
-    });
-    if (studioState.selectedUploadId === id) {
-      setStudioState({ ...studioState, selectedUploadId: null });
-    }
+    void deleteUpload.run({ id });
+    // Functional updater so concurrent state changes (e.g. user mid-edit on
+    // a different control) don't get clobbered by a stale snapshot.
+    setStudioState((prev) =>
+      prev.selectedUploadId === id ? { ...prev, selectedUploadId: null } : prev,
+    );
   };
 
   const handleAsk = (question: string) => {
@@ -118,6 +134,7 @@ function Studio() {
   };
 
   const handleRenderRecommendation = (recommendation: StylistRecommendation) => {
+    if (renderSlotBusy) return;
     setRenderBusy(true);
     createRenderJob({
       avatarId,
@@ -137,6 +154,7 @@ function Studio() {
   };
 
   const handleRender = async () => {
+    if (renderSlotBusy) return;
     if (!hasAnyChange(studioState)) {
       toast.error(t`Apply at least one style change first.`);
       return;
@@ -156,16 +174,16 @@ function Studio() {
         const blob = await canvasRef.current?.exportPng();
         if (blob !== undefined && blob !== null) {
           const url = await generateUploadUrl();
-          const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': blob.type },
-            body: blob,
-          });
-          if (!response.ok) {
-            throw new Error(t`Could not upload the canvas snapshot.`);
-          }
-          const json = (await response.json()) as { storageId: Id<'_storage'> };
-          pendingInputStorageId = json.storageId;
+          const storageId = await uploadBlobToConvex(
+            url,
+            blob,
+            t`Could not upload the canvas snapshot.`,
+          );
+          // Claim ownership of the blob before referencing it from a render
+          // job; `createRenderJob` consumes the claim and `discardRenderInput`
+          // verifies it on cleanup.
+          await claimRenderInput({ storageId });
+          pendingInputStorageId = storageId;
         }
       }
 
@@ -287,7 +305,7 @@ function Studio() {
                 recommendations={recommendations}
                 onAsk={handleAsk}
                 onRenderRecommendation={handleRenderRecommendation}
-                renderBusy={renderBusy}
+                renderBusy={renderSlotBusy}
               />
               <Button
                 type="button"
@@ -295,10 +313,10 @@ function Studio() {
                 onClick={() => {
                   void handleRender();
                 }}
-                disabled={renderBusy || !hasAnyChange(studioState)}
+                disabled={renderSlotBusy || !hasAnyChange(studioState)}
               >
                 {renderBusy ? <Loader2 className="animate-spin" /> : <Sparkles />}
-                <Trans>Render</Trans>
+                <Trans>Render look</Trans>
               </Button>
               <Button
                 type="button"
