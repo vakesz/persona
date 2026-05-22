@@ -1,5 +1,7 @@
 import type { Id } from '@convex/_generated/dataModel';
 
+export type AvatarGender = 'male' | 'female' | 'unspecified';
+
 /**
  * Single source of truth for everything the studio knows about the in-progress
  * look. Color tints render live in the Konva canvas; geometry plans get baked
@@ -104,16 +106,21 @@ export function hasAnyChange(state: StudioState): boolean {
  *  - describe the geometry-changing additions (shape, beard, hair, accessories);
  *  - mention the try-on item if one is queued.
  *
- * The flattening guarantee is enforced by `composeRenderInputs` in the studio
- * route — if any tint is enabled, the canvas is exported to PNG and uploaded
- * as the render input; otherwise we pass through the canonical baseline.
+ * The flattening guarantee is enforced by `handleRender` in the studio route
+ * — if any tint is enabled, the canvas is exported to PNG and uploaded as
+ * the render input; otherwise we pass through the canonical baseline.
+ *
+ * `gender` filters geometry plans to the visible tab set for the avatar's
+ * persona. Without it, e.g. a beard preset set while the avatar was
+ * `unspecified` could leak into the prompt after the persona is narrowed.
  *
  * Wording note: Gemini image-edit models work best when an edit is described
  * as a specific local change with the untouched areas named explicitly. Custom
  * user-supplied descriptions may be in any language — that hint is set
  * server-side via IMAGE_SYSTEM_INSTRUCTION.
  */
-export function composeRenderPrompt(state: StudioState): string {
+export function composeRenderPrompt(state: StudioState, gender: AvatarGender): string {
+  const allowed = ALLOWED_PLANS_BY_GENDER[gender];
   const parts: string[] = [
     'Keep the original crop, aspect ratio, background, lighting, pose, expression, face shape, eyes, nose, mouth, skin texture, moles, neck, shoulders, clothing, and accessories unchanged unless a later sentence explicitly changes that area.',
   ];
@@ -139,47 +146,47 @@ export function composeRenderPrompt(state: StudioState): string {
     parts.push('Preserve the existing makeup and skin finish exactly.');
   }
 
-  if (planActive(state.lipShape)) {
+  if (allowed.has('lipShape') && planActive(state.lipShape)) {
     parts.push(
       `Edit only my lips: reshape the lip contour to ${describePlan(state.lipShape)}. Keep my mouth position, expression, teeth if visible, surrounding skin, nose, chin, and the rest of the face unchanged.`,
     );
   }
-  if (planActive(state.browShape)) {
+  if (allowed.has('browShape') && planActive(state.browShape)) {
     parts.push(
       `Edit only my eyebrows: reshape them to ${describePlan(state.browShape)}. Keep brow placement natural on my brow bone and preserve my eyes, eyelids, forehead, glasses if present, and facial expression unchanged.`,
     );
   }
-  if (planActive(state.beard)) {
+  if (allowed.has('beard') && planActive(state.beard)) {
     parts.push(
       `Edit only the beard area: render this beard, ${describePlan(state.beard)}. If facial hair is already present, replace it cleanly with the described beard; otherwise add it naturally. Preserve my jaw shape, lips, skin marks, expression, hair, clothing, and background.`,
     );
   }
-  if (planActive(state.mustache)) {
+  if (allowed.has('mustache') && planActive(state.mustache)) {
     parts.push(
       `Edit only the upper-lip facial-hair area: render this mustache, ${describePlan(state.mustache)}. If a mustache is already present, replace it cleanly; otherwise add it naturally. Preserve my lips, nose, skin marks, expression, beard if not requested, hair, clothing, and background.`,
     );
   }
-  if (planActive(state.hairstyle)) {
+  if (allowed.has('hairstyle') && planActive(state.hairstyle)) {
     parts.push(
       `Edit only the hair on my head: restyle it into ${describePlan(state.hairstyle)}. Replace the visible hairstyle with a coherent, realistic version of that exact cut, length, silhouette, texture, and fringe/bangs if specified. Preserve my natural hair color unless the hairstyle description explicitly asks for another color. Keep my real face, forehead size, ears, jaw, neck, shoulders, glasses, makeup, clothing, background, lighting, crop, head size, and image aspect ratio unchanged. Do not alter facial features, expression, skin texture, apparent age, or body shape. Keep the hairline natural and attached to my head; only cover or reveal the forehead where the requested hairstyle naturally does so.`,
     );
   }
-  if (planActive(state.eyewear)) {
+  if (allowed.has('eyewear') && planActive(state.eyewear)) {
     parts.push(
       `Edit only the eyewear: render me wearing ${describePlan(state.eyewear)}. If I am already wearing glasses or similar, replace them with the described item rather than layering. Preserve my eyes, brows, face, hair, lighting, and background.`,
     );
   }
-  if (planActive(state.headwear)) {
+  if (allowed.has('headwear') && planActive(state.headwear)) {
     parts.push(
       `Edit only the headwear area: render me wearing ${describePlan(state.headwear)}. If I am already wearing a hat or similar, replace it with the described item. Preserve my face, hair that remains visible, clothing, lighting, crop, and background.`,
     );
   }
-  if (planActive(state.jewelry)) {
+  if (allowed.has('jewelry') && planActive(state.jewelry)) {
     parts.push(
       `Edit only the jewelry area: render me wearing ${describePlan(state.jewelry)}. If similar jewelry is already visible in the same position, replace it with the described item. Preserve my face, hair, clothing, pose, lighting, and background.`,
     );
   }
-  if (planActive(state.vibe)) {
+  if (allowed.has('vibe') && planActive(state.vibe)) {
     parts.push(
       `Apply this styling finish subtly and photorealistically: ${describePlan(state.vibe)}. Do not retouch away skin texture, moles, freckles, scars, or identity details.`,
     );
@@ -198,6 +205,48 @@ export function composeRenderPrompt(state: StudioState): string {
   return parts.join(' ');
 }
 
+type GeometryPlanKey =
+  | 'lipShape'
+  | 'browShape'
+  | 'beard'
+  | 'mustache'
+  | 'hairstyle'
+  | 'eyewear'
+  | 'headwear'
+  | 'jewelry'
+  | 'vibe';
+
+/**
+ * Mirrors `TABS_BY_GENDER` in the sidebar presets — kept here so the prompt
+ * builder doesn't depend on the UI module. A masculine persona omits
+ * `lipShape`; a feminine persona omits beard/mustache. `unspecified` allows
+ * every tool. Keep in sync with `src/components/studio/sidebar/presets.ts`.
+ */
+const ALLOWED_PLANS_BY_GENDER: Record<AvatarGender, ReadonlySet<GeometryPlanKey>> = {
+  male: new Set([
+    'browShape',
+    'beard',
+    'mustache',
+    'hairstyle',
+    'eyewear',
+    'headwear',
+    'jewelry',
+    'vibe',
+  ]),
+  female: new Set(['lipShape', 'browShape', 'hairstyle', 'eyewear', 'headwear', 'jewelry', 'vibe']),
+  unspecified: new Set([
+    'lipShape',
+    'browShape',
+    'beard',
+    'mustache',
+    'hairstyle',
+    'eyewear',
+    'headwear',
+    'jewelry',
+    'vibe',
+  ]),
+};
+
 function describePlan(plan: GeometryPlan): string {
   if (plan.preset === null) return plan.custom.trim();
   const custom = plan.custom.trim();
@@ -210,18 +259,26 @@ function describePlan(plan: GeometryPlan): string {
 // re-translate previously-saved titles. Translating would require a
 // structured tag list and a preset-value → MessageDescriptor lookup; a
 // follow-up if/when product surfaces non-English saved-look titles.
-export function composeRenderTitle(state: StudioState): string {
+export function composeRenderTitle(state: StudioState, gender: AvatarGender): string {
+  const allowed = ALLOWED_PLANS_BY_GENDER[gender];
   const bits: string[] = [];
-  if (state.hairstyle.preset !== null) bits.push(state.hairstyle.preset);
-  if (state.beard.preset !== null) bits.push(`${state.beard.preset} beard`);
-  if (state.mustache.preset !== null) bits.push(`${state.mustache.preset} mustache`);
+  if (allowed.has('hairstyle') && state.hairstyle.preset !== null)
+    bits.push(state.hairstyle.preset);
+  if (allowed.has('beard') && state.beard.preset !== null) bits.push(`${state.beard.preset} beard`);
+  if (allowed.has('mustache') && state.mustache.preset !== null) {
+    bits.push(`${state.mustache.preset} mustache`);
+  }
   if (tintApplied(state.lip)) bits.push('lipstick');
-  if (state.lipShape.preset !== null) bits.push(`${state.lipShape.preset} lips`);
-  if (state.browShape.preset !== null) bits.push(`${state.browShape.preset} brows`);
-  if (state.eyewear.preset !== null) bits.push(state.eyewear.preset);
-  if (state.headwear.preset !== null) bits.push(state.headwear.preset);
-  if (state.jewelry.preset !== null) bits.push(state.jewelry.preset);
-  if (state.vibe.preset !== null) bits.push(state.vibe.preset);
+  if (allowed.has('lipShape') && state.lipShape.preset !== null) {
+    bits.push(`${state.lipShape.preset} lips`);
+  }
+  if (allowed.has('browShape') && state.browShape.preset !== null) {
+    bits.push(`${state.browShape.preset} brows`);
+  }
+  if (allowed.has('eyewear') && state.eyewear.preset !== null) bits.push(state.eyewear.preset);
+  if (allowed.has('headwear') && state.headwear.preset !== null) bits.push(state.headwear.preset);
+  if (allowed.has('jewelry') && state.jewelry.preset !== null) bits.push(state.jewelry.preset);
+  if (allowed.has('vibe') && state.vibe.preset !== null) bits.push(state.vibe.preset);
   if (state.selectedUploadId !== null) bits.push('try-on');
   if (bits.length === 0) return 'Studio render';
   return bits.join(' • ');

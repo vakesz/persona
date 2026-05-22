@@ -40,6 +40,12 @@ export type ServerErrorPayload =
   | { code: 'gemini_quota'; operation: string }
   | { code: 'gemini_auth'; operation: string; status: number }
   | { code: 'gemini_failed'; operation: string; status: number; detail: string }
+  | { code: 'render_concurrency_exceeded'; max: number }
+  | { code: 'baseline_not_ready' }
+  | { code: 'prompt_too_long'; max: number }
+  | { code: 'render_input_already_claimed' }
+  | { code: 'render_input_limit_exceeded'; max: number }
+  | { code: 'render_stuck' }
   | { code: 'unknown_error'; detail: string };
 
 export const errors = {
@@ -89,16 +95,36 @@ export const errors = {
     new ConvexError<ServerErrorPayload>({ code: 'gemini_auth', operation, status }),
   geminiFailed: (operation: string, status: number, detail: string) =>
     new ConvexError<ServerErrorPayload>({ code: 'gemini_failed', operation, status, detail }),
+  renderConcurrencyExceeded: (max: number) =>
+    new ConvexError<ServerErrorPayload>({ code: 'render_concurrency_exceeded', max }),
+  baselineNotReady: () => new ConvexError<ServerErrorPayload>({ code: 'baseline_not_ready' }),
+  promptTooLong: (max: number) =>
+    new ConvexError<ServerErrorPayload>({ code: 'prompt_too_long', max }),
+  renderInputAlreadyClaimed: () =>
+    new ConvexError<ServerErrorPayload>({ code: 'render_input_already_claimed' }),
+  renderInputLimitExceeded: (max: number) =>
+    new ConvexError<ServerErrorPayload>({ code: 'render_input_limit_exceeded', max }),
+  renderStuck: () => new ConvexError<ServerErrorPayload>({ code: 'render_stuck' }),
 };
 
 /**
- * Extracts a `ServerErrorPayload` from any thrown value. ConvexError data is
- * preserved verbatim; other errors collapse to `unknown_error` with the
- * `Error.message` (or `String(value)`) as detail.
+ * Extracts a `ServerErrorPayload` from any thrown value.
+ *
+ * Prefers the `instanceof ConvexError` check, but also accepts any value that
+ * structurally exposes a `data` field with a `code`. That covers errors that
+ * cross an action → mutation boundary, where the prototype chain isn't always
+ * preserved by the Convex runtime — without this fallback, those would
+ * collapse to `unknown_error` and lose the structured payload.
  */
 function extractPayload(error: unknown): ServerErrorPayload {
   if (error instanceof ConvexError) {
     const data: unknown = error.data;
+    if (typeof data === 'object' && data !== null && 'code' in data) {
+      return data as ServerErrorPayload;
+    }
+  }
+  if (typeof error === 'object' && error !== null && 'data' in error) {
+    const { data } = error;
     if (typeof data === 'object' && data !== null && 'code' in data) {
       return data as ServerErrorPayload;
     }

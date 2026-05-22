@@ -3,9 +3,9 @@ import { useEffect, useState } from 'react';
 /**
  * Loads an `HTMLImageElement` from a URL for use with React-Konva.
  *
- * Returns `null` while loading or if the load fails — callers should bail out
- * of rendering until it resolves, since Konva's `Image` shape needs a real
- * `HTMLImageElement` (or canvas) instance.
+ * Returns `null` while loading or if the load fails. Awaits `img.decode()`
+ * before exposing the element so Konva never paints a half-decoded texture
+ * (sporadically appears as width-0 / blank in offscreen exports).
  */
 export function useImage(url: string): HTMLImageElement | null {
   const [image, setImage] = useState<HTMLImageElement | null>(null);
@@ -17,20 +17,18 @@ export function useImage(url: string): HTMLImageElement | null {
     }
     const img = new Image();
     img.crossOrigin = 'anonymous';
-    let cancelled = false;
-    const onLoad = () => {
-      if (!cancelled) setImage(img);
-    };
-    const onError = () => {
-      if (!cancelled) setImage(null);
-    };
-    img.addEventListener('load', onLoad);
-    img.addEventListener('error', onError);
     img.src = url;
+    let cancelled = false;
+    img
+      .decode()
+      .then(() => {
+        if (!cancelled) setImage(img);
+      })
+      .catch(() => {
+        if (!cancelled) setImage(null);
+      });
     return () => {
       cancelled = true;
-      img.removeEventListener('load', onLoad);
-      img.removeEventListener('error', onError);
     };
   }, [url]);
 

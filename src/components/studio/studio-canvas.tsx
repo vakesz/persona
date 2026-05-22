@@ -95,6 +95,10 @@ export function StudioCanvas({
   // group into an offscreen Konva stage of the baseline's native resolution
   // — that way the snapshot is independent of (a) the user's pan/zoom on
   // the visible stage and (b) the display scale-to-fit transform.
+  //
+  // Uses `toCanvas` + `canvas.toBlob` rather than the older `toDataURL` +
+  // `fetch(dataUrl)` round-trip: the dataURL path doubles peak memory
+  // (base64 string + decoded blob) and `toBlob` is the native browser path.
   useEffect(() => {
     if (ref === undefined || ref === null) return undefined;
     const handle: StudioCanvasHandle = {
@@ -118,10 +122,16 @@ export function StudioCanvas({
           layer.add(cloned);
           offscreen.add(layer);
           offscreen.draw();
-          const dataUrl = offscreen.toDataURL({ pixelRatio: 1, mimeType: 'image/png' });
-          offscreen.destroy();
-          const response = await fetch(dataUrl);
-          return await response.blob();
+          try {
+            const canvas = offscreen.toCanvas({ pixelRatio: 1 });
+            return await new Promise<Blob | null>((resolve) => {
+              canvas.toBlob((blob) => {
+                resolve(blob);
+              }, 'image/png');
+            });
+          } finally {
+            offscreen.destroy();
+          }
         } finally {
           container.remove();
         }

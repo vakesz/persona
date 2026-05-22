@@ -75,25 +75,29 @@ msgstr "Already have an account? "
 msgid "Apply at least one style change first."
 msgstr "Apply at least one style change first."
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "arched brows"
 msgstr "arched brows"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/specialty-panels.tsx
 msgid "Ask"
 msgstr "Ask"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "Ask AI"
 msgstr "Ask AI"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/specialty-panels.tsx
 msgid "Ask the stylist"
 msgstr "Ask the stylist"
 
 #: src/components/avatars/avatar-uploader.tsx
-msgid "At most {MAX_PHOTOS} photos."
-msgstr "At most {MAX_PHOTOS} photos."
+#~ msgid "At most {MAX_PHOTOS} photos."
+#~ msgstr "At most {MAX_PHOTOS} photos."
+
+#: src/components/avatars/avatar-uploader.tsx
+msgid "At most {MAX_SOURCE_PHOTOS} photos."
+msgstr "At most {MAX_SOURCE_PHOTOS} photos."
 
 #: src/components/avatars/avatar-uploader.tsx
 msgid "Avatar created. Generating your studio portrait…"
@@ -129,7 +133,7 @@ msgstr "Avatar not found."
 msgid "Avatars"
 msgstr "Avatars"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "aviator sunglasses"
 msgstr "aviator sunglasses"
 
@@ -143,7 +147,7 @@ msgstr "Back"
 #~ msgid "Back to avatars"
 #~ msgstr "Back to avatars"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "baseball cap"
 msgstr "baseball cap"
 
@@ -160,7 +164,8 @@ msgstr "Baseline generation was blocked: {0}"
 msgid "Baseline is not in a failed state."
 msgstr "Baseline is not in a failed state."
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/index.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "Beard"
 msgstr "Beard"
 
@@ -172,43 +177,43 @@ msgstr "Before · After"
 msgid "Before / after slider"
 msgstr "Before / after slider"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "beret"
 msgstr "beret"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/index.tsx
 msgid "Blush"
 msgstr "Blush"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "bold thick brows"
 msgstr "bold thick brows"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "box braids"
 msgstr "box braids"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "braided crown"
 msgstr "braided crown"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/index.tsx
 msgid "Brow shape"
 msgstr "Brow shape"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/index.tsx
 msgid "Brow tint"
 msgstr "Brow tint"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "Brows"
 msgstr "Brows"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "buzz cut"
 msgstr "buzz cut"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "caesar cut"
 msgstr "caesar cut"
 
@@ -218,39 +223,39 @@ msgstr "caesar cut"
 msgid "Cancel"
 msgstr "Cancel"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "cat-eye glasses"
 msgstr "cat-eye glasses"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "Cheeks"
 msgstr "Cheeks"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "chevron"
 msgstr "chevron"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "chin-length bob"
 msgstr "chin-length bob"
 
 #: src/routes/saved.tsx
-msgid "Choose"
-msgstr "Choose"
+#~ msgid "Choose"
+#~ msgstr "Choose"
 
 #: src/routes/saved.tsx
-#~ msgid "Choose an avatar"
-#~ msgstr "Choose an avatar"
+msgid "Choose an avatar"
+msgstr "Choose an avatar"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "classic chignon"
 msgstr "classic chignon"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/controls.tsx
 msgid "Clear"
 msgstr "Clear"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/specialty-panels.tsx
 msgid "Clear selection"
 msgstr "Clear selection"
 
@@ -258,15 +263,15 @@ msgstr "Clear selection"
 msgid "Close"
 msgstr "Close"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "Clothes"
 msgstr "Clothes"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/controls.tsx
 msgid "Color"
 msgstr "Color"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/index.tsx
 msgid "Color tools become available once face landmarks finish computing."
 msgstr "Color tools become available once face landmarks finish computing."
 
@@ -279,12 +284,12 @@ msgid "Could not create that account. Try a different email."
 msgstr "Could not create that account. Try a different email."
 
 #: src/routes/saved.tsx
-msgid "Could not delete look."
-msgstr "Could not delete look."
+#~ msgid "Could not delete look."
+#~ msgstr "Could not delete look."
 
 #: src/routes/studio.$avatarId.tsx
-msgid "Could not delete upload."
-msgstr "Could not delete upload."
+#~ msgid "Could not delete upload."
+#~ msgstr "Could not delete upload."
 
 #: src/routes/studio.$avatarId.tsx
 msgid "Could not prepare studio tools."
@@ -297,6 +302,10 @@ msgstr "Could not sign in. Check your email and password."
 #: src/routes/studio.$avatarId.tsx
 msgid "Could not upload the canvas snapshot."
 msgstr "Could not upload the canvas snapshot."
+
+#: src/routes/studio.$avatarId.tsx
+msgid "Couldn't segment the portrait. Try a clearer photo."
+msgstr "Couldn't segment the portrait. Try a clearer photo."
 
 #: src/components/avatars/avatar-uploader.tsx
 msgid "Create"
@@ -316,26 +325,30 @@ msgstr "Create an avatar"
 
 #. placeholder {0}: avatars.length
 #: src/routes/avatars.index.tsx
-msgid "Create up to {MAX_AVATARS} private avatars ({0} so far)."
-msgstr "Create up to {MAX_AVATARS} private avatars ({0} so far)."
+msgid "Create up to {MAX_AVATARS_PER_USER} private avatars ({0} so far)."
+msgstr "Create up to {MAX_AVATARS_PER_USER} private avatars ({0} so far)."
+
+#: src/routes/avatars.index.tsx
+#~ msgid "Create up to {MAX_AVATARS} private avatars ({0} so far)."
+#~ msgstr "Create up to {MAX_AVATARS} private avatars ({0} so far)."
 
 #: src/routes/auth.tsx
 msgid "Create your account"
 msgstr "Create your account"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "crew cut"
 msgstr "crew cut"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "cupid-bow accent"
 msgstr "cupid-bow accent"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "curtain bangs"
 msgstr "curtain bangs"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/controls.tsx
 msgid "Custom color"
 msgstr "Custom color"
 
@@ -348,7 +361,7 @@ msgid "Delete"
 msgstr "Delete"
 
 #. placeholder {0}: item.label
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/specialty-panels.tsx
 msgid "Delete {0}"
 msgstr "Delete {0}"
 
@@ -377,15 +390,15 @@ msgstr "Delete your account?"
 msgid "Deleting your account removes every avatar, saved look, render, and uploaded item."
 msgstr "Deleting your account removes every avatar, saved look, render, and uploaded item."
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "delicate pendant necklace"
 msgstr "delicate pendant necklace"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/controls.tsx
 msgid "Detail (optional)"
 msgstr "Detail (optional)"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "dewy skin"
 msgstr "dewy skin"
 
@@ -397,15 +410,19 @@ msgstr "Discard"
 msgid "Don't have an account? "
 msgstr "Don't have an account? "
 
+#: src/routes/studio.$avatarId.tsx
+msgid "Dress"
+msgstr "Dress"
+
 #: src/components/avatars/avatar-uploader.tsx
 msgid "e.g. Weekend me"
 msgstr "e.g. Weekend me"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/specialty-panels.tsx
 msgid "e.g. What hairstyle would suit me?"
 msgstr "e.g. What hairstyle would suit me?"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/index.tsx
 msgid "Earrings, necklaces, layered chains."
 msgstr "Earrings, necklaces, layered chains."
 
@@ -418,31 +435,35 @@ msgstr "Email"
 #~ msgid "Enabled"
 #~ msgstr "Enabled"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "Extras"
 msgstr "Extras"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "Eyes"
 msgstr "Eyes"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/index.tsx
 msgid "Eyeshadow"
 msgstr "Eyeshadow"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/index.tsx
 msgid "Eyewear"
 msgstr "Eyewear"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/routes/studio.$avatarId.tsx
+msgid "Face landmarks are still loading — tinted renders unlock once ready."
+msgstr "Face landmarks are still loading — tinted renders unlock once ready."
+
+#: src/components/studio/sidebar/presets.ts
 msgid "feathered brows"
 msgstr "feathered brows"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/index.tsx
 msgid "Feathered ellipse on each cheekbone."
 msgstr "Feathered ellipse on each cheekbone."
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "fedora"
 msgstr "fedora"
 
@@ -455,7 +476,7 @@ msgstr "Feminine"
 msgid "Filter by avatar"
 msgstr "Filter by avatar"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/controls.tsx
 msgid "Finish"
 msgstr "Finish"
 
@@ -463,11 +484,11 @@ msgstr "Finish"
 msgid "First photo becomes the front reference. Extra angles (¾ left / right, full body) help the AI preserve your identity. Each photo is compressed and EXIF-stripped in your browser before upload."
 msgstr "First photo becomes the front reference. Extra angles (¾ left / right, full body) help the AI preserve your identity. Each photo is compressed and EXIF-stripped in your browser before upload."
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "french crop"
 msgstr "french crop"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "french twist updo"
 msgstr "french twist updo"
 
@@ -475,7 +496,7 @@ msgstr "french twist updo"
 msgid "Front"
 msgstr "Front"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "full beard"
 msgstr "full beard"
 
@@ -484,11 +505,11 @@ msgstr "full beard"
 msgid "Full body"
 msgstr "Full body"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "fuller, plumper lips"
 msgstr "fuller, plumper lips"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "fully shaved"
 msgstr "fully shaved"
 
@@ -508,7 +529,7 @@ msgstr "Gemini is composing your canonical studio portrait from the photos you u
 msgid "Gemini quota reached for {0}. Try again later, or upgrade billing."
 msgstr "Gemini quota reached for {0}. Try again later, or upgrade billing."
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/specialty-panels.tsx
 msgid "Gemini reads your portrait and suggests looks."
 msgstr "Gemini reads your portrait and suggests looks."
 
@@ -522,7 +543,7 @@ msgstr "Gemini rejected the request for {0} (HTTP {1}). Check your API key."
 msgid "GEMINI_API_KEY is not configured."
 msgstr "GEMINI_API_KEY is not configured."
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/index.tsx
 msgid "Geometry change — runs the AI render."
 msgstr "Geometry change — runs the AI render."
 
@@ -535,11 +556,11 @@ msgstr "Get started"
 msgid "Give this avatar a name you'll recognize."
 msgstr "Give this avatar a name you'll recognize."
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/index.tsx
 msgid "Glasses or sunglasses."
 msgstr "Glasses or sunglasses."
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "Gloss"
 msgstr "Gloss"
 
@@ -547,47 +568,51 @@ msgstr "Gloss"
 #~ msgid "Go to your avatars"
 #~ msgstr "Go to your avatars"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "goatee"
 msgstr "goatee"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "gold choker"
 msgstr "gold choker"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "gold hoop earrings"
 msgstr "gold hoop earrings"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "Hair"
 msgstr "Hair"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/routes/studio.$avatarId.tsx
+msgid "Hair reference"
+msgstr "Hair reference"
+
+#: src/components/studio/sidebar/index.tsx
 msgid "Hairstyle"
 msgstr "Hairstyle"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "half-up half-down"
 msgstr "half-up half-down"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "handlebar mustache"
 msgstr "handlebar mustache"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/index.tsx
 msgid "Hats and head coverings."
 msgstr "Hats and head coverings."
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "headband"
 msgstr "headband"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/index.tsx
 msgid "Headwear"
 msgstr "Headwear"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "heavy freckles"
 msgstr "heavy freckles"
 
@@ -595,67 +620,69 @@ msgstr "heavy freckles"
 msgid "Image missing"
 msgstr "Image missing"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/controls.tsx
 msgid "Intensity"
 msgstr "Intensity"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/index.tsx
 msgid "Jewelry"
 msgstr "Jewelry"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "knit beanie"
 msgstr "knit beanie"
 
+#: src/components/i18n/locale-switcher.tsx
 #: src/routes/settings.tsx
 msgid "Language"
 msgstr "Language"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "layered chains"
 msgstr "layered chains"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "light freckles"
 msgstr "light freckles"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/index.tsx
 msgid "Lip shape"
 msgstr "Lip shape"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "Lips"
 msgstr "Lips"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/index.tsx
 msgid "Lipstick"
 msgstr "Lipstick"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/index.tsx
 msgid "Live preview — clips to your lip polygons."
 msgstr "Live preview — clips to your lip polygons."
 
+#: src/components/page-spinner.tsx
 #: src/routes/settings.tsx
 msgid "Loading…"
 msgstr "Loading…"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "lob"
 msgstr "lob"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "Long"
 msgstr "Long"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "long flow"
 msgstr "long flow"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "long loose waves"
 msgstr "long loose waves"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "long straight"
 msgstr "long straight"
 
@@ -663,19 +690,19 @@ msgstr "long straight"
 msgid "Look"
 msgstr "Look"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "low pony"
 msgstr "low pony"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "low ponytail"
 msgstr "low ponytail"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "Makeup"
 msgstr "Makeup"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "man bun"
 msgstr "man bun"
 
@@ -696,33 +723,38 @@ msgstr "Manage your account, language, and avatars."
 msgid "Masculine"
 msgstr "Masculine"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "Matte"
 msgstr "Matte"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "matte skin finish"
 msgstr "matte skin finish"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "Medium"
 msgstr "Medium"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "messy bun"
 msgstr "messy bun"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "messy textured"
 msgstr "messy textured"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/index.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "Mustache"
 msgstr "Mustache"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "Nails"
 msgstr "Nails"
+
+#: src/routes/studio.$avatarId.tsx
+msgid "Nails reference"
+msgstr "Nails reference"
 
 #: src/components/avatars/avatar-uploader.tsx
 #: src/components/avatars/rename-avatar-dialog.tsx
@@ -730,7 +762,6 @@ msgstr "Nails"
 msgid "Name"
 msgstr "Name"
 
-#: src/components/avatars/rename-avatar-dialog.tsx
 #: src/i18n/server-errors.ts
 msgid "Name is required."
 msgstr "Name is required."
@@ -747,6 +778,10 @@ msgstr "New"
 msgid "No avatars yet"
 msgstr "No avatars yet"
 
+#: src/routes/studio.$avatarId.tsx
+msgid "No face detected in the baseline portrait."
+msgstr "No face detected in the baseline portrait."
+
 #: src/routes/saved.tsx
 msgid "No looks for this avatar yet"
 msgstr "No looks for this avatar yet"
@@ -755,17 +790,21 @@ msgstr "No looks for this avatar yet"
 msgid "No saved looks yet"
 msgstr "No saved looks yet"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/controls.tsx
 msgid "Off"
 msgstr "Off"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/controls.tsx
 msgid "On"
 msgstr "On"
 
 #: src/components/avatars/avatar-uploader.tsx
-msgid "Only the first {MAX_PHOTOS} photos are used."
-msgstr "Only the first {MAX_PHOTOS} photos are used."
+#~ msgid "Only the first {MAX_PHOTOS} photos are used."
+#~ msgstr "Only the first {MAX_PHOTOS} photos are used."
+
+#: src/components/avatars/avatar-uploader.tsx
+msgid "Only the first {MAX_SOURCE_PHOTOS} photos are used."
+msgstr "Only the first {MAX_SOURCE_PHOTOS} photos are used."
 
 #: src/routes/index.tsx
 msgid "Open"
@@ -779,11 +818,11 @@ msgstr "Open an avatar, render a look, then click Save."
 msgid "Open studio"
 msgstr "Open studio"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/controls.tsx
 msgid "Optional detail — e.g. honey balayage, side parted"
 msgstr "Optional detail — e.g. honey balayage, side parted"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/controls.tsx
 msgid "Optional detail — e.g. salt-and-pepper, side parted"
 msgstr "Optional detail — e.g. salt-and-pepper, side parted"
 
@@ -795,7 +834,7 @@ msgstr "Organized per avatar. You can save as many looks as you like for each pe
 msgid "Original"
 msgstr "Original"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "oversized sunglasses"
 msgstr "oversized sunglasses"
 
@@ -807,7 +846,7 @@ msgstr "Painting your look (15–30 s)…"
 msgid "Password"
 msgstr "Password"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "pencil mustache"
 msgstr "pencil mustache"
 
@@ -819,12 +858,16 @@ msgstr "Persona"
 msgid "Photo type"
 msgstr "Photo type"
 
+#: src/components/avatars/avatar-uploader.tsx
+#~ msgid "Photos ({0} of {MAX_PHOTOS})"
+#~ msgstr "Photos ({0} of {MAX_PHOTOS})"
+
 #. placeholder {0}: photos.length
 #: src/components/avatars/avatar-uploader.tsx
-msgid "Photos ({0} of {MAX_PHOTOS})"
-msgstr "Photos ({0} of {MAX_PHOTOS})"
+msgid "Photos ({0} of {MAX_SOURCE_PHOTOS})"
+msgstr "Photos ({0} of {MAX_SOURCE_PHOTOS})"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/index.tsx
 msgid "Pick a length, then refine with detail text."
 msgstr "Pick a length, then refine with detail text."
 
@@ -842,15 +885,15 @@ msgstr "Pick at most {0} photos."
 msgid "Pick the language used across the app."
 msgstr "Pick the language used across the app."
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "pixie cut"
 msgstr "pixie cut"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "pixie with bangs"
 msgstr "pixie with bangs"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "pompadour"
 msgstr "pompadour"
 
@@ -880,19 +923,19 @@ msgstr "Prompt is required."
 msgid "Queued — waiting for the image model…"
 msgstr "Queued — waiting for the image model…"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "quiff"
 msgstr "quiff"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "reading glasses"
 msgstr "reading glasses"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/specialty-panels.tsx
 msgid "Recommendations"
 msgstr "Recommendations"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "rectangle sunglasses"
 msgstr "rectangle sunglasses"
 
@@ -929,8 +972,6 @@ msgid "Renamed."
 msgstr "Renamed."
 
 #: src/components/render/render-result.tsx
-#: src/components/studio/studio-sidebar.tsx
-#: src/routes/studio.$avatarId.tsx
 msgid "Render"
 msgstr "Render"
 
@@ -951,8 +992,8 @@ msgid "Render is not finished."
 msgstr "Render is not finished."
 
 #: src/routes/studio.$avatarId.tsx
-#~ msgid "Render look"
-#~ msgstr "Render look"
+msgid "Render look"
+msgstr "Render look"
 
 #: src/i18n/server-errors.ts
 msgid "Render not found."
@@ -962,9 +1003,9 @@ msgstr "Render not found."
 msgid "Render returned no image."
 msgstr "Render returned no image."
 
-#: src/components/studio/studio-sidebar.tsx
-#~ msgid "Render this look"
-#~ msgstr "Render this look"
+#: src/components/studio/sidebar/specialty-panels.tsx
+msgid "Render this look"
+msgstr "Render this look"
 
 #. placeholder {0}: payload.reason
 #: src/i18n/server-errors.ts
@@ -979,7 +1020,7 @@ msgstr "Render: {title}"
 msgid "Rendering…"
 msgstr "Rendering…"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/controls.tsx
 msgid "Reset"
 msgstr "Reset"
 
@@ -987,7 +1028,7 @@ msgstr "Reset"
 msgid "Reset all tools"
 msgstr "Reset all tools"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/index.tsx
 msgid "Reshape via AI render — preserves identity."
 msgstr "Reshape via AI render — preserves identity."
 
@@ -999,22 +1040,21 @@ msgstr "Retry"
 msgid "Retrying…"
 msgstr "Retrying…"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "round wire glasses"
 msgstr "round wire glasses"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "Satin"
 msgstr "Satin"
 
 #: src/components/avatars/rename-avatar-dialog.tsx
-#: src/components/render/render-result.tsx
 msgid "Save"
 msgstr "Save"
 
 #: src/components/render/render-result.tsx
-#~ msgid "Save look"
-#~ msgstr "Save look"
+msgid "Save look"
+msgstr "Save look"
 
 #: src/components/app-shell.tsx
 msgid "Saved"
@@ -1049,7 +1089,7 @@ msgstr "Selected photo {position}"
 msgid "Selfie"
 msgstr "Selfie"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "serene confident look"
 msgstr "serene confident look"
 
@@ -1058,39 +1098,43 @@ msgstr "serene confident look"
 msgid "Settings"
 msgstr "Settings"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "shaggy layers"
 msgstr "shaggy layers"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "sharper, defined outline"
 msgstr "sharper, defined outline"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "Shaved"
 msgstr "Shaved"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "shaved with stubble"
 msgstr "shaved with stubble"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/routes/studio.$avatarId.tsx
+msgid "Shoes"
+msgstr "Shoes"
+
+#: src/components/studio/sidebar/presets.ts
 msgid "Short"
 msgstr "Short"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "short boxed beard"
 msgstr "short boxed beard"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "short crop"
 msgstr "short crop"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "short fade"
 msgstr "short fade"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "shoulder-length waves"
 msgstr "shoulder-length waves"
 
@@ -1098,7 +1142,7 @@ msgstr "shoulder-length waves"
 msgid "Show all"
 msgstr "Show all"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "side part"
 msgstr "side part"
 
@@ -1119,35 +1163,35 @@ msgstr "Sign out"
 msgid "Sign up"
 msgstr "Sign up"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "silk scarf"
 msgstr "silk scarf"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/index.tsx
 msgid "Skin finish, freckles, expression."
 msgstr "Skin finish, freckles, expression."
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "sleek high ponytail"
 msgstr "sleek high ponytail"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "small stud earrings"
 msgstr "small stud earrings"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "soft natural brows"
 msgstr "soft natural brows"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "soft natural smile"
 msgstr "soft natural smile"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "soft tan"
 msgstr "soft tan"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "softer, more natural lips"
 msgstr "softer, more natural lips"
 
@@ -1164,31 +1208,31 @@ msgstr "Something went wrong: {0}"
 msgid "Something went wrong."
 msgstr "Something went wrong."
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "soul patch"
 msgstr "soul patch"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "square black-frame glasses"
 msgstr "square black-frame glasses"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "Statement"
 msgstr "Statement"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "statement chandelier earrings"
 msgstr "statement chandelier earrings"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "straight brows"
 msgstr "straight brows"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "stubble"
 msgstr "stubble"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/index.tsx
 msgid "Studio tool"
 msgstr "Studio tool"
 
@@ -1221,22 +1265,22 @@ msgid "Stylist returned an empty response."
 msgstr "Stylist returned an empty response."
 
 #: src/i18n/server-errors.ts
-msgid "Stylist returned an incomplete recommendation."
-msgstr "Stylist returned an incomplete recommendation."
+#~ msgid "Stylist returned an incomplete recommendation."
+#~ msgstr "Stylist returned an incomplete recommendation."
 
 #: src/i18n/server-errors.ts
 msgid "Stylist returned malformed JSON."
 msgstr "Stylist returned malformed JSON."
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/index.tsx
 msgid "Subtle color on the brow polygons."
 msgstr "Subtle color on the brow polygons."
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "Suggest a complete look."
 msgstr "Suggest a complete look."
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "sun-kissed glow"
 msgstr "sun-kissed glow"
 
@@ -1244,23 +1288,36 @@ msgstr "sun-kissed glow"
 msgid "Tailors the studio tools — e.g. hides beard/mustache on a feminine persona."
 msgstr "Tailors the studio tools — e.g. hides beard/mustache on a feminine persona."
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "taper fade"
 msgstr "taper fade"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "textured crop"
 msgstr "textured crop"
+
+#. placeholder {0}: payload.max
+#: src/i18n/server-errors.ts
+msgid "That prompt is too long (limit: {0} characters)."
+msgstr "That prompt is too long (limit: {0} characters)."
+
+#: src/i18n/server-errors.ts
+msgid "That render input was already claimed."
+msgstr "That render input was already claimed."
 
 #: src/components/error-boundary.tsx
 msgid "The app hit an unexpected error. Reload to start fresh."
 msgstr "The app hit an unexpected error. Reload to start fresh."
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/i18n/server-errors.ts
+msgid "The render appears stuck. We've marked it as failed — please retry."
+msgstr "The render appears stuck. We've marked it as failed — please retry."
+
+#: src/components/studio/sidebar/presets.ts
 msgid "thick mustache"
 msgstr "thick mustache"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "thin, refined brows"
 msgstr "thin, refined brows"
 
@@ -1276,7 +1333,7 @@ msgstr "This deletes every avatar, saved look, render, uploaded item, and the st
 msgid "This removes the avatar and every saved look, render, and try-on tied to it. The original photos and renders are deleted from storage too. This can't be undone."
 msgstr "This removes the avatar and every saved look, render, and try-on tied to it. The original photos and renders are deleted from storage too. This can't be undone."
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "tight curls"
 msgstr "tight curls"
 
@@ -1285,20 +1342,29 @@ msgstr "tight curls"
 msgid "Tint makeup live, pick extras, ask the stylist, then render the look — every saved look stays under {0}."
 msgstr "Tint makeup live, pick extras, ask the stylist, then render the look — every saved look stays under {0}."
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/index.tsx
 msgid "Tints the lid above each eye."
 msgstr "Tints the lid above each eye."
 
 #. placeholder {0}: title.toLowerCase()
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/controls.tsx
 msgid "Toggle {0}"
 msgstr "Toggle {0}"
 
-#: src/components/studio/studio-sidebar.tsx
+#. placeholder {0}: payload.max
+#: src/i18n/server-errors.ts
+msgid "Too many pending uploads (limit: {0}). Try again in a moment."
+msgstr "Too many pending uploads (limit: {0}). Try again in a moment."
+
+#: src/routes/studio.$avatarId.tsx
+msgid "Top"
+msgstr "Top"
+
+#: src/components/studio/sidebar/presets.ts
 msgid "top knot"
 msgstr "top knot"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/specialty-panels.tsx
 msgid "Try on clothing"
 msgstr "Try on clothing"
 
@@ -1310,15 +1376,15 @@ msgstr "Type \"{CONFIRMATION_PHRASE}\" to confirm."
 msgid "Type <0>{CONFIRMATION_PHRASE}</0> to confirm"
 msgstr "Type <0>{CONFIRMATION_PHRASE}</0> to confirm"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "undercut"
 msgstr "undercut"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "undercut with slick back"
 msgstr "undercut with slick back"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "Updo"
 msgstr "Updo"
 
@@ -1342,10 +1408,11 @@ msgstr "Upload a photo. We compress and strip metadata in your browser before it
 msgid "Upload added."
 msgstr "Upload added."
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/specialty-panels.tsx
 msgid "Upload an item; renders use it as the reference."
 msgstr "Upload an item; renders use it as the reference."
 
+#: src/components/avatars/avatar-uploader.tsx
 #: src/components/studio/uploaded-item-uploader.tsx
 msgid "Upload failed."
 msgstr "Upload failed."
@@ -1358,17 +1425,22 @@ msgstr "Uploaded clothing items aren't tied to a specific avatar, so those stay.
 msgid "Uploading…"
 msgstr "Uploading…"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "Uploads"
 msgstr "Uploads"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/index.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "Vibe"
 msgstr "Vibe"
 
 #: src/components/render/render-result.tsx
 msgid "View gallery"
 msgstr "View gallery"
+
+#: src/routes/studio.$avatarId.tsx
+msgid "Wait for face landmarks to finish before rendering tinted looks."
+msgstr "Wait for face landmarks to finish before rendering tinted looks."
 
 #. placeholder {0}: avatar.name
 #: src/components/avatars/baseline-status-gate.tsx
@@ -1379,25 +1451,34 @@ msgstr "We couldn't generate a studio portrait of {0} from your photos."
 msgid "Welcome back"
 msgstr "Welcome back"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "What hairstyle would suit me?"
 msgstr "What hairstyle would suit me?"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "What lip colour should I try?"
 msgstr "What lip colour should I try?"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "What outfit would flatter me?"
 msgstr "What outfit would flatter me?"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "wide-brim sun hat"
 msgstr "wide-brim sun hat"
 
+#. placeholder {0}: payload.max
+#: src/i18n/server-errors.ts
+msgid "You already have {0} renders in flight. Wait for one to finish, then try again."
+msgstr "You already have {0} renders in flight. Wait for one to finish, then try again."
+
 #: src/routes/avatars.new.tsx
-msgid "You already have {MAX_AVATARS} avatars. Delete one to add another."
-msgstr "You already have {MAX_AVATARS} avatars. Delete one to add another."
+msgid "You already have {MAX_AVATARS_PER_USER} avatars. Delete one to add another."
+msgstr "You already have {MAX_AVATARS_PER_USER} avatars. Delete one to add another."
+
+#: src/routes/avatars.new.tsx
+#~ msgid "You already have {MAX_AVATARS} avatars. Delete one to add another."
+#~ msgstr "You already have {MAX_AVATARS} avatars. Delete one to add another."
 
 #. placeholder {0}: payload.max
 #: src/i18n/server-errors.ts
@@ -1409,8 +1490,12 @@ msgid "You're not signed in."
 msgstr "You're not signed in."
 
 #: src/routes/avatars.index.tsx
-msgid "You've reached the {MAX_AVATARS}-avatar limit. Delete one to add another."
-msgstr "You've reached the {MAX_AVATARS}-avatar limit. Delete one to add another."
+msgid "You've reached the {MAX_AVATARS_PER_USER}-avatar limit. Delete one to add another."
+msgstr "You've reached the {MAX_AVATARS_PER_USER}-avatar limit. Delete one to add another."
+
+#: src/routes/avatars.index.tsx
+#~ msgid "You've reached the {MAX_AVATARS}-avatar limit. Delete one to add another."
+#~ msgstr "You've reached the {MAX_AVATARS}-avatar limit. Delete one to add another."
 
 #: src/routes/avatars.index.tsx
 msgid "Your avatars"
@@ -1423,3 +1508,7 @@ msgstr "Your avatars and looks stay private to you."
 #: src/routes/settings.tsx
 msgid "Your private account details."
 msgstr "Your private account details."
+
+#: src/i18n/server-errors.ts
+msgid "Your studio portrait isn't ready yet. Try again once it finishes."
+msgstr "Your studio portrait isn't ready yet. Try again once it finishes."

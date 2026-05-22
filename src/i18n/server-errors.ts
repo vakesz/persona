@@ -126,6 +126,18 @@ function messageFor(payload: ServerErrorPayload): AnyMessage {
       return msg`Gemini rejected the request for ${payload.operation} (HTTP ${payload.status}). Check your API key.`;
     case 'gemini_failed':
       return msg`Gemini failed for ${payload.operation} (HTTP ${payload.status}): ${payload.detail}`;
+    case 'render_concurrency_exceeded':
+      return msg`You already have ${payload.max} renders in flight. Wait for one to finish, then try again.`;
+    case 'baseline_not_ready':
+      return msg`Your studio portrait isn't ready yet. Try again once it finishes.`;
+    case 'prompt_too_long':
+      return msg`That prompt is too long (limit: ${payload.max} characters).`;
+    case 'render_input_already_claimed':
+      return msg`That render input was already claimed.`;
+    case 'render_input_limit_exceeded':
+      return msg`Too many pending uploads (limit: ${payload.max}). Try again in a moment.`;
+    case 'render_stuck':
+      return msg`The render appears stuck. We've marked it as failed — please retry.`;
     case 'unknown_error':
       return msg`Something went wrong: ${payload.detail}`;
   }

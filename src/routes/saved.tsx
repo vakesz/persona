@@ -2,9 +2,10 @@ import { Plural, Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useQuery } from 'convex/react';
 import type { FunctionReturnType } from 'convex/server';
-import { Loader2, Trash2, User, UserSquare2 } from 'lucide-react';
+import { Trash2, User, UserSquare2 } from 'lucide-react';
 import { useMemo } from 'react';
 
+import { PageSpinner } from '@/components/page-spinner';
 import { RequireAuth } from '@/components/require-auth';
 import { useToastMutation } from '@/i18n/use-toast-mutation';
 import { Button } from '@/components/ui/button';
@@ -25,7 +26,13 @@ interface SavedSearch {
 export const Route = createFileRoute('/saved')({
   validateSearch: (search: Record<string, unknown>): SavedSearch => {
     const raw = search['avatarId'];
-    return typeof raw === 'string' ? { avatarId: raw as Id<'avatars'> } : {};
+    // Lightweight shape check on the raw URL value. Convex ids are non-empty
+    // opaque strings; we still re-verify ownership server-side, but rejecting
+    // obvious garbage up front keeps the chip "active" state honest.
+    if (typeof raw !== 'string' || raw.length === 0 || raw.length > 64) {
+      return {};
+    }
+    return { avatarId: raw as Id<'avatars'> };
   },
   component: SavedLooksPage,
 });
@@ -54,11 +61,7 @@ function SavedLooks() {
   const grouped = useMemo(() => groupByAvatar(avatars, looks), [avatars, looks]);
 
   if (avatars === undefined || looks === undefined) {
-    return (
-      <div className="flex min-h-[40vh] items-center justify-center">
-        <Loader2 className="text-muted-foreground size-6 animate-spin" />
-      </div>
-    );
+    return <PageSpinner />;
   }
 
   const totalLooks = looks.length;

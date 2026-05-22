@@ -19,7 +19,11 @@ export function LocaleSwitcher({ className, variant = 'segmented' }: LocaleSwitc
 
   if (variant === 'minimal') {
     return (
-      <div className={cn('flex items-center gap-1 text-xs', className)}>
+      <div
+        role="group"
+        aria-label={t`Language`}
+        className={cn('flex items-center gap-1 text-xs', className)}
+      >
         {LOCALES.map((code) => (
           <button
             key={code}

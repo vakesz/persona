@@ -11,10 +11,14 @@ import {
   query,
 } from './_generated/server';
 import { ensureOwned, ownedOrNull, requireAuth } from './lib/auth';
-import { errors } from './lib/errors';
-
-const MAX_AVATARS_PER_USER = 3;
-const MAX_SOURCE_PHOTOS = 5;
+import { errors, serializeError } from './lib/errors';
+import {
+  MAX_AVATAR_NAME_LENGTH,
+  MAX_AVATARS_PER_USER,
+  MAX_SOURCE_PHOTOS,
+  STUCK_PROCESSING_THRESHOLD_MS,
+} from './lib/limits';
+import { parseInputStorageId } from './lib/renderInput';
 
 const avatarType = v.union(v.literal('selfie'), v.literal('full_body'));
 const avatarGender = v.union(v.literal('male'), v.literal('female'), v.literal('unspecified'));
@@ -188,7 +192,7 @@ export const createAvatar = mutation({
   handler: async (ctx, args) => {
     const userId = await requireAuth(ctx);
     const name = args.name.trim();
-    if (name.length === 0) {
+    if (name.length === 0 || name.length > MAX_AVATAR_NAME_LENGTH) {
       await cleanupOnReject(ctx, args.sourcePhotoStorageIds, args.thumbnailStorageId);
       throw errors.nameRequired();
     }
@@ -255,7 +259,7 @@ export const updateAvatar = mutation({
     const userId = await requireAuth(ctx);
     ensureOwned(await ctx.db.get(id), userId, errors.avatarNotFound);
     const trimmed = name.trim();
-    if (trimmed.length === 0) {
+    if (trimmed.length === 0 || trimmed.length > MAX_AVATAR_NAME_LENGTH) {
       throw errors.nameRequired();
     }
     await ctx.db.patch(id, { name: trimmed, updatedAt: Date.now() });
@@ -332,12 +336,16 @@ export const markBaselineDone = internalMutation({
     const avatar = await ctx.db.get(id);
     if (avatar === null) {
       // Avatar was deleted while baseline was rendering — clean up the orphan blob.
-      await ctx.storage.delete(baseImageStorageId);
+      await bestEffortDeleteStorage(ctx, baseImageStorageId);
       return null;
     }
-    // If a previous baseline somehow exists (re-render path), free it.
-    if (avatar.baseImageStorageId !== undefined) {
-      await ctx.storage.delete(avatar.baseImageStorageId);
+    // Defensive: never free the new blob (e.g. if a retry path somehow set
+    // both to the same id), and skip the patch when the new id matches.
+    if (
+      avatar.baseImageStorageId !== undefined &&
+      avatar.baseImageStorageId !== baseImageStorageId
+    ) {
+      await bestEffortDeleteStorage(ctx, avatar.baseImageStorageId);
     }
     await ctx.db.patch(id, {
       baseImageStorageId,
@@ -426,17 +434,32 @@ export async function cascadeDeleteAvatar(
   await ctx.db.delete(avatarId);
 }
 
-function parseInputStorageId(inputJson: string): Id<'_storage'> | null {
-  try {
-    const parsed = JSON.parse(inputJson) as { inputStorageId?: unknown };
-    if (typeof parsed.inputStorageId === 'string') {
-      return parsed.inputStorageId as Id<'_storage'>;
+/**
+ * Rescue sweep for avatar baselines stuck in `processing` — usually because
+ * `generateAvatarBaseline` was killed before its `catch` could mark the row
+ * failed. Flips them to `failed` with a `render_stuck` payload so the user
+ * can retry from the avatar card.
+ */
+export const rescueStaleProcessingBaselines = internalMutation({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    const cutoff = Date.now() - STUCK_PROCESSING_THRESHOLD_MS;
+    // No index on `(baselineStatus, updatedAt)`; the count of stuck rows is
+    // expected to be near zero in steady state, so a small scan is fine.
+    const all = await ctx.db.query('avatars').collect();
+    for (const avatar of all) {
+      if (avatar.baselineStatus !== 'processing') continue;
+      if (avatar.updatedAt >= cutoff) continue;
+      await ctx.db.patch(avatar._id, {
+        baselineStatus: 'failed',
+        baselineErrorMessage: serializeError(errors.renderStuck()),
+        updatedAt: Date.now(),
+      });
     }
-  } catch (error) {
-    console.warn('cascadeDeleteAvatar: malformed renderJobs.inputJson:', error);
-  }
-  return null;
-}
+    return null;
+  },
+});
 
 // Storage deletes aren't transactional with the DB, so an orphan reference
 // (blob gone, row still points at it) shouldn't block the cascade.

@@ -15,6 +15,8 @@ import type * as crons from "../crons.js";
 import type * as http from "../http.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_errors from "../lib/errors.js";
+import type * as lib_limits from "../lib/limits.js";
+import type * as lib_renderInput from "../lib/renderInput.js";
 import type * as renderJobs from "../renderJobs.js";
 import type * as savedLooks from "../savedLooks.js";
 import type * as storage from "../storage.js";
@@ -36,6 +38,8 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   "lib/auth": typeof lib_auth;
   "lib/errors": typeof lib_errors;
+  "lib/limits": typeof lib_limits;
+  "lib/renderInput": typeof lib_renderInput;
   renderJobs: typeof renderJobs;
   savedLooks: typeof savedLooks;
   storage: typeof storage;

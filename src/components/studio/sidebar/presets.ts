@@ -1,18 +1,22 @@
 import { type MessageDescriptor } from '@lingui/core';
 import { msg } from '@lingui/core/macro';
+import type { FunctionReturnType } from 'convex/server';
 
-import type { LipFinish } from '@/lib/studio/studio-state';
+import type { LipFinish, AvatarGender } from '@/lib/studio/studio-state';
+import type { api } from '@convex/_generated/api';
 
-export type AvatarGender = 'male' | 'female' | 'unspecified';
+export type { AvatarGender } from '@/lib/studio/studio-state';
 
-export type StylistStyleType = 'hair' | 'makeup' | 'nails' | 'clothes';
+/**
+ * Derived from the stylist action's response so a schema change in
+ * `convex/ai.ts` lights this file up at the type level instead of letting a
+ * silent mismatch drift in. Replaces the previous hand-rolled duplicate.
+ */
+export type StylistRecommendation = FunctionReturnType<
+  typeof api.ai.analyzeStyleWithGemini
+>['recommendations'][number];
 
-export interface StylistRecommendation {
-  title: string;
-  description: string;
-  styleType: StylistStyleType;
-  renderPrompt: string;
-}
+export type StylistStyleType = StylistRecommendation['styleType'];
 
 /**
  * A preset's `value` is the literal English phrase sent to Gemini in the

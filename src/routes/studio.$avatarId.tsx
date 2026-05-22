@@ -1,3 +1,5 @@
+import { msg } from '@lingui/core/macro';
+import type { MessageDescriptor } from '@lingui/core';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useAction, useMutation, useQuery } from 'convex/react';
@@ -26,11 +28,28 @@ import {
   DEFAULT_STUDIO_STATE,
   hasAnyChange,
   hasAnyTint,
+  type AvatarGender,
   type StudioState,
 } from '@/lib/studio/studio-state';
 import { useImage } from '@/lib/studio/use-image';
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
+import type { FunctionReturnType } from 'convex/server';
+
+// Derived from the public query so adding a new upload type in
+// `convex/schema.ts` flows through the type system to this file. Used by
+// `UPLOADED_ITEM_TYPE_LABELS` to give untitled uploads a localized fallback.
+type UploadedItemType = FunctionReturnType<
+  typeof api.uploadedItems.listUploadedItems
+>[number]['type'];
+
+const UPLOADED_ITEM_TYPE_LABELS: Record<UploadedItemType, MessageDescriptor> = {
+  dress: msg`Dress`,
+  top: msg`Top`,
+  shoes: msg`Shoes`,
+  nails_reference: msg`Nails reference`,
+  hair_reference: msg`Hair reference`,
+};
 
 export const Route = createFileRoute('/studio/$avatarId')({
   parseParams: ({ avatarId }) => ({ avatarId: avatarId as Id<'avatars'> }),
@@ -62,7 +81,7 @@ interface StudioProps {
 }
 
 function Studio({ avatarId }: StudioProps) {
-  const { t } = useLingui();
+  const { i18n, t } = useLingui();
   const avatar = useQuery(api.avatars.getAvatar, { id: avatarId });
   const uploads = useQuery(api.uploadedItems.listUploadedItems, {});
   const savedLooks = useQuery(api.savedLooks.listSavedLooks, { avatarId });
@@ -86,11 +105,16 @@ function Studio({ avatarId }: StudioProps) {
   const canvasRef = useRef<StudioCanvasHandle | null>(null);
 
   const anyTints = hasAnyTint(studioState);
+  const faceReady = face.status === 'ready';
   const savedCount = savedLooks?.length ?? 0;
   // A render is "occupying the studio" while activeRender is set — we only
   // free the next-render slot when the user closes the result dialog, so a
   // fast double-click can't queue two Gemini calls.
   const renderSlotBusy = renderBusy || activeRender !== null;
+  // When tints are applied we MUST flatten the canvas; that needs face
+  // landmarks. Disable the Render button until both are true so we never
+  // silently fall back to "no input image" with active tints.
+  const renderBlockedByFace = anyTints && !faceReady;
 
   const uploadSummaries = useMemo<UploadedItemSummary[]>(() => {
     if (uploads === undefined) return [];
@@ -100,11 +124,11 @@ function Studio({ avatarId }: StudioProps) {
       out.push({
         _id: item._id,
         imageUrl: item.imageUrl,
-        label: item.label ?? prettyType(item.type),
+        label: item.label ?? i18n._(UPLOADED_ITEM_TYPE_LABELS[item.type]),
       });
     }
     return out;
-  }, [uploads]);
+  }, [uploads, i18n]);
 
   const handleDeleteUpload = (id: Id<'uploadedItems'>) => {
     void deleteUpload.run({ id });
@@ -153,12 +177,24 @@ function Studio({ avatarId }: StudioProps) {
       });
   };
 
-  const handleRender = async () => {
+  const handleRender = async (gender: AvatarGender) => {
     if (renderSlotBusy) return;
     if (!hasAnyChange(studioState)) {
       toast.error(t`Apply at least one style change first.`);
       return;
     }
+    // Snapshot the studio state up-front so every downstream await
+    // (`exportPng`, upload, claim, prompt+title build, `createRenderJob`)
+    // sees a single coherent view. The sidebar isn't disabled while we
+    // render, so user edits between awaits would otherwise cause the
+    // exported PNG and the prompt to describe different states.
+    const snapshot = studioState;
+    const snapshotHasTints = hasAnyTint(snapshot);
+    if (snapshotHasTints && !faceReady) {
+      toast.error(t`Wait for face landmarks to finish before rendering tinted looks.`);
+      return;
+    }
+
     setRenderBusy(true);
     // Held outside the try so the catch can free the blob if createRenderJob
     // throws after we've already uploaded the snapshot. On the success path
@@ -170,31 +206,39 @@ function Studio({ avatarId }: StudioProps) {
       // applied some — preserves an exact handoff so Gemini doesn't drop the
       // makeup. When no tints are applied, the avatar baseline is the input
       // and we skip the upload entirely.
-      if (hasAnyTint(studioState)) {
-        const blob = await canvasRef.current?.exportPng();
-        if (blob !== undefined && blob !== null) {
-          const url = await generateUploadUrl();
-          const storageId = await uploadBlobToConvex(
-            url,
-            blob,
-            t`Could not upload the canvas snapshot.`,
-          );
-          // Claim ownership of the blob before referencing it from a render
-          // job; `createRenderJob` consumes the claim and `discardRenderInput`
-          // verifies it on cleanup.
-          await claimRenderInput({ storageId });
-          pendingInputStorageId = storageId;
+      if (snapshotHasTints) {
+        const handle = canvasRef.current;
+        if (handle === null) {
+          // The Stage isn't mounted yet (face / image still loading). The
+          // guard above should make this unreachable, but if it happens we
+          // hard-error rather than silently submit without the flatten.
+          throw new Error('Canvas not ready for export.');
         }
+        const blob = await handle.exportPng();
+        if (blob === null) {
+          throw new Error('Canvas snapshot returned no bytes.');
+        }
+        const url = await generateUploadUrl();
+        const storageId = await uploadBlobToConvex(
+          url,
+          blob,
+          t`Could not upload the canvas snapshot.`,
+        );
+        // Claim ownership of the blob before referencing it from a render
+        // job; `createRenderJob` consumes the claim and `discardRenderInput`
+        // verifies it on cleanup.
+        await claimRenderInput({ storageId });
+        pendingInputStorageId = storageId;
       }
 
-      const prompt = composeRenderPrompt(studioState);
-      const title = composeRenderTitle(studioState);
+      const prompt = composeRenderPrompt(snapshot, gender);
+      const title = composeRenderTitle(snapshot, gender);
       const jobId = await createRenderJob({
         avatarId,
         prompt,
         title,
-        ...(studioState.selectedUploadId !== null && {
-          referenceUploadedItemId: studioState.selectedUploadId,
+        ...(snapshot.selectedUploadId !== null && {
+          referenceUploadedItemId: snapshot.selectedUploadId,
         }),
         ...(pendingInputStorageId !== undefined && { inputStorageId: pendingInputStorageId }),
       });
@@ -254,7 +298,7 @@ function Studio({ avatarId }: StudioProps) {
             </div>
           </header>
 
-          <FaceStatusBanner status={face.status} error={face.error} />
+          <FaceStatusBanner status={face.status} errorCode={face.errorCode} />
 
           <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
             <div className="flex flex-col gap-3">
@@ -311,13 +355,20 @@ function Studio({ avatarId }: StudioProps) {
                 type="button"
                 size="lg"
                 onClick={() => {
-                  void handleRender();
+                  void handleRender(ready.gender);
                 }}
-                disabled={renderSlotBusy || !hasAnyChange(studioState)}
+                disabled={renderSlotBusy || !hasAnyChange(studioState) || renderBlockedByFace}
               >
                 {renderBusy ? <Loader2 className="animate-spin" /> : <Sparkles />}
                 <Trans>Render look</Trans>
               </Button>
+              {renderBlockedByFace && (
+                <p className="text-muted-foreground text-xs">
+                  <Trans>
+                    Face landmarks are still loading — tinted renders unlock once ready.
+                  </Trans>
+                </p>
+              )}
               <Button
                 type="button"
                 variant="ghost"
@@ -351,27 +402,32 @@ function Studio({ avatarId }: StudioProps) {
   );
 }
 
-function prettyType(type: string): string {
-  return type.replace(/_/g, ' ');
-}
-
 interface FaceStatusBannerProps {
   status: ReturnType<typeof useAvatarFace>['status'];
-  error: string | null;
+  errorCode: ReturnType<typeof useAvatarFace>['errorCode'];
 }
 
-function FaceStatusBanner({ status, error }: FaceStatusBannerProps) {
+function FaceStatusBanner({ status, errorCode }: FaceStatusBannerProps) {
   if (status === 'ready') return null;
   if (status === 'failed') {
     return (
-      <div className="border-destructive/40 bg-destructive/5 text-destructive flex items-center gap-2 rounded-md border p-3 text-xs">
+      <div
+        role="alert"
+        className="border-destructive/40 bg-destructive/5 text-destructive flex items-center gap-2 rounded-md border p-3 text-xs"
+      >
         <AlertCircle className="size-4 shrink-0" />
-        <span>{error ?? <Trans>Could not prepare studio tools.</Trans>}</span>
+        <span>
+          <FaceErrorMessage code={errorCode} />
+        </span>
       </div>
     );
   }
   return (
-    <div className="border-border text-muted-foreground bg-muted/40 flex items-center gap-2 rounded-md border p-3 text-xs">
+    <div
+      role="status"
+      aria-live="polite"
+      className="border-border text-muted-foreground bg-muted/40 flex items-center gap-2 rounded-md border p-3 text-xs"
+    >
       <Loader2 className="size-4 shrink-0 animate-spin" />
       <span>
         <Trans>
@@ -381,4 +437,16 @@ function FaceStatusBanner({ status, error }: FaceStatusBannerProps) {
       </span>
     </div>
   );
+}
+
+function FaceErrorMessage({ code }: { code: ReturnType<typeof useAvatarFace>['errorCode'] }) {
+  switch (code) {
+    case 'no_face':
+      return <Trans>No face detected in the baseline portrait.</Trans>;
+    case 'segmentation_failed':
+      return <Trans>Couldn&apos;t segment the portrait. Try a clearer photo.</Trans>;
+    case 'unknown':
+    case null:
+      return <Trans>Could not prepare studio tools.</Trans>;
+  }
 }

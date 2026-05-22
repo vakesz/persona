@@ -4,6 +4,7 @@ import type { FunctionReturnType } from 'convex/server';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import type { ReactNode } from 'react';
 
+import { PageSpinner } from '@/components/page-spinner';
 import { translateStoredErrorMessage } from '@/i18n/server-errors';
 import { Button } from '@/components/ui/button';
 import { api } from '@convex/_generated/api';
@@ -32,11 +33,7 @@ export interface BaselineStatusGateProps {
  */
 export function BaselineStatusGate({ avatar, children }: BaselineStatusGateProps) {
   if (avatar === undefined) {
-    return (
-      <div className="flex min-h-[40vh] items-center justify-center">
-        <Loader2 className="text-muted-foreground size-6 animate-spin" />
-      </div>
-    );
+    return <PageSpinner />;
   }
 
   if (avatar === null) {

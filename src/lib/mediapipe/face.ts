@@ -13,7 +13,11 @@ let landmarkerPromise: Promise<FaceLandmarker> | null = null;
 
 async function getLandmarker(): Promise<FaceLandmarker> {
   if (landmarkerPromise !== null) return landmarkerPromise;
-  landmarkerPromise = (async () => {
+  // Wrap the build promise so that a rejection (e.g. transient network blip
+  // fetching the wasm/model) doesn't poison the cached promise — without
+  // this, every subsequent caller would re-reject from the same cached
+  // failure forever, with no recovery short of a page reload.
+  const pending = (async () => {
     const { FaceLandmarker: Lm, FilesetResolver } = await import('@mediapipe/tasks-vision');
     const filesetResolver = await FilesetResolver.forVisionTasks(VISION_WASM);
     return Lm.createFromOptions(filesetResolver, {
@@ -24,7 +28,13 @@ async function getLandmarker(): Promise<FaceLandmarker> {
       numFaces: 1,
     });
   })();
-  return landmarkerPromise;
+  landmarkerPromise = pending;
+  pending.catch(() => {
+    if (landmarkerPromise === pending) {
+      landmarkerPromise = null;
+    }
+  });
+  return pending;
 }
 
 // Serializes `detect()` calls against the singleton FaceLandmarker. Tasks

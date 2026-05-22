@@ -1,14 +1,13 @@
 import { Trans } from '@lingui/react/macro';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { useQuery } from 'convex/react';
-import { Loader2 } from 'lucide-react';
 
 import { AvatarUploader } from '@/components/avatars/avatar-uploader';
+import { PageSpinner } from '@/components/page-spinner';
 import { RequireAuth } from '@/components/require-auth';
 import { Button } from '@/components/ui/button';
 import { api } from '@convex/_generated/api';
-
-const MAX_AVATARS = 3;
+import { MAX_AVATARS_PER_USER } from '@convex/lib/limits';
 
 export const Route = createFileRoute('/avatars/new')({
   component: NewAvatarPage,
@@ -27,21 +26,17 @@ function NewAvatarFlow() {
   const avatars = useQuery(api.avatars.listAvatars);
 
   if (avatars === undefined) {
-    return (
-      <div className="flex min-h-[40vh] items-center justify-center">
-        <Loader2 className="text-muted-foreground size-6 animate-spin" />
-      </div>
-    );
+    return <PageSpinner />;
   }
 
-  if (avatars.length >= MAX_AVATARS) {
+  if (avatars.length >= MAX_AVATARS_PER_USER) {
     return (
       <div className="flex flex-col gap-4">
         <h1 className="text-2xl font-semibold tracking-tight">
           <Trans>Avatar limit reached</Trans>
         </h1>
         <p className="text-muted-foreground text-sm">
-          <Trans>You already have {MAX_AVATARS} avatars. Delete one to add another.</Trans>
+          <Trans>You already have {MAX_AVATARS_PER_USER} avatars. Delete one to add another.</Trans>
         </p>
         <Button asChild variant="outline" className="w-fit">
           <Link to="/avatars">

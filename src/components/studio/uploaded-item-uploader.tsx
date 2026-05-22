@@ -40,7 +40,7 @@ export function UploadedItemUploader({ onUploaded }: UploadedItemUploaderProps) 
   async function upload(picked: File) {
     setBusy(true);
     try {
-      const { base } = await processAvatarImage(picked);
+      const { base } = await processAvatarImage(picked, { thumbnail: false });
       const uploadUrl = await generateUploadUrl();
       const storageId = await uploadBlobToConvex(uploadUrl, base, t`Upload failed.`);
       const id = await createUploadedItem({

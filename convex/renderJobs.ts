@@ -4,7 +4,13 @@ import { v } from 'convex/values';
 import { internal } from './_generated/api';
 import { internalMutation, internalQuery, mutation, query } from './_generated/server';
 import { ensureOwned, ownedOrNull, requireAuth } from './lib/auth';
-import { errors } from './lib/errors';
+import { errors, serializeError } from './lib/errors';
+import {
+  MAX_CONCURRENT_RENDERS_PER_USER,
+  MAX_RENDER_PROMPT_LENGTH,
+  STUCK_PROCESSING_THRESHOLD_MS,
+} from './lib/limits';
+import { parseInputStorageId } from './lib/renderInput';
 import { renderStatus } from './schema';
 import { consumePendingRenderInput } from './storage';
 
@@ -44,10 +50,34 @@ export const createRenderJob = mutation({
   returns: v.id('renderJobs'),
   handler: async (ctx, { avatarId, prompt, title, referenceUploadedItemId, inputStorageId }) => {
     const userId = await requireAuth(ctx);
-    ensureOwned(await ctx.db.get(avatarId), userId, errors.avatarNotFound);
+    const avatar = ensureOwned(await ctx.db.get(avatarId), userId, errors.avatarNotFound);
+    // Defense-in-depth: the studio UI gates on `baselineStatus === 'done'`,
+    // but a tampered client (or a stale tab) might queue a render against
+    // an unready avatar. Legacy rows (no `baselineStatus`) are treated as
+    // ready since their `baseImageStorageId` is already a finished image.
+    const baselineStatus = avatar.baselineStatus ?? 'done';
+    if (baselineStatus !== 'done') {
+      throw errors.baselineNotReady();
+    }
     const trimmedPrompt = prompt.trim();
     if (trimmedPrompt.length === 0) {
       throw errors.promptRequired();
+    }
+    if (trimmedPrompt.length > MAX_RENDER_PROMPT_LENGTH) {
+      throw errors.promptTooLong(MAX_RENDER_PROMPT_LENGTH);
+    }
+
+    // Per-user in-flight cap. Prevents abuse and accidental quota burn from a
+    // stuck client retry loop. Server-truth, not client-derived.
+    const userJobs = await ctx.db
+      .query('renderJobs')
+      .withIndex('by_user', (q) => q.eq('userId', userId))
+      .collect();
+    const inFlight = userJobs.filter(
+      (job) => job.status === 'queued' || job.status === 'processing',
+    ).length;
+    if (inFlight >= MAX_CONCURRENT_RENDERS_PER_USER) {
+      throw errors.renderConcurrencyExceeded(MAX_CONCURRENT_RENDERS_PER_USER);
     }
 
     if (referenceUploadedItemId !== undefined) {
@@ -193,6 +223,19 @@ export const sweepStaleRenderJobs = internalMutation({
       .withIndex('by_updatedAt', (q) => q.lt('updatedAt', cutoff))
       .collect();
     for (const job of stale) {
+      // Free the studio's single-use canvas snapshot if one was queued —
+      // `cascadeDeleteAvatar` covers this for owned-avatar deletes, but the
+      // TTL sweep also needs to do it for jobs whose owning user is still
+      // around. Parse straight from the raw `inputJson` so a corrupt blob
+      // doesn't strand storage.
+      const inputStorageId = parseInputStorageId(job.inputJson);
+      if (inputStorageId !== null) {
+        try {
+          await ctx.storage.delete(inputStorageId);
+        } catch (error) {
+          console.warn(`Sweep input-blob delete skipped (${inputStorageId}):`, error);
+        }
+      }
       if (job.resultStorageId !== undefined) {
         const resultStorageId = job.resultStorageId;
         // Indexed point lookups instead of scanning the whole savedLooks
@@ -244,6 +287,46 @@ export const sweepStalePendingInputs = internalMutation({
         console.warn(`Pending input storage delete skipped (${row.storageId}):`, error);
       }
       await ctx.db.delete(row._id);
+    }
+    return null;
+  },
+});
+
+/**
+ * Rescue sweep for jobs stuck in `processing` — usually because the action
+ * was killed (hard timeout, deploy mid-flight) before its `catch` could
+ * mark the row failed. Flips them to `failed` with a `render_stuck` payload
+ * the client can translate; the user can then retry from the UI.
+ *
+ * Runs every 5 minutes against jobs whose `updatedAt` hasn't budged in
+ * `STUCK_PROCESSING_THRESHOLD_MS`.
+ */
+export const rescueStaleProcessingJobs = internalMutation({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    const cutoff = Date.now() - STUCK_PROCESSING_THRESHOLD_MS;
+    const candidates = await ctx.db
+      .query('renderJobs')
+      .withIndex('by_updatedAt', (q) => q.lt('updatedAt', cutoff))
+      .collect();
+    for (const job of candidates) {
+      if (job.status !== 'processing') continue;
+      await ctx.db.patch(job._id, {
+        status: 'failed',
+        errorMessage: serializeError(errors.renderStuck()),
+        updatedAt: Date.now(),
+      });
+      // Free the input snapshot if one was attached — same rationale as the
+      // 14-day sweep above.
+      const inputStorageId = parseInputStorageId(job.inputJson);
+      if (inputStorageId !== null) {
+        try {
+          await ctx.storage.delete(inputStorageId);
+        } catch (error) {
+          console.warn(`Rescue input-blob delete skipped (${inputStorageId}):`, error);
+        }
+      }
     }
     return null;
   },

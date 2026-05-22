@@ -1,20 +1,19 @@
 import { Trans } from '@lingui/react/macro';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useQuery } from 'convex/react';
-import { Loader2 } from 'lucide-react';
 import { useState } from 'react';
 
 import { AvatarCard } from '@/components/avatars/avatar-card';
 import { DeleteAvatarDialog } from '@/components/avatars/delete-avatar-dialog';
 import { RenameAvatarDialog } from '@/components/avatars/rename-avatar-dialog';
+import { PageSpinner } from '@/components/page-spinner';
 import { RequireAuth } from '@/components/require-auth';
 import { useToastMutation } from '@/i18n/use-toast-mutation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
-
-const MAX_AVATARS = 3;
+import { MAX_AVATARS_PER_USER } from '@convex/lib/limits';
 
 export const Route = createFileRoute('/avatars/')({
   component: AvatarsPage,
@@ -48,14 +47,10 @@ function AvatarsList() {
   };
 
   if (avatars === undefined) {
-    return (
-      <div className="flex min-h-[40vh] items-center justify-center">
-        <Loader2 className="text-muted-foreground size-6 animate-spin" />
-      </div>
-    );
+    return <PageSpinner />;
   }
 
-  const atLimit = avatars.length >= MAX_AVATARS;
+  const atLimit = avatars.length >= MAX_AVATARS_PER_USER;
 
   return (
     <div className="flex flex-col gap-8">
@@ -67,11 +62,12 @@ function AvatarsList() {
           <p className="text-muted-foreground text-sm">
             {atLimit ? (
               <Trans>
-                You&apos;ve reached the {MAX_AVATARS}-avatar limit. Delete one to add another.
+                You&apos;ve reached the {MAX_AVATARS_PER_USER}-avatar limit. Delete one to add
+                another.
               </Trans>
             ) : (
               <Trans>
-                Create up to {MAX_AVATARS} private avatars ({avatars.length} so far).
+                Create up to {MAX_AVATARS_PER_USER} private avatars ({avatars.length} so far).
               </Trans>
             )}
           </p>

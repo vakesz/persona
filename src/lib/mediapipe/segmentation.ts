@@ -1,5 +1,7 @@
 import type { ImageSegmenter } from '@mediapipe/tasks-vision';
 
+import { FacePreparationError } from './errors';
+
 const VISION_WASM = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/wasm';
 const SELFIE_MULTICLASS_MODEL =
   'https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_multiclass_256x256/float32/1/selfie_multiclass_256x256.tflite';
@@ -19,7 +21,9 @@ let segmenterPromise: Promise<ImageSegmenter> | null = null;
 
 async function getSegmenter(): Promise<ImageSegmenter> {
   if (segmenterPromise !== null) return segmenterPromise;
-  segmenterPromise = (async () => {
+  // Clear the cache slot if the underlying build rejects — see the matching
+  // comment in `face.ts`.
+  const pending = (async () => {
     const { ImageSegmenter: Seg, FilesetResolver } = await import('@mediapipe/tasks-vision');
     const filesetResolver = await FilesetResolver.forVisionTasks(VISION_WASM);
     return Seg.createFromOptions(filesetResolver, {
@@ -29,7 +33,13 @@ async function getSegmenter(): Promise<ImageSegmenter> {
       runningMode: 'IMAGE',
     });
   })();
-  return segmenterPromise;
+  segmenterPromise = pending;
+  pending.catch(() => {
+    if (segmenterPromise === pending) {
+      segmenterPromise = null;
+    }
+  });
+  return pending;
 }
 
 // Serializes `segment()` against the singleton ImageSegmenter — same
@@ -49,7 +59,7 @@ export async function runImageSegmenter(
   const mask = result.categoryMask;
   if (mask === undefined) {
     result.close();
-    throw new Error('Segmentation returned no category mask.');
+    throw new FacePreparationError('segmentation_failed');
   }
   const width = mask.width;
   const height = mask.height;

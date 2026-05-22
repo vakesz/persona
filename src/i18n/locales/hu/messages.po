@@ -75,25 +75,29 @@ msgstr "Már van fiókod? "
 msgid "Apply at least one style change first."
 msgstr "Először alkalmazz legalább egy stílusváltozást."
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "arched brows"
 msgstr "íves szemöldök"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/specialty-panels.tsx
 msgid "Ask"
 msgstr "Kérdezz"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "Ask AI"
 msgstr "Kérdezz MI-t"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/specialty-panels.tsx
 msgid "Ask the stylist"
 msgstr "Kérdezd a stylistot"
 
 #: src/components/avatars/avatar-uploader.tsx
-msgid "At most {MAX_PHOTOS} photos."
-msgstr "Legfeljebb {MAX_PHOTOS} fotó."
+#~ msgid "At most {MAX_PHOTOS} photos."
+#~ msgstr "Legfeljebb {MAX_PHOTOS} fotó."
+
+#: src/components/avatars/avatar-uploader.tsx
+msgid "At most {MAX_SOURCE_PHOTOS} photos."
+msgstr "Legfeljebb {MAX_SOURCE_PHOTOS} fotó."
 
 #: src/components/avatars/avatar-uploader.tsx
 msgid "Avatar created. Generating your studio portrait…"
@@ -129,7 +133,7 @@ msgstr "Avatár nem található."
 msgid "Avatars"
 msgstr "Avatárok"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "aviator sunglasses"
 msgstr "pilóta napszemüveg"
 
@@ -143,7 +147,7 @@ msgstr "Vissza"
 #~ msgid "Back to avatars"
 #~ msgstr "Vissza az avatárokhoz"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "baseball cap"
 msgstr "baseballsapka"
 
@@ -160,7 +164,8 @@ msgstr "Az alapportré generálása blokkolva lett: {0}"
 msgid "Baseline is not in a failed state."
 msgstr "Az alapportré nincs hibás állapotban."
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/index.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "Beard"
 msgstr "Szakáll"
 
@@ -172,43 +177,43 @@ msgstr "Előtte · Utána"
 msgid "Before / after slider"
 msgstr "Előtte / utána csúszka"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "beret"
 msgstr "barett"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/index.tsx
 msgid "Blush"
 msgstr "Pirosító"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "bold thick brows"
 msgstr "vastag, erőteljes szemöldök"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "box braids"
 msgstr "box-fonatok"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "braided crown"
 msgstr "fonott korona"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/index.tsx
 msgid "Brow shape"
 msgstr "Szemöldök formája"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/index.tsx
 msgid "Brow tint"
 msgstr "Szemöldök színe"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "Brows"
 msgstr "Szemöldök"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "buzz cut"
 msgstr "lenullázott"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "caesar cut"
 msgstr "cézár frizura"
 
@@ -218,39 +223,39 @@ msgstr "cézár frizura"
 msgid "Cancel"
 msgstr "Mégse"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "cat-eye glasses"
 msgstr "macskaszem szemüveg"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "Cheeks"
 msgstr "Orcák"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "chevron"
 msgstr "chevron bajusz"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "chin-length bob"
 msgstr "álligérő bob"
 
 #: src/routes/saved.tsx
-msgid "Choose"
-msgstr "Válassz"
+#~ msgid "Choose"
+#~ msgstr "Válassz"
 
 #: src/routes/saved.tsx
-#~ msgid "Choose an avatar"
-#~ msgstr "Válassz avatárt"
+msgid "Choose an avatar"
+msgstr "Válassz avatárt"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "classic chignon"
 msgstr "klasszikus konty"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/controls.tsx
 msgid "Clear"
 msgstr "Törlés"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/specialty-panels.tsx
 msgid "Clear selection"
 msgstr "Kijelölés törlése"
 
@@ -258,15 +263,15 @@ msgstr "Kijelölés törlése"
 msgid "Close"
 msgstr "Bezárás"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "Clothes"
 msgstr "Ruházat"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/controls.tsx
 msgid "Color"
 msgstr "Szín"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/index.tsx
 msgid "Color tools become available once face landmarks finish computing."
 msgstr "A színezőeszközök akkor lesznek elérhetők, amikor az arcpontok feldolgozása befejeződik."
 
@@ -279,12 +284,12 @@ msgid "Could not create that account. Try a different email."
 msgstr "Nem sikerült létrehozni a fiókot. Próbálj másik e-mail-címet."
 
 #: src/routes/saved.tsx
-msgid "Could not delete look."
-msgstr "Nem sikerült törölni a stílust."
+#~ msgid "Could not delete look."
+#~ msgstr "Nem sikerült törölni a stílust."
 
 #: src/routes/studio.$avatarId.tsx
-msgid "Could not delete upload."
-msgstr "Nem sikerült törölni a feltöltést."
+#~ msgid "Could not delete upload."
+#~ msgstr "Nem sikerült törölni a feltöltést."
 
 #: src/routes/studio.$avatarId.tsx
 msgid "Could not prepare studio tools."
@@ -297,6 +302,10 @@ msgstr "Sikertelen bejelentkezés. Ellenőrizd az e-mail-címet és a jelszót."
 #: src/routes/studio.$avatarId.tsx
 msgid "Could not upload the canvas snapshot."
 msgstr "Nem sikerült feltölteni a vászon pillanatképét."
+
+#: src/routes/studio.$avatarId.tsx
+msgid "Couldn't segment the portrait. Try a clearer photo."
+msgstr "Nem sikerült a portré szegmentálása. Próbálj egy tisztább fotót."
 
 #: src/components/avatars/avatar-uploader.tsx
 msgid "Create"
@@ -316,26 +325,30 @@ msgstr "Avatár létrehozása"
 
 #. placeholder {0}: avatars.length
 #: src/routes/avatars.index.tsx
-msgid "Create up to {MAX_AVATARS} private avatars ({0} so far)."
-msgstr "Hozz létre legfeljebb {MAX_AVATARS} privát avatárt (eddig {0})."
+msgid "Create up to {MAX_AVATARS_PER_USER} private avatars ({0} so far)."
+msgstr "Hozz létre legfeljebb {MAX_AVATARS_PER_USER} privát avatárt (eddig {0})."
+
+#: src/routes/avatars.index.tsx
+#~ msgid "Create up to {MAX_AVATARS} private avatars ({0} so far)."
+#~ msgstr "Hozz létre legfeljebb {MAX_AVATARS} privát avatárt (eddig {0})."
 
 #: src/routes/auth.tsx
 msgid "Create your account"
 msgstr "Hozd létre a fiókod"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "crew cut"
 msgstr "kefehaj"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "cupid-bow accent"
 msgstr "amorív hangsúly"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "curtain bangs"
 msgstr "függönyfrufru"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/controls.tsx
 msgid "Custom color"
 msgstr "Egyedi szín"
 
@@ -348,7 +361,7 @@ msgid "Delete"
 msgstr "Törlés"
 
 #. placeholder {0}: item.label
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/specialty-panels.tsx
 msgid "Delete {0}"
 msgstr "{0} törlése"
 
@@ -377,15 +390,15 @@ msgstr "Törlöd a fiókod?"
 msgid "Deleting your account removes every avatar, saved look, render, and uploaded item."
 msgstr "A fiók törlésével minden avatár, mentett stílus, render és feltöltött elem törlődik."
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "delicate pendant necklace"
 msgstr "finom medálos nyaklánc"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/controls.tsx
 msgid "Detail (optional)"
 msgstr "Részlet (opcionális)"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "dewy skin"
 msgstr "harmatos bőr"
 
@@ -397,15 +410,19 @@ msgstr "Elvetés"
 msgid "Don't have an account? "
 msgstr "Még nincs fiókod? "
 
+#: src/routes/studio.$avatarId.tsx
+msgid "Dress"
+msgstr "Ruha"
+
 #: src/components/avatars/avatar-uploader.tsx
 msgid "e.g. Weekend me"
 msgstr "pl. Hétvégi én"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/specialty-panels.tsx
 msgid "e.g. What hairstyle would suit me?"
 msgstr "pl. Milyen frizura állna nekem?"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/index.tsx
 msgid "Earrings, necklaces, layered chains."
 msgstr "Fülbevalók, nyakláncok, rétegzett láncok."
 
@@ -418,31 +435,35 @@ msgstr "E-mail"
 #~ msgid "Enabled"
 #~ msgstr "Bekapcsolva"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "Extras"
 msgstr "Extrák"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "Eyes"
 msgstr "Szem"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/index.tsx
 msgid "Eyeshadow"
 msgstr "Szemhéjpúder"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/index.tsx
 msgid "Eyewear"
 msgstr "Szemüveg"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/routes/studio.$avatarId.tsx
+msgid "Face landmarks are still loading — tinted renders unlock once ready."
+msgstr "Az arcjelölők még töltődnek — a sminkes renderelés akkor érhető el, ha elkészültek."
+
+#: src/components/studio/sidebar/presets.ts
 msgid "feathered brows"
 msgstr "tollas szemöldök"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/index.tsx
 msgid "Feathered ellipse on each cheekbone."
 msgstr "Lágy ellipszis a két arccsonton."
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "fedora"
 msgstr "fedora kalap"
 
@@ -455,7 +476,7 @@ msgstr "Nőies"
 msgid "Filter by avatar"
 msgstr "Szűrés avatárra"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/controls.tsx
 msgid "Finish"
 msgstr "Befejezés"
 
@@ -463,11 +484,11 @@ msgstr "Befejezés"
 msgid "First photo becomes the front reference. Extra angles (¾ left / right, full body) help the AI preserve your identity. Each photo is compressed and EXIF-stripped in your browser before upload."
 msgstr "Az első fotó lesz az elölnézeti referencia. A további szögek (¾ bal / jobb, egész alak) segítenek az MI-nek megőrizni az arcvonásaidat. Minden fotót a böngésződ tömörít és EXIF-mentesít feltöltés előtt."
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "french crop"
 msgstr "francia frizura"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "french twist updo"
 msgstr "francia csavart konty"
 
@@ -475,7 +496,7 @@ msgstr "francia csavart konty"
 msgid "Front"
 msgstr "Elöl"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "full beard"
 msgstr "teljes szakáll"
 
@@ -484,11 +505,11 @@ msgstr "teljes szakáll"
 msgid "Full body"
 msgstr "Egész alak"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "fuller, plumper lips"
 msgstr "teltebb ajkak"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "fully shaved"
 msgstr "teljesen kopaszra borotvált"
 
@@ -508,7 +529,7 @@ msgstr "A Gemini összeállítja a fő stúdióportrédat a feltöltött fotókb
 msgid "Gemini quota reached for {0}. Try again later, or upgrade billing."
 msgstr "Elérted a Gemini-kvótát ennél: {0}. Próbáld újra később, vagy frissítsd a számlázást."
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/specialty-panels.tsx
 msgid "Gemini reads your portrait and suggests looks."
 msgstr "A Gemini elemzi a portrédat és stílusokat javasol."
 
@@ -522,7 +543,7 @@ msgstr "A Gemini elutasította a kérést ennél: {0} (HTTP {1}). Ellenőrizd az
 msgid "GEMINI_API_KEY is not configured."
 msgstr "A GEMINI_API_KEY nincs beállítva."
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/index.tsx
 msgid "Geometry change — runs the AI render."
 msgstr "Geometriai módosítás — MI-renderelést indít."
 
@@ -535,11 +556,11 @@ msgstr "Kezdjük el"
 msgid "Give this avatar a name you'll recognize."
 msgstr "Adj az avatárnak egy könnyen felismerhető nevet."
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/index.tsx
 msgid "Glasses or sunglasses."
 msgstr "Szemüveg vagy napszemüveg."
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "Gloss"
 msgstr "Fényes"
 
@@ -547,47 +568,51 @@ msgstr "Fényes"
 #~ msgid "Go to your avatars"
 #~ msgstr "Ugrás az avatáraidhoz"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "goatee"
 msgstr "kecskeszakáll"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "gold choker"
 msgstr "arany nyakpánt"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "gold hoop earrings"
 msgstr "arany karika fülbevaló"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "Hair"
 msgstr "Haj"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/routes/studio.$avatarId.tsx
+msgid "Hair reference"
+msgstr "Hajminta"
+
+#: src/components/studio/sidebar/index.tsx
 msgid "Hairstyle"
 msgstr "Frizura"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "half-up half-down"
 msgstr "félig feltűzve"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "handlebar mustache"
 msgstr "kormánybajusz"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/index.tsx
 msgid "Hats and head coverings."
 msgstr "Kalapok és fejfedők."
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "headband"
 msgstr "fejpánt"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/index.tsx
 msgid "Headwear"
 msgstr "Fejfedő"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "heavy freckles"
 msgstr "sűrű szeplők"
 
@@ -595,67 +620,69 @@ msgstr "sűrű szeplők"
 msgid "Image missing"
 msgstr "Hiányzó kép"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/controls.tsx
 msgid "Intensity"
 msgstr "Intenzitás"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/index.tsx
 msgid "Jewelry"
 msgstr "Ékszerek"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "knit beanie"
 msgstr "kötött sapka"
 
+#: src/components/i18n/locale-switcher.tsx
 #: src/routes/settings.tsx
 msgid "Language"
 msgstr "Nyelv"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "layered chains"
 msgstr "rétegzett láncok"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "light freckles"
 msgstr "halvány szeplők"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/index.tsx
 msgid "Lip shape"
 msgstr "Ajkak formája"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "Lips"
 msgstr "Ajkak"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/index.tsx
 msgid "Lipstick"
 msgstr "Rúzs"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/index.tsx
 msgid "Live preview — clips to your lip polygons."
 msgstr "Élő előnézet — az ajkaid körvonalához igazodik."
 
+#: src/components/page-spinner.tsx
 #: src/routes/settings.tsx
 msgid "Loading…"
 msgstr "Betöltés…"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "lob"
 msgstr "hosszú bob"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "Long"
 msgstr "Hosszú"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "long flow"
 msgstr "hosszú, hullámzó"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "long loose waves"
 msgstr "hosszú, laza hullámok"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "long straight"
 msgstr "hosszú egyenes"
 
@@ -663,19 +690,19 @@ msgstr "hosszú egyenes"
 msgid "Look"
 msgstr "Stílus"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "low pony"
 msgstr "alacsony lófarok"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "low ponytail"
 msgstr "alacsony lófarok"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "Makeup"
 msgstr "Smink"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "man bun"
 msgstr "férfikonty"
 
@@ -696,33 +723,38 @@ msgstr "Fiókod, nyelved és avatáraid kezelése."
 msgid "Masculine"
 msgstr "Férfias"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "Matte"
 msgstr "Matt"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "matte skin finish"
 msgstr "matt bőr"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "Medium"
 msgstr "Közepes"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "messy bun"
 msgstr "kócos konty"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "messy textured"
 msgstr "kócos, texturált"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/index.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "Mustache"
 msgstr "Bajusz"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "Nails"
 msgstr "Köröm"
+
+#: src/routes/studio.$avatarId.tsx
+msgid "Nails reference"
+msgstr "Körömminta"
 
 #: src/components/avatars/avatar-uploader.tsx
 #: src/components/avatars/rename-avatar-dialog.tsx
@@ -730,7 +762,6 @@ msgstr "Köröm"
 msgid "Name"
 msgstr "Név"
 
-#: src/components/avatars/rename-avatar-dialog.tsx
 #: src/i18n/server-errors.ts
 msgid "Name is required."
 msgstr "A név megadása kötelező."
@@ -747,6 +778,10 @@ msgstr "Új"
 msgid "No avatars yet"
 msgstr "Még nincs avatárod"
 
+#: src/routes/studio.$avatarId.tsx
+msgid "No face detected in the baseline portrait."
+msgstr "Nem találtunk arcot a portréfotón."
+
 #: src/routes/saved.tsx
 msgid "No looks for this avatar yet"
 msgstr "Ehhez az avatárhoz még nincs stílus"
@@ -755,17 +790,21 @@ msgstr "Ehhez az avatárhoz még nincs stílus"
 msgid "No saved looks yet"
 msgstr "Még nincs mentett stílus"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/controls.tsx
 msgid "Off"
 msgstr "Ki"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/controls.tsx
 msgid "On"
 msgstr "Be"
 
 #: src/components/avatars/avatar-uploader.tsx
-msgid "Only the first {MAX_PHOTOS} photos are used."
-msgstr "Csak az első {MAX_PHOTOS} fotó használható."
+#~ msgid "Only the first {MAX_PHOTOS} photos are used."
+#~ msgstr "Csak az első {MAX_PHOTOS} fotó használható."
+
+#: src/components/avatars/avatar-uploader.tsx
+msgid "Only the first {MAX_SOURCE_PHOTOS} photos are used."
+msgstr "Csak az első {MAX_SOURCE_PHOTOS} fotót használjuk."
 
 #: src/routes/index.tsx
 msgid "Open"
@@ -779,11 +818,11 @@ msgstr "Nyiss meg egy avatárt, készíts egy rendert, majd nyomd meg a Mentést
 msgid "Open studio"
 msgstr "Stúdió megnyitása"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/controls.tsx
 msgid "Optional detail — e.g. honey balayage, side parted"
 msgstr "Opcionális részlet — pl. mézszínű balayage, oldalt elválasztva"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/controls.tsx
 msgid "Optional detail — e.g. salt-and-pepper, side parted"
 msgstr "Opcionális részlet — pl. őszes, oldalt elválasztva"
 
@@ -795,7 +834,7 @@ msgstr "Avatáronként rendezve. Tetszőleges számú stílust menthetsz minden 
 msgid "Original"
 msgstr "Eredeti"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "oversized sunglasses"
 msgstr "túlméretezett napszemüveg"
 
@@ -807,7 +846,7 @@ msgstr "Készül a stílusod (15–30 mp)…"
 msgid "Password"
 msgstr "Jelszó"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "pencil mustache"
 msgstr "ceruzabajusz"
 
@@ -819,12 +858,16 @@ msgstr "Személyiség"
 msgid "Photo type"
 msgstr "Fotó típusa"
 
+#: src/components/avatars/avatar-uploader.tsx
+#~ msgid "Photos ({0} of {MAX_PHOTOS})"
+#~ msgstr "Fotók ({0} / {MAX_PHOTOS})"
+
 #. placeholder {0}: photos.length
 #: src/components/avatars/avatar-uploader.tsx
-msgid "Photos ({0} of {MAX_PHOTOS})"
-msgstr "Fotók ({0} / {MAX_PHOTOS})"
+msgid "Photos ({0} of {MAX_SOURCE_PHOTOS})"
+msgstr "Fotók ({0} / {MAX_SOURCE_PHOTOS})"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/index.tsx
 msgid "Pick a length, then refine with detail text."
 msgstr "Válassz hosszt, majd finomítsd szöveggel."
 
@@ -842,15 +885,15 @@ msgstr "Legfeljebb {0} fotót válassz."
 msgid "Pick the language used across the app."
 msgstr "Válaszd ki az alkalmazás nyelvét."
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "pixie cut"
 msgstr "pixi frizura"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "pixie with bangs"
 msgstr "pixi frufruval"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "pompadour"
 msgstr "pompadúr"
 
@@ -880,19 +923,19 @@ msgstr "A prompt megadása kötelező."
 msgid "Queued — waiting for the image model…"
 msgstr "Várakozik — a képmodellre vár…"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "quiff"
 msgstr "felfésült tincs"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "reading glasses"
 msgstr "olvasószemüveg"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/specialty-panels.tsx
 msgid "Recommendations"
 msgstr "Ajánlások"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "rectangle sunglasses"
 msgstr "szögletes napszemüveg"
 
@@ -929,8 +972,6 @@ msgid "Renamed."
 msgstr "Átnevezve."
 
 #: src/components/render/render-result.tsx
-#: src/components/studio/studio-sidebar.tsx
-#: src/routes/studio.$avatarId.tsx
 msgid "Render"
 msgstr "Render"
 
@@ -951,8 +992,8 @@ msgid "Render is not finished."
 msgstr "A render még nem fejeződött be."
 
 #: src/routes/studio.$avatarId.tsx
-#~ msgid "Render look"
-#~ msgstr "Stílus renderelése"
+msgid "Render look"
+msgstr "Stílus renderelése"
 
 #: src/i18n/server-errors.ts
 msgid "Render not found."
@@ -962,9 +1003,9 @@ msgstr "Render nem található."
 msgid "Render returned no image."
 msgstr "A render nem adott vissza képet."
 
-#: src/components/studio/studio-sidebar.tsx
-#~ msgid "Render this look"
-#~ msgstr "Rendereld ezt a stílust"
+#: src/components/studio/sidebar/specialty-panels.tsx
+msgid "Render this look"
+msgstr "Rendereld ezt a stílust"
 
 #. placeholder {0}: payload.reason
 #: src/i18n/server-errors.ts
@@ -979,7 +1020,7 @@ msgstr "Render: {title}"
 msgid "Rendering…"
 msgstr "Renderelés…"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/controls.tsx
 msgid "Reset"
 msgstr "Visszaállítás"
 
@@ -987,7 +1028,7 @@ msgstr "Visszaállítás"
 msgid "Reset all tools"
 msgstr "Összes eszköz visszaállítása"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/index.tsx
 msgid "Reshape via AI render — preserves identity."
 msgstr "Átformálás MI-renderrel — megőrzi az arcvonásaidat."
 
@@ -999,22 +1040,21 @@ msgstr "Újra"
 msgid "Retrying…"
 msgstr "Újrapróbálás…"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "round wire glasses"
 msgstr "kerek drótkeretes szemüveg"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "Satin"
 msgstr "Szatén"
 
 #: src/components/avatars/rename-avatar-dialog.tsx
-#: src/components/render/render-result.tsx
 msgid "Save"
 msgstr "Mentés"
 
 #: src/components/render/render-result.tsx
-#~ msgid "Save look"
-#~ msgstr "Stílus mentése"
+msgid "Save look"
+msgstr "Stílus mentése"
 
 #: src/components/app-shell.tsx
 msgid "Saved"
@@ -1049,7 +1089,7 @@ msgstr "Kiválasztott fotó: {position}"
 msgid "Selfie"
 msgstr "Szelfi"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "serene confident look"
 msgstr "nyugodt, magabiztos tekintet"
 
@@ -1058,39 +1098,43 @@ msgstr "nyugodt, magabiztos tekintet"
 msgid "Settings"
 msgstr "Beállítások"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "shaggy layers"
 msgstr "kócos rétegek"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "sharper, defined outline"
 msgstr "élesebb, határozott kontúr"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "Shaved"
 msgstr "Borotvált"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "shaved with stubble"
 msgstr "borotvált, borostával"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/routes/studio.$avatarId.tsx
+msgid "Shoes"
+msgstr "Cipő"
+
+#: src/components/studio/sidebar/presets.ts
 msgid "Short"
 msgstr "Rövid"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "short boxed beard"
 msgstr "rövid, szabályos szakáll"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "short crop"
 msgstr "rövid, nyírt frizura"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "short fade"
 msgstr "rövid fade"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "shoulder-length waves"
 msgstr "vállhosszú hullámok"
 
@@ -1098,7 +1142,7 @@ msgstr "vállhosszú hullámok"
 msgid "Show all"
 msgstr "Mindet mutasd"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "side part"
 msgstr "oldalra fésült"
 
@@ -1119,35 +1163,35 @@ msgstr "Kijelentkezés"
 msgid "Sign up"
 msgstr "Regisztráció"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "silk scarf"
 msgstr "selyemkendő"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/index.tsx
 msgid "Skin finish, freckles, expression."
 msgstr "Bőrhatás, szeplők, arckifejezés."
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "sleek high ponytail"
 msgstr "magas, sima lófarok"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "small stud earrings"
 msgstr "apró bedugós fülbevaló"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "soft natural brows"
 msgstr "lágy, természetes szemöldök"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "soft natural smile"
 msgstr "lágy, természetes mosoly"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "soft tan"
 msgstr "enyhe barnaság"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "softer, more natural lips"
 msgstr "lágyabb, természetesebb ajkak"
 
@@ -1164,31 +1208,31 @@ msgstr "Valami hiba történt: {0}"
 msgid "Something went wrong."
 msgstr "Valami hiba történt."
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "soul patch"
 msgstr "alsó ajak alatti szakállfolt"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "square black-frame glasses"
 msgstr "szögletes fekete keretes szemüveg"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "Statement"
 msgstr "Feltűnő"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "statement chandelier earrings"
 msgstr "csillár fülbevaló"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "straight brows"
 msgstr "egyenes szemöldök"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "stubble"
 msgstr "borosta"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/index.tsx
 msgid "Studio tool"
 msgstr "Stúdió eszköz"
 
@@ -1221,22 +1265,22 @@ msgid "Stylist returned an empty response."
 msgstr "A stylist üres választ adott."
 
 #: src/i18n/server-errors.ts
-msgid "Stylist returned an incomplete recommendation."
-msgstr "A stylist hiányos ajánlást adott."
+#~ msgid "Stylist returned an incomplete recommendation."
+#~ msgstr "A stylist hiányos ajánlást adott."
 
 #: src/i18n/server-errors.ts
 msgid "Stylist returned malformed JSON."
 msgstr "A stylist hibás JSON-t adott vissza."
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/index.tsx
 msgid "Subtle color on the brow polygons."
 msgstr "Finom szín a szemöldök körvonalán."
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "Suggest a complete look."
 msgstr "Javasolj egy teljes stílust."
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "sun-kissed glow"
 msgstr "napsütötte ragyogás"
 
@@ -1244,23 +1288,36 @@ msgstr "napsütötte ragyogás"
 msgid "Tailors the studio tools — e.g. hides beard/mustache on a feminine persona."
 msgstr "A stúdióeszközöket igazítja — pl. nőies avatárnál elrejti a szakállt és a bajuszt."
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "taper fade"
 msgstr "fokozatos fade"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "textured crop"
 msgstr "texturált rövid frizura"
+
+#. placeholder {0}: payload.max
+#: src/i18n/server-errors.ts
+msgid "That prompt is too long (limit: {0} characters)."
+msgstr "A prompt túl hosszú (limit: {0} karakter)."
+
+#: src/i18n/server-errors.ts
+msgid "That render input was already claimed."
+msgstr "Ezt a render-bemenetet már lefoglalták."
 
 #: src/components/error-boundary.tsx
 msgid "The app hit an unexpected error. Reload to start fresh."
 msgstr "Az alkalmazás váratlan hibába futott. Töltsd újra az újrakezdéshez."
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/i18n/server-errors.ts
+msgid "The render appears stuck. We've marked it as failed — please retry."
+msgstr "A render elakadt. Sikertelennek jelöltük — próbáld újra."
+
+#: src/components/studio/sidebar/presets.ts
 msgid "thick mustache"
 msgstr "vastag bajusz"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "thin, refined brows"
 msgstr "vékony, kifinomult szemöldök"
 
@@ -1276,7 +1333,7 @@ msgstr "Ez törli az összes avatárt, mentett stílust, rendert, feltöltött e
 msgid "This removes the avatar and every saved look, render, and try-on tied to it. The original photos and renders are deleted from storage too. This can't be undone."
 msgstr "Ezzel törlöd az avatárt és minden hozzá tartozó mentett stílust, rendert és próbát. Az eredeti fotók és renderek is törlődnek a tárhelyről. Ez nem visszavonható."
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "tight curls"
 msgstr "szoros fürtök"
 
@@ -1285,20 +1342,29 @@ msgstr "szoros fürtök"
 msgid "Tint makeup live, pick extras, ask the stylist, then render the look — every saved look stays under {0}."
 msgstr "Színezd a sminket élőben, válassz extrákat, kérdezd a stylistot, majd rendereld a stílust — minden mentett stílus {0} alatt marad."
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/index.tsx
 msgid "Tints the lid above each eye."
 msgstr "Színezi a szemhéjat a szemek fölött."
 
 #. placeholder {0}: title.toLowerCase()
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/controls.tsx
 msgid "Toggle {0}"
 msgstr "{0} be/ki"
 
-#: src/components/studio/studio-sidebar.tsx
+#. placeholder {0}: payload.max
+#: src/i18n/server-errors.ts
+msgid "Too many pending uploads (limit: {0}). Try again in a moment."
+msgstr "Túl sok függő feltöltés (limit: {0}). Próbáld újra egy pillanat múlva."
+
+#: src/routes/studio.$avatarId.tsx
+msgid "Top"
+msgstr "Felső"
+
+#: src/components/studio/sidebar/presets.ts
 msgid "top knot"
 msgstr "magas konty"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/specialty-panels.tsx
 msgid "Try on clothing"
 msgstr "Próbálj ruhát"
 
@@ -1310,15 +1376,15 @@ msgstr "Írd be: „{CONFIRMATION_PHRASE}” a megerősítéshez."
 msgid "Type <0>{CONFIRMATION_PHRASE}</0> to confirm"
 msgstr "Írd be: <0>{CONFIRMATION_PHRASE}</0> a megerősítéshez"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "undercut"
 msgstr "undercut"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "undercut with slick back"
 msgstr "undercut hátrafésülve"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "Updo"
 msgstr "Feltűzött"
 
@@ -1342,10 +1408,11 @@ msgstr "Tölts fel egy fotót. A böngésződben tömörítjük és eltávolítj
 msgid "Upload added."
 msgstr "Feltöltés hozzáadva."
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/specialty-panels.tsx
 msgid "Upload an item; renders use it as the reference."
 msgstr "Tölts fel egy elemet; a renderek azt használják referenciaként."
 
+#: src/components/avatars/avatar-uploader.tsx
 #: src/components/studio/uploaded-item-uploader.tsx
 msgid "Upload failed."
 msgstr "A feltöltés sikertelen."
@@ -1358,17 +1425,22 @@ msgstr "A feltöltött ruhák nem egy adott avatárhoz tartoznak, ezért megmara
 msgid "Uploading…"
 msgstr "Feltöltés…"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "Uploads"
 msgstr "Feltöltések"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/index.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "Vibe"
 msgstr "Hangulat"
 
 #: src/components/render/render-result.tsx
 msgid "View gallery"
 msgstr "Galéria megnyitása"
+
+#: src/routes/studio.$avatarId.tsx
+msgid "Wait for face landmarks to finish before rendering tinted looks."
+msgstr "Várd meg, amíg az arcjelölők elkészülnek, mielőtt sminkes lookot renderelsz."
 
 #. placeholder {0}: avatar.name
 #: src/components/avatars/baseline-status-gate.tsx
@@ -1379,25 +1451,34 @@ msgstr "Nem sikerült stúdióportrét generálnunk {0} fotóiból."
 msgid "Welcome back"
 msgstr "Üdv újra"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "What hairstyle would suit me?"
 msgstr "Milyen frizura állna nekem?"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "What lip colour should I try?"
 msgstr "Milyen ajakszínt próbáljak?"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "What outfit would flatter me?"
 msgstr "Milyen ruha állna jól nekem?"
 
-#: src/components/studio/studio-sidebar.tsx
+#: src/components/studio/sidebar/presets.ts
 msgid "wide-brim sun hat"
 msgstr "széles karimájú napkalap"
 
+#. placeholder {0}: payload.max
+#: src/i18n/server-errors.ts
+msgid "You already have {0} renders in flight. Wait for one to finish, then try again."
+msgstr "Már {0} render fut. Várd meg, amíg az egyik befejeződik, majd próbáld újra."
+
 #: src/routes/avatars.new.tsx
-msgid "You already have {MAX_AVATARS} avatars. Delete one to add another."
-msgstr "Már van {MAX_AVATARS} avatárod. Törölj egyet, hogy újat hozzáadhass."
+msgid "You already have {MAX_AVATARS_PER_USER} avatars. Delete one to add another."
+msgstr "Már {MAX_AVATARS_PER_USER} avatárod van. Töröld az egyiket egy újabbhoz."
+
+#: src/routes/avatars.new.tsx
+#~ msgid "You already have {MAX_AVATARS} avatars. Delete one to add another."
+#~ msgstr "Már van {MAX_AVATARS} avatárod. Törölj egyet, hogy újat hozzáadhass."
 
 #. placeholder {0}: payload.max
 #: src/i18n/server-errors.ts
@@ -1409,8 +1490,12 @@ msgid "You're not signed in."
 msgstr "Nem vagy bejelentkezve."
 
 #: src/routes/avatars.index.tsx
-msgid "You've reached the {MAX_AVATARS}-avatar limit. Delete one to add another."
-msgstr "Elérted a {MAX_AVATARS} avatáros korlátot. Törölj egyet, hogy újat hozzáadhass."
+msgid "You've reached the {MAX_AVATARS_PER_USER}-avatar limit. Delete one to add another."
+msgstr "Elérted a {MAX_AVATARS_PER_USER} avatáros limitet. Töröld az egyiket egy újabbhoz."
+
+#: src/routes/avatars.index.tsx
+#~ msgid "You've reached the {MAX_AVATARS}-avatar limit. Delete one to add another."
+#~ msgstr "Elérted a {MAX_AVATARS} avatáros korlátot. Törölj egyet, hogy újat hozzáadhass."
 
 #: src/routes/avatars.index.tsx
 msgid "Your avatars"
@@ -1423,3 +1508,7 @@ msgstr "Az avatáraid és stílusaid privátak maradnak."
 #: src/routes/settings.tsx
 msgid "Your private account details."
 msgstr "Privát fiókadataid."
+
+#: src/i18n/server-errors.ts
+msgid "Your studio portrait isn't ready yet. Try again once it finishes."
+msgstr "A stúdió portrédd még nem áll készen. Próbáld újra, ha elkészült."

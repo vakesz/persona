@@ -8,14 +8,17 @@ export const Route = createRootRoute({
   component: RootLayout,
 });
 
+// ErrorBoundary wraps AppShell (not just the routed children) so a render
+// crash in the header / nav / locale switcher also lands in the recovery UI
+// instead of white-screening the whole page.
 function RootLayout() {
   return (
     <>
-      <AppShell>
-        <ErrorBoundary>
+      <ErrorBoundary>
+        <AppShell>
           <Outlet />
-        </ErrorBoundary>
-      </AppShell>
+        </AppShell>
+      </ErrorBoundary>
       <Toaster />
     </>
   );

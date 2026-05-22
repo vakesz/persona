@@ -5,6 +5,8 @@ import type { Id } from './_generated/dataModel';
 import { action, internalAction } from './_generated/server';
 import { requireAuth } from './lib/auth';
 import { errors, serializeError } from './lib/errors';
+import { MAX_STYLIST_QUESTION_LENGTH } from './lib/limits';
+import { parseInputStorageId } from './lib/renderInput';
 
 // @types/node v25 no longer exposes `process` on globalThis; Convex actions run
 // in a V8 isolate that provides `process.env`, so a minimal local shim is the
@@ -138,7 +140,7 @@ export const analyzeStyleWithGemini = action({
     const imageBytes = new Uint8Array(await blob.arrayBuffer());
     const imageBase64 = bytesToBase64(imageBytes);
 
-    const trimmedQuestion = question.trim();
+    const trimmedQuestion = question.trim().slice(0, MAX_STYLIST_QUESTION_LENGTH);
     const userTurn =
       trimmedQuestion === ''
         ? 'Give me 3 looks that would really suit me, across hair / makeup / nails / clothes — whatever benefits me most.'
@@ -376,12 +378,24 @@ export const generateAvatarBaseline = internalAction({
       const outputMime = inlineData.mimeType ?? 'image/png';
       const outputBuffer = base64ToArrayBuffer(inlineData.data);
       const outputBlob = new Blob([outputBuffer], { type: outputMime });
+      // Hold the storage id outside the inner try so a `markBaselineDone`
+      // failure (transient Convex write error after the blob landed) can
+      // free the orphan blob — the periodic sweep walks `avatars`, not
+      // storage, so it wouldn't catch this otherwise.
       const baseImageStorageId = await ctx.storage.store(outputBlob);
-
-      await ctx.runMutation(internal.avatars.markBaselineDone, {
-        id: avatarId,
-        baseImageStorageId,
-      });
+      try {
+        await ctx.runMutation(internal.avatars.markBaselineDone, {
+          id: avatarId,
+          baseImageStorageId,
+        });
+      } catch (patchError) {
+        try {
+          await ctx.storage.delete(baseImageStorageId);
+        } catch (cleanupError) {
+          console.warn('Baseline orphan cleanup failed:', cleanupError);
+        }
+        throw patchError;
+      }
     } catch (error) {
       console.error('Baseline generation failed:', error);
       await ctx.runMutation(internal.avatars.markBaselineFailed, {
@@ -426,8 +440,12 @@ export const renderLookWithGemini = internalAction({
     // so there's nothing for us to clean up.
     if (job === null) return null;
 
-    // Parse `inputJson` up front so the finally block below can free the
-    // single-use input blob even if a later step throws.
+    // Pull the input storage id straight from the raw JSON string so that
+    // even if the full `JSON.parse` below blows up on a corrupt payload,
+    // the finally block can still free the single-use blob. Without this,
+    // a parse failure would orphan the studio's canvas snapshot.
+    const inputStorageId = parseInputStorageId(job.inputJson);
+
     let input: RenderInputJson | null = null;
     let parseFailure: unknown = null;
     try {
@@ -436,26 +454,27 @@ export const renderLookWithGemini = internalAction({
       parseFailure = error;
       console.error('Render job inputJson is corrupt:', error);
     }
-    const inputStorageId =
-      input?.inputStorageId === undefined ? null : (input.inputStorageId as Id<'_storage'>);
 
     // Atomic queued → processing transition. Returns false if another
     // invocation already claimed it or the job was concurrently deleted.
+    // If we lose the race, the winning invocation owns the input blob —
+    // it's encoded in the same `inputJson` field — so we must NOT free it
+    // here. Returning early before the try/finally is what skips that.
     const claimed = await ctx.runMutation(internal.renderJobs.claimRenderJob, { id: jobId });
     if (!claimed) {
-      // We never owned this run — but the studio's pre-claimed input blob
-      // (if any) is still ours to free, since the action that claims the
-      // job will see `input.inputStorageId === undefined` in its own copy
-      // of the job (or this branch). Actually: the inputStorageId lives in
-      // the same `inputJson`, so the other action also handles it. Don't
-      // double-free here.
       return null;
     }
 
+    // Hold the result storage id outside the try so a failure in
+    // `markRenderJobDone` (after the blob was uploaded) can free the orphan.
+    let resultStorageId: Id<'_storage'> | null = null;
     try {
       if (input === null) {
-        // serializeError below picks up the original parse failure.
-        throw parseFailure;
+        // `throw parseFailure` — but guard against `throw null` so the
+        // serialized error isn't a meaningless empty payload.
+        throw parseFailure instanceof Error
+          ? parseFailure
+          : new Error('Render job inputJson is corrupt');
       }
       const prompt = input.prompt;
 
@@ -551,14 +570,26 @@ export const renderLookWithGemini = internalAction({
       const outputMime = inlineData.mimeType ?? 'image/png';
       const outputBuffer = base64ToArrayBuffer(inlineData.data);
       const outputBlob = new Blob([outputBuffer], { type: outputMime });
-      const resultStorageId = await ctx.storage.store(outputBlob);
+      resultStorageId = await ctx.storage.store(outputBlob);
 
       await ctx.runMutation(internal.renderJobs.markRenderJobDone, {
         id: jobId,
         resultStorageId,
       });
+      // Mutation accepted ownership of the blob; clear so finally doesn't free it.
+      resultStorageId = null;
     } catch (error) {
       console.error('Render job failed:', error);
+      // The render bytes already landed but `markRenderJobDone` threw —
+      // free the orphan before the catch records the failure, otherwise
+      // nothing else points at it and the periodic sweep won't catch it.
+      if (resultStorageId !== null) {
+        try {
+          await ctx.storage.delete(resultStorageId);
+        } catch (cleanupError) {
+          console.warn('Render result orphan cleanup failed:', cleanupError);
+        }
+      }
       await ctx.runMutation(internal.renderJobs.markRenderJobFailed, {
         id: jobId,
         errorMessage: serializeError(error),

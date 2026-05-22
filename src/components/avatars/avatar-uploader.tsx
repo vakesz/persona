@@ -22,14 +22,13 @@ import { uploadBlobToConvex } from '@/lib/storage/upload';
 import { cn } from '@/lib/utils';
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
+import { MAX_AVATAR_NAME_LENGTH, MAX_SOURCE_PHOTOS } from '@convex/lib/limits';
 
 // Derive from the create mutation so schema changes flow through.
 type CreateAvatarArgs = FunctionArgs<typeof api.avatars.createAvatar>;
 type AvatarType = CreateAvatarArgs['type'];
 type AvatarGender = CreateAvatarArgs['gender'];
 type Status = 'idle' | 'compressing' | 'uploading' | 'saving';
-
-const MAX_PHOTOS = 5;
 
 interface PickedPhoto {
   /** Stable id for React keys + remove. */
@@ -73,9 +72,9 @@ export function AvatarUploader({ onCreated }: AvatarUploaderProps) {
   const addPickedFiles = (incoming: File[]) => {
     if (incoming.length === 0) return;
     setPhotos((prev) => {
-      const remaining = MAX_PHOTOS - prev.length;
+      const remaining = MAX_SOURCE_PHOTOS - prev.length;
       if (remaining <= 0) {
-        toast.error(t`At most ${MAX_PHOTOS} photos.`);
+        toast.error(t`At most ${MAX_SOURCE_PHOTOS} photos.`);
         return prev;
       }
       const accepted = incoming.slice(0, remaining).map<PickedPhoto>((file) => {
@@ -84,7 +83,7 @@ export function AvatarUploader({ onCreated }: AvatarUploaderProps) {
         return { id: crypto.randomUUID(), file, previewUrl };
       });
       if (incoming.length > remaining) {
-        toast.error(t`Only the first ${MAX_PHOTOS} photos are used.`);
+        toast.error(t`Only the first ${MAX_SOURCE_PHOTOS} photos are used.`);
       }
       return [...prev, ...accepted];
     });
@@ -128,7 +127,9 @@ export function AvatarUploader({ onCreated }: AvatarUploaderProps) {
       if (first === undefined) throw new Error('No photo selected.');
       const firstProcessed = await processAvatarImage(first.file);
       const restProcessed = await Promise.all(
-        photos.slice(1).map(async (photo) => (await processAvatarImage(photo.file)).base),
+        photos
+          .slice(1)
+          .map(async (photo) => (await processAvatarImage(photo.file, { thumbnail: false })).base),
       );
       const baseFiles = [firstProcessed.base, ...restProcessed];
 
@@ -162,7 +163,7 @@ export function AvatarUploader({ onCreated }: AvatarUploaderProps) {
           <div className="flex flex-col gap-2">
             <Label htmlFor="photo">
               <Trans>
-                Photos ({photos.length} of {MAX_PHOTOS})
+                Photos ({photos.length} of {MAX_SOURCE_PHOTOS})
               </Trans>
             </Label>
             <input
@@ -187,7 +188,7 @@ export function AvatarUploader({ onCreated }: AvatarUploaderProps) {
                   }}
                 />
               ))}
-              {photos.length < MAX_PHOTOS && (
+              {photos.length < MAX_SOURCE_PHOTOS && (
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
@@ -224,7 +225,7 @@ export function AvatarUploader({ onCreated }: AvatarUploaderProps) {
               placeholder={t`e.g. Weekend me`}
               disabled={busy}
               required
-              maxLength={40}
+              maxLength={MAX_AVATAR_NAME_LENGTH}
             />
           </div>
 

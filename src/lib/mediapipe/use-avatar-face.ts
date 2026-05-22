@@ -4,6 +4,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
 
+import {
+  FacePreparationError,
+  isFacePreparationError,
+  type FacePreparationErrorCode,
+} from './errors';
 import { isFaceLandmarksResult, type FaceLandmarksResult, runFaceLandmarker } from './face';
 import { isSegmentationResult, runImageSegmenter, type SegmentationResult } from './segmentation';
 
@@ -17,7 +22,11 @@ type FaceStatus = 'waiting-image' | 'computing' | 'ready' | 'failed';
 export interface UseAvatarFaceResult {
   face: PreparedFace | null;
   status: FaceStatus;
-  error: string | null;
+  /**
+   * Discriminated error code. The studio's `FaceStatusBanner` translates
+   * this — keep new codes in sync with the banner's switch statement.
+   */
+  errorCode: FacePreparationErrorCode | null;
 }
 
 function parseCached(
@@ -46,6 +55,10 @@ function parseCached(
  * the function never runs MediaPipe — Convex is the cache. Otherwise it runs
  * both MediaPipe tasks against the supplied baseline image, then persists the
  * result via `saveAvatarLandmarks` so the next visit is free.
+ *
+ * Caches the parsed shape across renders so an unrelated Convex query update
+ * doesn't trigger a fresh megabyte-scale `JSON.parse` — Convex returns new
+ * string identities on every patch even when the content is unchanged.
  */
 export function useAvatarFace(
   avatarId: Id<'avatars'>,
@@ -54,20 +67,33 @@ export function useAvatarFace(
   masksJson: string | undefined,
 ): UseAvatarFaceResult {
   const save = useMutation(api.avatars.saveAvatarLandmarks);
-  const [error, setError] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<FacePreparationErrorCode | null>(null);
   const inflightForAvatar = useRef<Id<'avatars'> | null>(null);
   // Avatars that already failed face preparation once in this session — we
   // don't retry them on every re-render, which would burn CPU on browsers
   // that lack WebGL or on baselines without a detectable face.
   const failedForAvatar = useRef<Id<'avatars'> | null>(null);
+  // Memoised parse result keyed by string contents — keeps useMemo's
+  // identity-based comparison from re-parsing megabyte JSON blobs whenever
+  // Convex's reactivity gives the same JSON a new string identity.
+  const parseCacheRef = useRef<{
+    landmarksJson: string | undefined;
+    masksJson: string | undefined;
+    result: PreparedFace | null;
+  } | null>(null);
 
-  const cached = useMemo<PreparedFace | null>(
-    () => parseCached(landmarksJson, masksJson),
-    [landmarksJson, masksJson],
-  );
+  const cached = useMemo<PreparedFace | null>(() => {
+    const cache = parseCacheRef.current;
+    if (cache !== null && cache.landmarksJson === landmarksJson && cache.masksJson === masksJson) {
+      return cache.result;
+    }
+    const result = parseCached(landmarksJson, masksJson);
+    parseCacheRef.current = { landmarksJson, masksJson, result };
+    return result;
+  }, [landmarksJson, masksJson]);
 
   useEffect(() => {
-    setError(null);
+    setErrorCode(null);
     inflightForAvatar.current = null;
     failedForAvatar.current = null;
   }, [avatarId]);
@@ -88,17 +114,24 @@ export function useAvatarFace(
         ]);
         if (cancellation.cancelled) return;
         if (face === null) {
-          throw new Error('No face detected in the baseline portrait.');
+          throw new FacePreparationError('no_face');
         }
         await save({
           id: avatarId,
           landmarksJson: JSON.stringify(face),
           masksJson: JSON.stringify(masks),
         });
+        // Convex's realtime push will flip `landmarksJson`/`masksJson` from
+        // undefined to populated on the next render, which makes `cached`
+        // non-null and the hook returns `ready`. Release the inflight gate
+        // here too so a stalled push doesn't lock the avatar in `computing`
+        // forever — the `cancelled` early-return above means we only reach
+        // this line in the not-cancelled branch.
+        inflightForAvatar.current = null;
       } catch (caught) {
         if (cancellation.cancelled) return;
         console.error('Face preparation failed:', caught);
-        setError(caught instanceof Error ? caught.message : 'Face preparation failed.');
+        setErrorCode(isFacePreparationError(caught) ? caught.code : 'unknown');
         inflightForAvatar.current = null;
         // Persist the failure for this avatar so the next render doesn't
         // immediately retry. The user can reload the page (or switch avatars
@@ -113,13 +146,13 @@ export function useAvatarFace(
   }, [avatarId, image, cached, save]);
 
   if (cached !== null) {
-    return { face: cached, status: 'ready', error: null };
+    return { face: cached, status: 'ready', errorCode: null };
   }
-  if (error !== null) {
-    return { face: null, status: 'failed', error };
+  if (errorCode !== null) {
+    return { face: null, status: 'failed', errorCode };
   }
   if (image === null) {
-    return { face: null, status: 'waiting-image', error: null };
+    return { face: null, status: 'waiting-image', errorCode: null };
   }
-  return { face: null, status: 'computing', error: null };
+  return { face: null, status: 'computing', errorCode: null };
 }

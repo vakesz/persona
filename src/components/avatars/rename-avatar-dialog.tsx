@@ -1,9 +1,8 @@
 import { Trans, useLingui } from '@lingui/react/macro';
+import { Loader2 } from 'lucide-react';
 import { type SyntheticEvent, useState } from 'react';
-import { toast } from 'sonner';
 
 import { useToastMutation } from '@/i18n/use-toast-mutation';
-import { Loader2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -18,6 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
+import { MAX_AVATAR_NAME_LENGTH } from '@convex/lib/limits';
 
 export interface RenameAvatarDialogProps {
   avatarId: Id<'avatars'> | null;
@@ -34,15 +34,13 @@ export function RenameAvatarDialog({ avatarId, currentName, onClose }: RenameAva
     successMessage: t`Renamed.`,
   });
   const [name, setName] = useState(currentName);
+  const trimmed = name.trim();
+  const canSave = !updateAvatar.pending && trimmed.length > 0 && trimmed !== currentName;
 
   const handleSubmit = (event: SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (avatarId === null) return;
-    const trimmed = name.trim();
-    if (trimmed.length === 0) {
-      toast.error(t`Name is required.`);
-      return;
-    }
+    if (!canSave) return;
     void updateAvatar.run({ id: avatarId, name: trimmed }).then((result) => {
       if (result !== undefined) onClose();
     });
@@ -79,7 +77,7 @@ export function RenameAvatarDialog({ avatarId, currentName, onClose }: RenameAva
               }}
               autoFocus
               required
-              maxLength={40}
+              maxLength={MAX_AVATAR_NAME_LENGTH}
               disabled={updateAvatar.pending}
             />
           </div>
@@ -88,7 +86,7 @@ export function RenameAvatarDialog({ avatarId, currentName, onClose }: RenameAva
           <Button type="button" variant="outline" onClick={onClose} disabled={updateAvatar.pending}>
             <Trans>Cancel</Trans>
           </Button>
-          <Button type="submit" disabled={updateAvatar.pending || name.trim() === currentName}>
+          <Button type="submit" disabled={!canSave}>
             {updateAvatar.pending ? <Loader2 className="animate-spin" /> : null}
             <Trans>Save</Trans>
           </Button>
