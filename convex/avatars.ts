@@ -69,7 +69,7 @@ export const listAvatars = query({
         // Pre-Phase-8 rows have no `baselineStatus`; treat them as ready —
         // their `baseImageStorageId` already points at a finished image.
         const status = avatar.baselineStatus ?? 'done';
-        // Prefer the Gemini-generated baseline once it's ready. Fall back
+        // Prefer the generated baseline once it's ready. Fall back
         // to the raw upload thumbnail only while the baseline is still
         // being generated (queued / processing / failed).
         const previewStorageId =
@@ -124,7 +124,7 @@ export const getAvatar = query({
 
 /**
  * Internal helper for actions that need an avatar's raw storage handle (e.g.
- * to fetch image bytes for Gemini). Returns null if the baseline isn't ready
+ * to fetch image bytes for AI). Returns null if the baseline isn't ready
  * yet — callers should gate on `baselineStatus === 'done'`.
  */
 export const getAvatarStorageForUser = internalQuery({
@@ -153,7 +153,7 @@ export const getAvatarStorageForUser = internalQuery({
 
 /**
  * Internal — used by `generateAvatarBaseline` to fetch the source photos it
- * needs to feed Gemini Flash Image. Auth-less; the caller validates state.
+ * needs to feed the image model. Auth-less; the caller validates state.
  */
 export const getAvatarForBaseline = internalQuery({
   args: { id: v.id('avatars') },
@@ -280,7 +280,7 @@ export const deleteAvatar = mutation({
 });
 
 /**
- * Re-runs the Gemini baseline for an avatar that previously failed (e.g. quota
+ * Re-runs baseline generation for an avatar that previously failed (e.g. quota
  * 429). Owner-only; only valid in the `failed` state so we don't queue duplicate
  * work while one is already running.
  */
@@ -310,7 +310,7 @@ export const retryAvatarBaseline = mutation({
  * Atomic `queued|failed → processing` transition. The render action calls this
  * once instead of a separate read + `markBaselineProcessing` pair, so two
  * concurrent invocations (e.g. a fast double-tap on Retry that escaped client
- * de-duping) can't both pass the gate and double-bill Gemini. Returns true
+ * de-duping) can't both pass the gate and double-bill the provider. Returns true
  * iff this caller actually claimed the work.
  */
 export const claimBaselineGeneration = internalMutation({

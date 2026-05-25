@@ -63,7 +63,7 @@ export const DEFAULT_STUDIO_STATE: StudioState = {
 
 function tintApplied(tint: ColorTint): boolean {
   // An enabled-but-intensity-0 tint produces no visible pixels — skipping
-  // the flatten-and-upload path keeps us from telling Gemini to "preserve
+  // the flatten-and-upload path keeps us from telling the model to "preserve
   // makeup" that isn't actually visible in the input snapshot.
   return tint.enabled && tint.intensity > 0;
 }
@@ -102,7 +102,7 @@ export function hasAnyChange(state: StudioState): boolean {
 /**
  * Builds the natural-language prompt for the AI render. The flattened canvas
  * we send already shows the makeup tints, so the prompt only needs to:
- *  - tell Gemini to preserve the look (so it doesn't "clean" the makeup);
+ *  - tell the model to preserve the look (so it doesn't "clean" the makeup);
  *  - describe the geometry-changing additions (shape, beard, hair, accessories);
  *  - mention the try-on item if one is queued.
  *
@@ -114,7 +114,7 @@ export function hasAnyChange(state: StudioState): boolean {
  * persona. Without it, e.g. a beard preset set while the avatar was
  * `unspecified` could leak into the prompt after the persona is narrowed.
  *
- * Wording note: Gemini image-edit models work best when an edit is described
+ * Wording note: image-edit models work best when an edit is described
  * as a specific local change with the untouched areas named explicitly. Custom
  * user-supplied descriptions may be in any language — that hint is set
  * server-side via IMAGE_SYSTEM_INSTRUCTION.

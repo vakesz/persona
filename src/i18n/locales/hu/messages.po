@@ -23,6 +23,32 @@ msgstr "{0, plural, one {# avatár.} other {# avatár.}}"
 msgid "{0, plural, one {# look} other {# looks}}"
 msgstr "{0, plural, one {# stílus} other {# stílus}}"
 
+#. placeholder {0}: payload.provider
+#. placeholder {1}: payload.operation
+#. placeholder {2}: payload.status
+#. placeholder {3}: payload.detail
+#: src/i18n/server-errors.ts
+msgid "{0} failed for {1} (HTTP {2}): {3}"
+msgstr "A(z) {0} hívás sikertelen volt ennél: {1} (HTTP {2}): {3}"
+
+#. placeholder {0}: payload.provider
+#: src/i18n/server-errors.ts
+msgid "{0} is not configured."
+msgstr "A(z) {0} nincs beállítva."
+
+#. placeholder {0}: payload.provider
+#. placeholder {1}: payload.operation
+#: src/i18n/server-errors.ts
+msgid "{0} quota reached for {1}. Try again later, or upgrade billing."
+msgstr "A(z) {0} kvótája elfogyott ennél: {1}. Próbáld újra később, vagy frissítsd a számlázást."
+
+#. placeholder {0}: payload.provider
+#. placeholder {1}: payload.operation
+#. placeholder {2}: payload.status
+#: src/i18n/server-errors.ts
+msgid "{0} rejected the request for {1} (HTTP {2}). Check your provider credentials."
+msgstr "A(z) {0} elutasította a kérést ennél: {1} (HTTP {2}). Ellenőrizd a szolgáltatói hitelesítő adatokat."
+
 #. placeholder {0}: ready.name
 #: src/routes/studio.$avatarId.tsx
 msgid "{0}'s looks"
@@ -58,14 +84,20 @@ msgstr "Még egy hozzáadása"
 msgid "Add photo"
 msgstr "Fotó hozzáadása"
 
+#: src/components/avatars/baseline-status-gate.tsx
+msgid "AI is composing your canonical studio portrait from the photos you uploaded. This usually takes 10–30 seconds. The page will update automatically."
+msgstr ""
+
+#: src/components/studio/sidebar/specialty-panels.tsx
+msgid "AI reads your portrait and suggests looks."
+msgstr ""
+
 #. placeholder {0}: totalLooks.toString()
 #: src/routes/saved.tsx
 msgid "All ({0})"
 msgstr "Összes ({0})"
 
 #: src/routes/studio.$avatarId.tsx
-#~ msgid "All avatars"
-#~ msgstr "Összes avatár"
 
 #: src/routes/auth.tsx
 msgid "Already have an account? "
@@ -92,8 +124,6 @@ msgid "Ask the stylist"
 msgstr "Kérdezd a stylistot"
 
 #: src/components/avatars/avatar-uploader.tsx
-#~ msgid "At most {MAX_PHOTOS} photos."
-#~ msgstr "Legfeljebb {MAX_PHOTOS} fotó."
 
 #: src/components/avatars/avatar-uploader.tsx
 msgid "At most {MAX_SOURCE_PHOTOS} photos."
@@ -144,8 +174,6 @@ msgstr "Vissza"
 
 #: src/components/avatars/baseline-status-gate.tsx
 #: src/routes/avatars.new.tsx
-#~ msgid "Back to avatars"
-#~ msgstr "Vissza az avatárokhoz"
 
 #: src/components/studio/sidebar/presets.ts
 msgid "baseball cap"
@@ -240,8 +268,6 @@ msgid "chin-length bob"
 msgstr "álligérő bob"
 
 #: src/routes/saved.tsx
-#~ msgid "Choose"
-#~ msgstr "Válassz"
 
 #: src/routes/saved.tsx
 msgid "Choose an avatar"
@@ -284,12 +310,8 @@ msgid "Could not create that account. Try a different email."
 msgstr "Nem sikerült létrehozni a fiókot. Próbálj másik e-mail-címet."
 
 #: src/routes/saved.tsx
-#~ msgid "Could not delete look."
-#~ msgstr "Nem sikerült törölni a stílust."
 
 #: src/routes/studio.$avatarId.tsx
-#~ msgid "Could not delete upload."
-#~ msgstr "Nem sikerült törölni a feltöltést."
 
 #: src/routes/studio.$avatarId.tsx
 msgid "Could not prepare studio tools."
@@ -320,8 +342,6 @@ msgid "Create an avatar"
 msgstr "Avatár létrehozása"
 
 #: src/components/avatars/avatar-uploader.tsx
-#~ msgid "Create avatar"
-#~ msgstr "Avatár létrehozása"
 
 #. placeholder {0}: avatars.length
 #: src/routes/avatars.index.tsx
@@ -329,8 +349,6 @@ msgid "Create up to {MAX_AVATARS_PER_USER} private avatars ({0} so far)."
 msgstr "Hozz létre legfeljebb {MAX_AVATARS_PER_USER} privát avatárt (eddig {0})."
 
 #: src/routes/avatars.index.tsx
-#~ msgid "Create up to {MAX_AVATARS} private avatars ({0} so far)."
-#~ msgstr "Hozz létre legfeljebb {MAX_AVATARS} privát avatárt (eddig {0})."
 
 #: src/routes/auth.tsx
 msgid "Create your account"
@@ -432,8 +450,6 @@ msgid "Email"
 msgstr "E-mail"
 
 #: src/components/studio/studio-sidebar.tsx
-#~ msgid "Enabled"
-#~ msgstr "Bekapcsolva"
 
 #: src/components/studio/sidebar/presets.ts
 msgid "Extras"
@@ -513,35 +529,17 @@ msgstr "teltebb ajkak"
 msgid "fully shaved"
 msgstr "teljesen kopaszra borotvált"
 
-#. placeholder {0}: payload.operation
-#. placeholder {1}: payload.status
-#. placeholder {2}: payload.detail
 #: src/i18n/server-errors.ts
-msgid "Gemini failed for {0} (HTTP {1}): {2}"
-msgstr "A Gemini-hívás sikertelen volt ennél: {0} (HTTP {1}): {2}"
 
 #: src/components/avatars/baseline-status-gate.tsx
-msgid "Gemini is composing your canonical studio portrait from the photos you uploaded. This usually takes 10–30 seconds. The page will update automatically."
-msgstr "A Gemini összeállítja a fő stúdióportrédat a feltöltött fotókból. Ez általában 10–30 másodperc. Az oldal automatikusan frissül."
 
-#. placeholder {0}: payload.operation
 #: src/i18n/server-errors.ts
-msgid "Gemini quota reached for {0}. Try again later, or upgrade billing."
-msgstr "Elérted a Gemini-kvótát ennél: {0}. Próbáld újra később, vagy frissítsd a számlázást."
 
 #: src/components/studio/sidebar/specialty-panels.tsx
-msgid "Gemini reads your portrait and suggests looks."
-msgstr "A Gemini elemzi a portrédat és stílusokat javasol."
-
-#. placeholder {0}: payload.operation
-#. placeholder {1}: payload.status
-#: src/i18n/server-errors.ts
-msgid "Gemini rejected the request for {0} (HTTP {1}). Check your API key."
-msgstr "A Gemini elutasította a kérést ennél: {0} (HTTP {1}). Ellenőrizd az API-kulcsodat."
 
 #: src/i18n/server-errors.ts
-msgid "GEMINI_API_KEY is not configured."
-msgstr "A GEMINI_API_KEY nincs beállítva."
+
+#: src/i18n/server-errors.ts
 
 #: src/components/studio/sidebar/index.tsx
 msgid "Geometry change — runs the AI render."
@@ -565,8 +563,6 @@ msgid "Gloss"
 msgstr "Fényes"
 
 #: src/routes/index.tsx
-#~ msgid "Go to your avatars"
-#~ msgstr "Ugrás az avatáraidhoz"
 
 #: src/components/studio/sidebar/presets.ts
 msgid "goatee"
@@ -711,8 +707,6 @@ msgid "Manage"
 msgstr "Kezelés"
 
 #: src/routes/settings.tsx
-#~ msgid "Manage avatars"
-#~ msgstr "Avatárok kezelése"
 
 #: src/routes/settings.tsx
 msgid "Manage your account, language, and avatars."
@@ -771,8 +765,6 @@ msgid "New"
 msgstr "Új"
 
 #: src/routes/avatars.index.tsx
-#~ msgid "New avatar"
-#~ msgstr "Új avatár"
 
 #: src/routes/avatars.index.tsx
 msgid "No avatars yet"
@@ -799,8 +791,6 @@ msgid "On"
 msgstr "Be"
 
 #: src/components/avatars/avatar-uploader.tsx
-#~ msgid "Only the first {MAX_PHOTOS} photos are used."
-#~ msgstr "Csak az első {MAX_PHOTOS} fotó használható."
 
 #: src/components/avatars/avatar-uploader.tsx
 msgid "Only the first {MAX_SOURCE_PHOTOS} photos are used."
@@ -859,8 +849,6 @@ msgid "Photo type"
 msgstr "Fotó típusa"
 
 #: src/components/avatars/avatar-uploader.tsx
-#~ msgid "Photos ({0} of {MAX_PHOTOS})"
-#~ msgstr "Fotók ({0} / {MAX_PHOTOS})"
 
 #. placeholder {0}: photos.length
 #: src/components/avatars/avatar-uploader.tsx
@@ -1265,8 +1253,6 @@ msgid "Stylist returned an empty response."
 msgstr "A stylist üres választ adott."
 
 #: src/i18n/server-errors.ts
-#~ msgid "Stylist returned an incomplete recommendation."
-#~ msgstr "A stylist hiányos ajánlást adott."
 
 #: src/i18n/server-errors.ts
 msgid "Stylist returned malformed JSON."
@@ -1477,8 +1463,6 @@ msgid "You already have {MAX_AVATARS_PER_USER} avatars. Delete one to add anothe
 msgstr "Már {MAX_AVATARS_PER_USER} avatárod van. Töröld az egyiket egy újabbhoz."
 
 #: src/routes/avatars.new.tsx
-#~ msgid "You already have {MAX_AVATARS} avatars. Delete one to add another."
-#~ msgstr "Már van {MAX_AVATARS} avatárod. Törölj egyet, hogy újat hozzáadhass."
 
 #. placeholder {0}: payload.max
 #: src/i18n/server-errors.ts
@@ -1494,8 +1478,6 @@ msgid "You've reached the {MAX_AVATARS_PER_USER}-avatar limit. Delete one to add
 msgstr "Elérted a {MAX_AVATARS_PER_USER} avatáros limitet. Töröld az egyiket egy újabbhoz."
 
 #: src/routes/avatars.index.tsx
-#~ msgid "You've reached the {MAX_AVATARS}-avatar limit. Delete one to add another."
-#~ msgstr "Elérted a {MAX_AVATARS} avatáros korlátot. Törölj egyet, hogy újat hozzáadhass."
 
 #: src/routes/avatars.index.tsx
 msgid "Your avatars"

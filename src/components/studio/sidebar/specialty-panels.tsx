@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 import type { Id } from '@convex/_generated/dataModel';
 
 import { PanelHeader } from './controls';
-import { QUICK_ASK_PROMPTS, STYLE_LABEL_MESSAGES, type StylistRecommendation } from './presets';
+import { QUICK_ASK_PROMPTS, type StylistRecommendation } from './presets';
 
 export interface UploadedItemSummary {
   _id: Id<'uploadedItems'>;
@@ -117,7 +117,7 @@ export function AskPanel({
     <div className="flex flex-col gap-3">
       <PanelHeader
         title={t`Ask the stylist`}
-        subtitle={t`Gemini reads your portrait and suggests looks.`}
+        subtitle={t`AI reads your portrait and suggests looks.`}
       />
       <form className="flex flex-col gap-2" onSubmit={handleSubmit}>
         <textarea
@@ -181,7 +181,7 @@ export function AskPanel({
                 <div className="flex items-start justify-between gap-2">
                   <h4 className="text-sm leading-tight font-semibold">{recommendation.title}</h4>
                   <Badge variant="accent" className="shrink-0">
-                    {i18n._(STYLE_LABEL_MESSAGES[recommendation.styleType])}
+                    {recommendation.styleType}
                   </Badge>
                 </div>
                 <p className="text-muted-foreground text-xs leading-snug">

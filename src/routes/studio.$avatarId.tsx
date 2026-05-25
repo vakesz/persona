@@ -80,6 +80,10 @@ interface StudioProps {
   avatarId: Id<'avatars'>;
 }
 
+interface AnalyzeStyleResult {
+  recommendations: StylistRecommendation[];
+}
+
 function Studio({ avatarId }: StudioProps) {
   const { i18n, t } = useLingui();
   const avatar = useQuery(api.avatars.getAvatar, { id: avatarId });
@@ -90,7 +94,10 @@ function Studio({ avatarId }: StudioProps) {
   const discardRenderInput = useMutation(api.storage.discardRenderInput);
   const createRenderJob = useMutation(api.renderJobs.createRenderJob);
   const deleteUpload = useToastMutation(api.uploadedItems.deleteUploadedItem);
-  const analyze = useAction(api.ai.analyzeStyleWithGemini);
+  const analyze = useAction(api.ai.analyzeStyle) as (args: {
+    avatarId: Id<'avatars'>;
+    question: string;
+  }) => Promise<AnalyzeStyleResult>;
 
   const baselineImage = useImage(avatar?.baseImageUrl ?? '');
   const face = useAvatarFace(avatarId, baselineImage, avatar?.landmarksJson, avatar?.masksJson);
@@ -109,7 +116,7 @@ function Studio({ avatarId }: StudioProps) {
   const savedCount = savedLooks?.length ?? 0;
   // A render is "occupying the studio" while activeRender is set — we only
   // free the next-render slot when the user closes the result dialog, so a
-  // fast double-click can't queue two Gemini calls.
+  // fast double-click can't queue two AI calls.
   const renderSlotBusy = renderBusy || activeRender !== null;
   // When tints are applied we MUST flatten the canvas; that needs face
   // landmarks. Disable the Render button until both are true so we never
@@ -143,7 +150,7 @@ function Studio({ avatarId }: StudioProps) {
     setAskBusy(true);
     setAskError(null);
     analyze({ avatarId, question })
-      .then((result) => {
+      .then((result: AnalyzeStyleResult) => {
         setRecommendations(result.recommendations);
       })
       .catch((error: unknown) => {
@@ -203,7 +210,7 @@ function Studio({ avatarId }: StudioProps) {
     let pendingInputStorageId: Id<'_storage'> | undefined;
     try {
       // Bake the live makeup into the render input only when the user has
-      // applied some — preserves an exact handoff so Gemini doesn't drop the
+      // applied some — preserves an exact handoff so AI doesn't drop the
       // makeup. When no tints are applied, the avatar baseline is the input
       // and we skip the upload entirely.
       if (snapshotHasTints) {

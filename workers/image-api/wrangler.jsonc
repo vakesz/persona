@@ -1,0 +1,14 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "persona-image-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-05-25",
+  "compatibility_flags": ["nodejs_compat_v2"],
+  "ai": {
+    "binding": "AI",
+  },
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1,
+  },
+}

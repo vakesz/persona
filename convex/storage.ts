@@ -64,7 +64,7 @@ export const claimRenderInput = mutation({
 /**
  * Frees a blob the studio just uploaded as a render input when the subsequent
  * `createRenderJob` mutation failed (e.g. avatar was deleted between upload
- * and submit). Successful jobs free the blob in `renderLookWithGemini`'s
+ * and submit). Successful jobs free the blob in `renderLook`'s
  * finally instead.
  *
  * Ownership: only blobs the caller claimed via `claimRenderInput` are

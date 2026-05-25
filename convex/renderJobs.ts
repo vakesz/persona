@@ -86,7 +86,7 @@ export const createRenderJob = mutation({
 
     // Validate the studio's flattened-canvas blob is one this user actually
     // uploaded. Without this check, an authenticated attacker who learned
-    // another user's storage id could ship those bytes to Gemini and read
+    // another user's storage id could ship those bytes to the model and read
     // them back from the rendered output.
     if (inputStorageId !== undefined) {
       await consumePendingRenderInput(ctx, userId, inputStorageId);
@@ -96,7 +96,7 @@ export const createRenderJob = mutation({
       userId,
       avatarId,
       status: 'queued',
-      provider: 'gemini-flash-image',
+      provider: 'image-render',
       inputJson: JSON.stringify({
         prompt: trimmedPrompt,
         ...(title !== undefined && { title }),
@@ -106,7 +106,7 @@ export const createRenderJob = mutation({
       updatedAt: Date.now(),
     });
 
-    await ctx.scheduler.runAfter(0, internal.ai.renderLookWithGemini, { jobId });
+    await ctx.scheduler.runAfter(0, internal.ai.renderLook, { jobId });
     return jobId;
   },
 });

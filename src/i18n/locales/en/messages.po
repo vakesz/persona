@@ -23,6 +23,32 @@ msgstr "{0, plural, one {# avatar.} other {# avatars.}}"
 msgid "{0, plural, one {# look} other {# looks}}"
 msgstr "{0, plural, one {# look} other {# looks}}"
 
+#. placeholder {0}: payload.provider
+#. placeholder {1}: payload.operation
+#. placeholder {2}: payload.status
+#. placeholder {3}: payload.detail
+#: src/i18n/server-errors.ts
+msgid "{0} failed for {1} (HTTP {2}): {3}"
+msgstr "{0} failed for {1} (HTTP {2}): {3}"
+
+#. placeholder {0}: payload.provider
+#: src/i18n/server-errors.ts
+msgid "{0} is not configured."
+msgstr "{0} is not configured."
+
+#. placeholder {0}: payload.provider
+#. placeholder {1}: payload.operation
+#: src/i18n/server-errors.ts
+msgid "{0} quota reached for {1}. Try again later, or upgrade billing."
+msgstr "{0} quota reached for {1}. Try again later, or upgrade billing."
+
+#. placeholder {0}: payload.provider
+#. placeholder {1}: payload.operation
+#. placeholder {2}: payload.status
+#: src/i18n/server-errors.ts
+msgid "{0} rejected the request for {1} (HTTP {2}). Check your provider credentials."
+msgstr "{0} rejected the request for {1} (HTTP {2}). Check your provider credentials."
+
 #. placeholder {0}: ready.name
 #: src/routes/studio.$avatarId.tsx
 msgid "{0}'s looks"
@@ -58,14 +84,20 @@ msgstr "Add another"
 msgid "Add photo"
 msgstr "Add photo"
 
+#: src/components/avatars/baseline-status-gate.tsx
+msgid "AI is composing your canonical studio portrait from the photos you uploaded. This usually takes 10–30 seconds. The page will update automatically."
+msgstr "AI is composing your canonical studio portrait from the photos you uploaded. This usually takes 10–30 seconds. The page will update automatically."
+
+#: src/components/studio/sidebar/specialty-panels.tsx
+msgid "AI reads your portrait and suggests looks."
+msgstr "AI reads your portrait and suggests looks."
+
 #. placeholder {0}: totalLooks.toString()
 #: src/routes/saved.tsx
 msgid "All ({0})"
 msgstr "All ({0})"
 
 #: src/routes/studio.$avatarId.tsx
-#~ msgid "All avatars"
-#~ msgstr "All avatars"
 
 #: src/routes/auth.tsx
 msgid "Already have an account? "
@@ -92,8 +124,6 @@ msgid "Ask the stylist"
 msgstr "Ask the stylist"
 
 #: src/components/avatars/avatar-uploader.tsx
-#~ msgid "At most {MAX_PHOTOS} photos."
-#~ msgstr "At most {MAX_PHOTOS} photos."
 
 #: src/components/avatars/avatar-uploader.tsx
 msgid "At most {MAX_SOURCE_PHOTOS} photos."
@@ -144,8 +174,6 @@ msgstr "Back"
 
 #: src/components/avatars/baseline-status-gate.tsx
 #: src/routes/avatars.new.tsx
-#~ msgid "Back to avatars"
-#~ msgstr "Back to avatars"
 
 #: src/components/studio/sidebar/presets.ts
 msgid "baseball cap"
@@ -240,8 +268,6 @@ msgid "chin-length bob"
 msgstr "chin-length bob"
 
 #: src/routes/saved.tsx
-#~ msgid "Choose"
-#~ msgstr "Choose"
 
 #: src/routes/saved.tsx
 msgid "Choose an avatar"
@@ -284,12 +310,8 @@ msgid "Could not create that account. Try a different email."
 msgstr "Could not create that account. Try a different email."
 
 #: src/routes/saved.tsx
-#~ msgid "Could not delete look."
-#~ msgstr "Could not delete look."
 
 #: src/routes/studio.$avatarId.tsx
-#~ msgid "Could not delete upload."
-#~ msgstr "Could not delete upload."
 
 #: src/routes/studio.$avatarId.tsx
 msgid "Could not prepare studio tools."
@@ -320,8 +342,6 @@ msgid "Create an avatar"
 msgstr "Create an avatar"
 
 #: src/components/avatars/avatar-uploader.tsx
-#~ msgid "Create avatar"
-#~ msgstr "Create avatar"
 
 #. placeholder {0}: avatars.length
 #: src/routes/avatars.index.tsx
@@ -329,8 +349,6 @@ msgid "Create up to {MAX_AVATARS_PER_USER} private avatars ({0} so far)."
 msgstr "Create up to {MAX_AVATARS_PER_USER} private avatars ({0} so far)."
 
 #: src/routes/avatars.index.tsx
-#~ msgid "Create up to {MAX_AVATARS} private avatars ({0} so far)."
-#~ msgstr "Create up to {MAX_AVATARS} private avatars ({0} so far)."
 
 #: src/routes/auth.tsx
 msgid "Create your account"
@@ -432,8 +450,6 @@ msgid "Email"
 msgstr "Email"
 
 #: src/components/studio/studio-sidebar.tsx
-#~ msgid "Enabled"
-#~ msgstr "Enabled"
 
 #: src/components/studio/sidebar/presets.ts
 msgid "Extras"
@@ -513,35 +529,17 @@ msgstr "fuller, plumper lips"
 msgid "fully shaved"
 msgstr "fully shaved"
 
-#. placeholder {0}: payload.operation
-#. placeholder {1}: payload.status
-#. placeholder {2}: payload.detail
 #: src/i18n/server-errors.ts
-msgid "Gemini failed for {0} (HTTP {1}): {2}"
-msgstr "Gemini failed for {0} (HTTP {1}): {2}"
 
 #: src/components/avatars/baseline-status-gate.tsx
-msgid "Gemini is composing your canonical studio portrait from the photos you uploaded. This usually takes 10–30 seconds. The page will update automatically."
-msgstr "Gemini is composing your canonical studio portrait from the photos you uploaded. This usually takes 10–30 seconds. The page will update automatically."
 
-#. placeholder {0}: payload.operation
 #: src/i18n/server-errors.ts
-msgid "Gemini quota reached for {0}. Try again later, or upgrade billing."
-msgstr "Gemini quota reached for {0}. Try again later, or upgrade billing."
 
 #: src/components/studio/sidebar/specialty-panels.tsx
-msgid "Gemini reads your portrait and suggests looks."
-msgstr "Gemini reads your portrait and suggests looks."
-
-#. placeholder {0}: payload.operation
-#. placeholder {1}: payload.status
-#: src/i18n/server-errors.ts
-msgid "Gemini rejected the request for {0} (HTTP {1}). Check your API key."
-msgstr "Gemini rejected the request for {0} (HTTP {1}). Check your API key."
 
 #: src/i18n/server-errors.ts
-msgid "GEMINI_API_KEY is not configured."
-msgstr "GEMINI_API_KEY is not configured."
+
+#: src/i18n/server-errors.ts
 
 #: src/components/studio/sidebar/index.tsx
 msgid "Geometry change — runs the AI render."
@@ -565,8 +563,6 @@ msgid "Gloss"
 msgstr "Gloss"
 
 #: src/routes/index.tsx
-#~ msgid "Go to your avatars"
-#~ msgstr "Go to your avatars"
 
 #: src/components/studio/sidebar/presets.ts
 msgid "goatee"
@@ -711,8 +707,6 @@ msgid "Manage"
 msgstr "Manage"
 
 #: src/routes/settings.tsx
-#~ msgid "Manage avatars"
-#~ msgstr "Manage avatars"
 
 #: src/routes/settings.tsx
 msgid "Manage your account, language, and avatars."
@@ -771,8 +765,6 @@ msgid "New"
 msgstr "New"
 
 #: src/routes/avatars.index.tsx
-#~ msgid "New avatar"
-#~ msgstr "New avatar"
 
 #: src/routes/avatars.index.tsx
 msgid "No avatars yet"
@@ -799,8 +791,6 @@ msgid "On"
 msgstr "On"
 
 #: src/components/avatars/avatar-uploader.tsx
-#~ msgid "Only the first {MAX_PHOTOS} photos are used."
-#~ msgstr "Only the first {MAX_PHOTOS} photos are used."
 
 #: src/components/avatars/avatar-uploader.tsx
 msgid "Only the first {MAX_SOURCE_PHOTOS} photos are used."
@@ -859,8 +849,6 @@ msgid "Photo type"
 msgstr "Photo type"
 
 #: src/components/avatars/avatar-uploader.tsx
-#~ msgid "Photos ({0} of {MAX_PHOTOS})"
-#~ msgstr "Photos ({0} of {MAX_PHOTOS})"
 
 #. placeholder {0}: photos.length
 #: src/components/avatars/avatar-uploader.tsx
@@ -1265,8 +1253,6 @@ msgid "Stylist returned an empty response."
 msgstr "Stylist returned an empty response."
 
 #: src/i18n/server-errors.ts
-#~ msgid "Stylist returned an incomplete recommendation."
-#~ msgstr "Stylist returned an incomplete recommendation."
 
 #: src/i18n/server-errors.ts
 msgid "Stylist returned malformed JSON."
@@ -1477,8 +1463,6 @@ msgid "You already have {MAX_AVATARS_PER_USER} avatars. Delete one to add anothe
 msgstr "You already have {MAX_AVATARS_PER_USER} avatars. Delete one to add another."
 
 #: src/routes/avatars.new.tsx
-#~ msgid "You already have {MAX_AVATARS} avatars. Delete one to add another."
-#~ msgstr "You already have {MAX_AVATARS} avatars. Delete one to add another."
 
 #. placeholder {0}: payload.max
 #: src/i18n/server-errors.ts
@@ -1494,8 +1478,6 @@ msgid "You've reached the {MAX_AVATARS_PER_USER}-avatar limit. Delete one to add
 msgstr "You've reached the {MAX_AVATARS_PER_USER}-avatar limit. Delete one to add another."
 
 #: src/routes/avatars.index.tsx
-#~ msgid "You've reached the {MAX_AVATARS}-avatar limit. Delete one to add another."
-#~ msgstr "You've reached the {MAX_AVATARS}-avatar limit. Delete one to add another."
 
 #: src/routes/avatars.index.tsx
 msgid "Your avatars"

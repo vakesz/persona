@@ -14,8 +14,8 @@ build order.
 - **Convex Auth** — email/password authentication
 - **Tailwind CSS v4** + **shadcn/ui**
 - **React-Konva** — 2.5D studio canvas (zoom/pan/pinch, layered overlays, transformer)
-- **Gemini 2.5 Flash Lite** — stylist recommendations (vision + text)
-- **Gemini 2.5 Flash Image** — image edit / virtual try-on
+- **Cloudflare Workers AI Llama 3.2 11B Vision** — stylist recommendations (vision + text)
+- **Cloudflare Workers AI FLUX.2** — baseline generation + image edit / virtual try-on
 
 ## Prerequisites
 
@@ -34,9 +34,16 @@ npx convex dev
 # Generate JWT keys + SITE_URL for Convex Auth (run once, after convex dev).
 npx @convex-dev/auth
 
-# AI provider key (free tier is fine for personal use).
-# Get one at https://aistudio.google.com/apikey
-npx convex env set GEMINI_API_KEY <key>
+# Deploy the Worker with a Workers AI binding.
+pnpm cf:image:deploy
+
+# Set a random shared secret on the Worker.
+openssl rand -base64 32
+pnpm wrangler secret put IMAGE_API_SECRET --config workers/image-api/wrangler.jsonc
+
+# Point Convex at the deployed Worker and set the same secret there.
+npx convex env set CONVEX_CF_IMAGE_WORKER_URL https://persona-image-api.<your-subdomain>.workers.dev
+npx convex env set CONVEX_CF_IMAGE_WORKER_SECRET <same-secret>
 ```
 
 Then run the app and Convex backend together (two terminals):
@@ -48,47 +55,60 @@ pnpm convex     # Convex backend in watch mode
 
 ## AI model configuration
 
-Defaults are the cheapest stable GA Gemini models that support what we need;
-both are accessible on the free tier. To check what your key can call:
+All AI calls run through the included Cloudflare Worker. Override either model
+without code changes using Convex env vars:
+
+| Purpose                                 | Default model                            | Env var                   |
+| --------------------------------------- | ---------------------------------------- | ------------------------- |
+| Stylist recommendations (vision + text) | `@cf/meta/llama-3.2-11b-vision-instruct` | `CONVEX_CF_STYLIST_MODEL` |
+| Baseline + image rendering              | `@cf/black-forest-labs/flux-2-dev`       | `CONVEX_CF_IMAGE_MODEL`   |
+
+### Cloudflare Workers AI setup
+
+Baseline portraits, stylist analysis, and render jobs run through the Cloudflare Worker.
+The Worker calls Workers AI with multipart image references
+(`input_image_0`, `input_image_1`, up to 4) and returns the generated base64
+image to Convex, which still owns the app database and persisted image blobs.
 
 ```bash
-curl "https://generativelanguage.googleapis.com/v1beta/models?key=$GEMINI_API_KEY" \
-  | jq '.models[] | select(.supportedGenerationMethods[] | contains("generateContent")) | .name'
+# Deploy the Worker with a Workers AI binding.
+pnpm cf:image:deploy
+
+# Set a random shared secret on the Worker.
+openssl rand -base64 32
+pnpm wrangler secret put IMAGE_API_SECRET --config workers/image-api/wrangler.jsonc
+
+# Point Convex at the deployed Worker and enable the same secret there.
+npx convex env set CONVEX_CF_IMAGE_WORKER_URL https://persona-image-api.<your-subdomain>.workers.dev
+npx convex env set CONVEX_CF_IMAGE_WORKER_SECRET <same-secret>
+
+# Optional: use a faster/cheaper FLUX.2 model.
+npx convex env set CONVEX_CF_IMAGE_MODEL @cf/black-forest-labs/flux-2-klein-9b
+
+# Optional: change the stylist vision model.
+npx convex env set CONVEX_CF_STYLIST_MODEL @cf/meta/llama-3.2-11b-vision-instruct
 ```
-
-Override either model without a code change by setting Convex env vars:
-
-| Purpose                        | Default (free tier, stable) | Env var to override         | Newer preview (optional)         |
-| ------------------------------ | --------------------------- | --------------------------- | -------------------------------- |
-| Stylist recommendations (text) | `gemini-2.5-flash-lite`     | `CONVEX_GEMINI_MODEL`       | `gemini-3.1-flash-lite-preview`  |
-| AI render (image edit)         | `gemini-2.5-flash-image`    | `CONVEX_GEMINI_IMAGE_MODEL` | `gemini-3.1-flash-image-preview` |
-
-```bash
-# Example
-npx convex env set CONVEX_GEMINI_IMAGE_MODEL gemini-3.1-flash-image-preview
-```
-
-Preview models can change behaviour without notice; stay on GA unless quality
-demands an upgrade.
 
 ## Scripts
 
-| Script           | Description                                   |
-| ---------------- | --------------------------------------------- |
-| `pnpm dev`       | Vite dev server                               |
-| `pnpm convex`    | Convex backend in watch mode                  |
-| `pnpm build`     | Type-check + production build                 |
-| `pnpm typecheck` | `tsc -b` across app, node, and convex configs |
-| `pnpm lint`      | ESLint (strict, type-checked)                 |
-| `pnpm format`    | Prettier write                                |
-| `pnpm knip`      | Detect unused files, exports, dependencies    |
-| `pnpm check`     | typecheck + lint + format check + knip        |
+| Script                 | Description                                   |
+| ---------------------- | --------------------------------------------- |
+| `pnpm dev`             | Vite dev server                               |
+| `pnpm convex`          | Convex backend in watch mode                  |
+| `pnpm build`           | Type-check + production build                 |
+| `pnpm typecheck`       | `tsc -b` across app, node, and convex configs |
+| `pnpm lint`            | ESLint (strict, type-checked)                 |
+| `pnpm format`          | Prettier write                                |
+| `pnpm knip`            | Detect unused files, exports, dependencies    |
+| `pnpm check`           | typecheck + lint + format check + knip        |
+| `pnpm cf:image:dev`    | Run the Cloudflare image Worker locally       |
+| `pnpm cf:image:deploy` | Deploy the Cloudflare image Worker            |
 
 `pnpm check` is the gate — it must pass green before every commit.
 
 ## Project structure
 
-```
+```text
 src/
   routes/                  TanStack Router file routes
   components/
@@ -106,7 +126,9 @@ convex/
   recentItems.ts           Tried-item history per avatar
   renderJobs.ts            Job lifecycle (queued → processing → done/failed)
   savedLooks.ts            Promoted renders the user kept
-  ai.ts                    Gemini calls (text + image edit)
+  ai.ts                    Cloudflare stylist + image provider adapter
   storage.ts               Auth-gated upload URL
+workers/
+  image-api/               Cloudflare Workers AI FLUX.2 adapter
 PLAN.md                    Full MVP plan + engineering principles
 ```

@@ -31,7 +31,7 @@ export default defineSchema({
     // validate; those rows treat the original `baseImageStorageId` as the
     // ready-made baseline. New rows always set this.
     sourcePhotoStorageIds: v.optional(v.array(v.id('_storage'))),
-    // Canonical baseline portrait — Gemini-generated from the source photos.
+    // Canonical baseline portrait generated from the source photos.
     // Optional because it's filled async after avatar creation; the studio
     // gates on `baselineStatus === 'done'`.
     baseImageStorageId: v.optional(v.id('_storage')),
@@ -99,7 +99,7 @@ export default defineSchema({
   // uploads its flattened PNG, then claims the resulting `_storage` id here.
   // `createRenderJob` and `discardRenderInput` validate against this table so
   // an attacker who somehow learns another user's storage id can't trick
-  // Gemini into reading those bytes, and can't delete the blob either.
+  // the AI model into reading those bytes, and can't delete the blob either.
   // Rows are deleted on consume; stale rows (upload happened but the user
   // never queued/discarded the job) age out via `sweepStalePendingInputs`.
   pendingRenderInputs: defineTable({

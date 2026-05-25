@@ -1,25 +1,21 @@
 import { type MessageDescriptor } from '@lingui/core';
 import { msg } from '@lingui/core/macro';
-import type { FunctionReturnType } from 'convex/server';
 
 import type { LipFinish, AvatarGender } from '@/lib/studio/studio-state';
-import type { api } from '@convex/_generated/api';
 
 export type { AvatarGender } from '@/lib/studio/studio-state';
 
-/**
- * Derived from the stylist action's response so a schema change in
- * `convex/ai.ts` lights this file up at the type level instead of letting a
- * silent mismatch drift in. Replaces the previous hand-rolled duplicate.
- */
-export type StylistRecommendation = FunctionReturnType<
-  typeof api.ai.analyzeStyleWithGemini
->['recommendations'][number];
+type StylistStyleType = 'hair' | 'makeup' | 'nails' | 'clothes';
 
-export type StylistStyleType = StylistRecommendation['styleType'];
+export interface StylistRecommendation {
+  title: string;
+  description: string;
+  styleType: StylistStyleType;
+  renderPrompt: string;
+}
 
 /**
- * A preset's `value` is the literal English phrase sent to Gemini in the
+ * A preset's `value` is the literal English phrase sent to the AI model in the
  * render prompt — that keeps prompt quality stable across locales. `label`
  * is the user-visible chip text; translators can render it idiomatically.
  */
@@ -291,13 +287,6 @@ export const QUICK_ASK_PROMPTS: MessageDescriptor[] = [
   msg`Suggest a complete look.`,
   msg`What outfit would flatter me?`,
 ];
-
-export const STYLE_LABEL_MESSAGES: Record<StylistStyleType, MessageDescriptor> = {
-  hair: msg`Hair`,
-  makeup: msg`Makeup`,
-  nails: msg`Nails`,
-  clothes: msg`Clothes`,
-};
 
 export const FINISH_LABEL_MESSAGES: Record<LipFinish, MessageDescriptor> = {
   matte: msg`Matte`,

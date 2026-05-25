@@ -84,8 +84,6 @@ function messageFor(payload: ServerErrorPayload): AnyMessage {
       return msg`Prompt is required.`;
     case 'reference_item_not_found':
       return msg`Reference item not found.`;
-    case 'gemini_key_missing':
-      return msg`GEMINI_API_KEY is not configured.`;
     case 'avatar_image_missing':
       return msg`Avatar image is missing from storage.`;
     case 'stylist_empty_response':
@@ -120,12 +118,14 @@ function messageFor(payload: ServerErrorPayload): AnyMessage {
       return msg`Render returned no image.`;
     case 'reference_item_bytes_missing':
       return msg`Reference item bytes are missing from storage.`;
-    case 'gemini_quota':
-      return msg`Gemini quota reached for ${payload.operation}. Try again later, or upgrade billing.`;
-    case 'gemini_auth':
-      return msg`Gemini rejected the request for ${payload.operation} (HTTP ${payload.status}). Check your API key.`;
-    case 'gemini_failed':
-      return msg`Gemini failed for ${payload.operation} (HTTP ${payload.status}): ${payload.detail}`;
+    case 'image_provider_key_missing':
+      return msg`${payload.provider} is not configured.`;
+    case 'image_provider_quota':
+      return msg`${payload.provider} quota reached for ${payload.operation}. Try again later, or upgrade billing.`;
+    case 'image_provider_auth':
+      return msg`${payload.provider} rejected the request for ${payload.operation} (HTTP ${payload.status}). Check your provider credentials.`;
+    case 'image_provider_failed':
+      return msg`${payload.provider} failed for ${payload.operation} (HTTP ${payload.status}): ${payload.detail}`;
     case 'render_concurrency_exceeded':
       return msg`You already have ${payload.max} renders in flight. Wait for one to finish, then try again.`;
     case 'baseline_not_ready':

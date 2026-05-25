@@ -20,7 +20,6 @@ export type ServerErrorPayload =
   | { code: 'render_not_finished' }
   | { code: 'prompt_required' }
   | { code: 'reference_item_not_found' }
-  | { code: 'gemini_key_missing' }
   | { code: 'avatar_image_missing' }
   | { code: 'stylist_empty_response' }
   | { code: 'stylist_malformed_json' }
@@ -37,9 +36,16 @@ export type ServerErrorPayload =
   | { code: 'render_blocked'; reason: string }
   | { code: 'render_no_image' }
   | { code: 'reference_item_bytes_missing' }
-  | { code: 'gemini_quota'; operation: string }
-  | { code: 'gemini_auth'; operation: string; status: number }
-  | { code: 'gemini_failed'; operation: string; status: number; detail: string }
+  | { code: 'image_provider_key_missing'; provider: string }
+  | { code: 'image_provider_auth'; provider: string; operation: string; status: number }
+  | { code: 'image_provider_quota'; provider: string; operation: string }
+  | {
+      code: 'image_provider_failed';
+      provider: string;
+      operation: string;
+      status: number;
+      detail: string;
+    }
   | { code: 'render_concurrency_exceeded'; max: number }
   | { code: 'baseline_not_ready' }
   | { code: 'prompt_too_long'; max: number }
@@ -65,7 +71,6 @@ export const errors = {
   promptRequired: () => new ConvexError<ServerErrorPayload>({ code: 'prompt_required' }),
   referenceItemNotFound: () =>
     new ConvexError<ServerErrorPayload>({ code: 'reference_item_not_found' }),
-  geminiKeyMissing: () => new ConvexError<ServerErrorPayload>({ code: 'gemini_key_missing' }),
   avatarImageMissing: () => new ConvexError<ServerErrorPayload>({ code: 'avatar_image_missing' }),
   stylistEmptyResponse: () =>
     new ConvexError<ServerErrorPayload>({ code: 'stylist_empty_response' }),
@@ -89,12 +94,25 @@ export const errors = {
   renderNoImage: () => new ConvexError<ServerErrorPayload>({ code: 'render_no_image' }),
   referenceItemBytesMissing: () =>
     new ConvexError<ServerErrorPayload>({ code: 'reference_item_bytes_missing' }),
-  geminiQuota: (operation: string) =>
-    new ConvexError<ServerErrorPayload>({ code: 'gemini_quota', operation }),
-  geminiAuth: (operation: string, status: number) =>
-    new ConvexError<ServerErrorPayload>({ code: 'gemini_auth', operation, status }),
-  geminiFailed: (operation: string, status: number, detail: string) =>
-    new ConvexError<ServerErrorPayload>({ code: 'gemini_failed', operation, status, detail }),
+  imageProviderKeyMissing: (provider: string) =>
+    new ConvexError<ServerErrorPayload>({ code: 'image_provider_key_missing', provider }),
+  imageProviderAuth: (provider: string, operation: string, status: number) =>
+    new ConvexError<ServerErrorPayload>({
+      code: 'image_provider_auth',
+      provider,
+      operation,
+      status,
+    }),
+  imageProviderQuota: (provider: string, operation: string) =>
+    new ConvexError<ServerErrorPayload>({ code: 'image_provider_quota', provider, operation }),
+  imageProviderFailed: (provider: string, operation: string, status: number, detail: string) =>
+    new ConvexError<ServerErrorPayload>({
+      code: 'image_provider_failed',
+      provider,
+      operation,
+      status,
+      detail,
+    }),
   renderConcurrencyExceeded: (max: number) =>
     new ConvexError<ServerErrorPayload>({ code: 'render_concurrency_exceeded', max }),
   baselineNotReady: () => new ConvexError<ServerErrorPayload>({ code: 'baseline_not_ready' }),

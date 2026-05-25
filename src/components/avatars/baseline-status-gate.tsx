@@ -89,7 +89,7 @@ export function BaselineStatusGate({ avatar, children }: BaselineStatusGateProps
         </h1>
         <p className="text-muted-foreground max-w-md text-sm">
           <Trans>
-            Gemini is composing your canonical studio portrait from the photos you uploaded. This
+            AI is composing your canonical studio portrait from the photos you uploaded. This
             usually takes 10–30 seconds. The page will update automatically.
           </Trans>
         </p>
