@@ -170,7 +170,7 @@ export function composeRenderPrompt(state: StudioState, gender: AvatarGender): s
   }
   if (allowed.has('hairstyle') && planActive(state.hairstyle)) {
     parts.push(
-      `Edit only the hair on my head: restyle it into ${describePlan(state.hairstyle)}. Replace the visible hairstyle with a coherent, realistic version of that exact cut, length, silhouette, texture, and fringe/bangs if specified. Preserve my natural hair color unless the hairstyle description explicitly asks for another color. Keep my real face, forehead size, ears, jaw, neck, shoulders, glasses, makeup, clothing, background, lighting, crop, head size, and image aspect ratio unchanged. Do not alter facial features, expression, skin texture, apparent age, or body shape. Keep the hairline natural and attached to my head; only cover or reveal the forehead where the requested hairstyle naturally does so.`,
+      `Edit only the hair pixels on my head: restyle them into ${describePlan(state.hairstyle)}. Replace the visible hairstyle with a coherent, realistic version of that exact cut, length, silhouette, texture, and fringe/bangs if specified. Preserve my natural hair color unless the hairstyle description explicitly asks for another color. Treat my face as locked identity reference: do not redraw, beautify, symmetrize, slim, widen, de-age, smooth, or otherwise change my eyes, eyebrows, glasses, nose, cheeks, mouth, lips, chin, jawline, skin texture, expression, forehead size, ears, neck, shoulders, clothing, background, lighting, crop, head size, or image aspect ratio. Keep the hairline natural and attached to my head; only cover or reveal the forehead where the requested hairstyle naturally does so.`,
     );
   }
   if (allowed.has('eyewear') && planActive(state.eyewear)) {

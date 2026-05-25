@@ -204,9 +204,9 @@ export function AvatarUploader({ onCreated }: AvatarUploaderProps) {
             </div>
             <p className="text-muted-foreground text-xs">
               <Trans>
-                First photo becomes the front reference. Extra angles (¾ left / right, full body)
-                help the AI preserve your identity. Each photo is compressed and EXIF-stripped in
-                your browser before upload.
+                First photo is the identity anchor. Extra angles (¾ left / right, full body) help
+                the AI preserve your features. Each photo is compressed and EXIF-stripped in your
+                browser before upload.
               </Trans>
             </p>
           </div>

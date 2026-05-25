@@ -108,6 +108,24 @@ function boundedNumberField({
   return String(Math.min(max, Math.max(min, Math.round(value))));
 }
 
+function boundedFloatField({
+  form,
+  name,
+  fallback,
+  min,
+  max,
+}: {
+  form: FormData;
+  name: string;
+  fallback: number;
+  min: number;
+  max: number;
+}): string {
+  const value = Number(textField(form, name, String(fallback)));
+  if (!Number.isFinite(value)) return String(fallback);
+  return String(Math.min(max, Math.max(min, value)));
+}
+
 function appendReferenceImages(source: FormData, target: FormData): void {
   for (let index = 0; index < MAX_REFERENCE_IMAGES; index += 1) {
     const value = source.get(`input_image_${index}`);
@@ -115,6 +133,16 @@ function appendReferenceImages(source: FormData, target: FormData): void {
       target.append(`input_image_${index}`, value, value.name || `input-${index}.jpg`);
     }
   }
+}
+
+function hasTooManyReferenceImages(source: FormData): boolean {
+  for (const key of source.keys()) {
+    const match = /^input_image_(\d+)$/.exec(key);
+    if (match === null) continue;
+    const index = Number(match[1]);
+    if (Number.isInteger(index) && index >= MAX_REFERENCE_IMAGES) return true;
+  }
+  return false;
 }
 
 function fileField(form: FormData, name: string): File | null {
@@ -161,6 +189,12 @@ async function handleImageRequest(env: WorkerEnv, incoming: FormData): Promise<R
   if (prompt === '') {
     return jsonError({ code: 'bad_request', error: 'Missing prompt' }, 400);
   }
+  if (hasTooManyReferenceImages(incoming)) {
+    return jsonError(
+      { code: 'bad_request', error: `Too many reference images; max is ${MAX_REFERENCE_IMAGES}` },
+      400,
+    );
+  }
 
   const model = textField(incoming, 'model', DEFAULT_IMAGE_MODEL);
   const form = new FormData();
@@ -170,12 +204,16 @@ async function handleImageRequest(env: WorkerEnv, incoming: FormData): Promise<R
     boundedNumberField({ form: incoming, name: 'steps', fallback: 25, min: 1, max: 50 }),
   );
   form.append(
+    'guidance',
+    boundedFloatField({ form: incoming, name: 'guidance', fallback: 2, min: 1, max: 10 }),
+  );
+  form.append(
     'width',
-    boundedNumberField({ form: incoming, name: 'width', fallback: 1024, min: 256, max: 2048 }),
+    boundedNumberField({ form: incoming, name: 'width', fallback: 1024, min: 256, max: 1920 }),
   );
   form.append(
     'height',
-    boundedNumberField({ form: incoming, name: 'height', fallback: 1024, min: 256, max: 2048 }),
+    boundedNumberField({ form: incoming, name: 'height', fallback: 1024, min: 256, max: 1920 }),
   );
   appendReferenceImages(incoming, form);
 

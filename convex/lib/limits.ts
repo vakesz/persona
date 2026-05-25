@@ -8,7 +8,8 @@
  */
 
 export const MAX_AVATARS_PER_USER = 3;
-export const MAX_SOURCE_PHOTOS = 5;
+// Cloudflare FLUX.2 [dev] on Workers AI accepts up to 4 image inputs.
+export const MAX_SOURCE_PHOTOS = 4;
 
 /**
  * Maximum number of in-flight (`queued` or `processing`) render jobs a single

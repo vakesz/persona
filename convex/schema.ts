@@ -27,11 +27,11 @@ export default defineSchema({
     // male, blush/lipstick for female). Optional so legacy rows still validate
     // — those rows behave as `unspecified` (every tool visible).
     gender: v.optional(v.union(v.literal('male'), v.literal('female'), v.literal('unspecified'))),
-    // 1–5 raw uploads (Phase 8+). Optional so pre-Phase-8 rows still
+    // 1–4 raw uploads (Phase 8+). Optional so pre-Phase-8 rows still
     // validate; those rows treat the original `baseImageStorageId` as the
     // ready-made baseline. New rows always set this.
     sourcePhotoStorageIds: v.optional(v.array(v.id('_storage'))),
-    // Canonical baseline portrait generated from the source photos.
+    // Canonical generated baseline used by the studio and render pipeline.
     // Optional because it's filled async after avatar creation; the studio
     // gates on `baselineStatus === 'done'`.
     baseImageStorageId: v.optional(v.id('_storage')),

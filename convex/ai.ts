@@ -5,7 +5,7 @@ import type { Id } from './_generated/dataModel';
 import { action, internalAction } from './_generated/server';
 import { requireAuth } from './lib/auth';
 import { errors, serializeError } from './lib/errors';
-import { MAX_STYLIST_QUESTION_LENGTH } from './lib/limits';
+import { MAX_SOURCE_PHOTOS, MAX_STYLIST_QUESTION_LENGTH } from './lib/limits';
 import { parseInputStorageId } from './lib/renderInput';
 
 // @types/node v25 no longer exposes `process` on globalThis; Convex actions run
@@ -167,6 +167,7 @@ async function generateImageWithCloudflareWorker({
   prompt,
   references,
   steps,
+  guidance,
   width,
   height,
 }: {
@@ -174,6 +175,7 @@ async function generateImageWithCloudflareWorker({
   prompt: string;
   references: ImageReference[];
   steps: number;
+  guidance: number;
   width: number;
   height: number;
 }): Promise<GeneratedImage> {
@@ -182,6 +184,7 @@ async function generateImageWithCloudflareWorker({
   form.append('prompt', prompt);
   form.append('model', imageModel);
   form.append('steps', String(steps));
+  form.append('guidance', String(guidance));
   form.append('width', String(width));
   form.append('height', String(height));
 
@@ -302,17 +305,17 @@ export const analyzeStyle: ReturnType<typeof action> = action({
 
 const IMAGE_SYSTEM_INSTRUCTION = `This is a personal styling app. The user uploads photos of themselves to preview hairstyles, makeup, clothing, and accessories on their own portrait. Every reference image is of the user, supplied by the user, and only shown back to them; outputs are private.
 
-When rendering the user, keep them photorealistic and recognizable: preserve their face, skin tone, and apparent age. Preserve every mole, beauty spot, freckle, birthmark, and scar exactly where it appears in the reference - never smooth, remove, or relocate them unless explicitly asked.
+When rendering the user, keep them photorealistic and recognizable: preserve their face, skin tone, apparent age, facial asymmetry, expression, and natural skin texture. Preserve every mole, beauty spot, freckle, birthmark, and scar exactly where it appears in the reference - never smooth, remove, or relocate them unless explicitly asked.
 
 Other features (hair, makeup, clothing, eyewear, headwear, jewelry, facial hair) stay as in the reference unless the request changes them. When a request asks to change, replace, restyle, add, or remove a feature, apply it fully - completely remove the existing version of that feature and render the new one in its place, not a partial blend of old and new.
 
-User descriptions may be written in any language (English, Hungarian, etc.), sometimes mixed within a single request; interpret them faithfully regardless of language. Never stylize, cartoonify, or retouch beyond what the request asks for.`;
+User descriptions may be written in any language (English, Hungarian, etc.), sometimes mixed within a single request; interpret them faithfully regardless of language. Never stylize, cartoonify, beautify, de-age, airbrush, or retouch beyond what the request asks for.`;
 
 type AvatarBaselineType = 'selfie' | 'full_body';
 
 function buildBaselineInstruction(avatarType: AvatarBaselineType): string {
   if (avatarType === 'full_body') {
-    return `Use the attached reference photo(s) of me to produce a single clean studio full-body shot of me. This is the canonical baseline that the rest of the app edits on top of, so it must look unambiguously like me. Requirements:
+    return `Use the attached reference photo(s) of me to produce a single clean studio full-body shot of me. Image 0 is the primary identity anchor; use any later images only as supporting references for angles, proportions, and details. This is the canonical baseline that the rest of the app edits on top of, so it must look unambiguously like me. Requirements:
 - Full body in frame: head to feet, standing front-facing, arms relaxed at the sides.
 - Relaxed, neutral expression with mouth closed.
 - Even, diffuse studio lighting; no harsh shadows.
@@ -321,12 +324,12 @@ function buildBaselineInstruction(avatarType: AvatarBaselineType): string {
 - No visible makeup; clean, natural skin.
 - Hair styled simply, away from the face; no accessories.
 - Photorealistic, sharp focus, no painterly, illustrated, airbrushed, or stylized effects.
-- Match my appearance to the reference(s): same face shape, eye shape and color, hair color and length, skin tone, apparent age, height, build, and overall proportions.
+- Match my appearance to image 0 first: same facial proportions, face shape, eye shape and color, nose, mouth, jaw, skin tone, apparent age, and facial asymmetry. Use the supporting references for hair, height, build, and overall body proportions only when they agree with image 0.
 - The references may be a mix of full-body shots and selfies (this is expected). Use selfies primarily for identity cues - face, hair, skin - and any full-body shots primarily for proportions and body shape. Infer whatever isn't directly visible from the strongest available evidence; do not refuse if a reference doesn't match the requested framing.
 - Keep every mole, beauty spot, freckle, birthmark, scar, and similar identifying mark exactly where it appears in the reference(s). Do not smooth, retouch, or erase them.
 Return only the edited portrait image - no text, no decorations.`;
   }
-  return `Use the attached reference photo(s) of me to produce a single clean studio headshot of me. This is the canonical baseline that the rest of the app edits on top of, so it must look unambiguously like me. Requirements:
+  return `Use the attached reference photo(s) of me to produce a single clean studio headshot of me. Image 0 is the primary identity anchor; use any later images only as supporting references for angles and details. This is the canonical baseline that the rest of the app edits on top of, so it must look unambiguously like me. Requirements:
 - Front-facing, head and upper shoulders in frame.
 - Relaxed, neutral expression with mouth closed.
 - Even, diffuse studio lighting; no harsh shadows.
@@ -334,10 +337,20 @@ Return only the edited portrait image - no text, no decorations.`;
 - No visible makeup; clean, natural skin.
 - Hair styled simply, away from the face; no accessories.
 - Photorealistic, sharp focus, no painterly, illustrated, airbrushed, or stylized effects.
-- Match my appearance to the reference(s): same face shape, eye shape and color, hair color and length, skin tone, and apparent age. If multiple references were given, combine them to infer my 3D structure.
+- Match my appearance to image 0 first: same facial proportions, face shape, eye shape and color, nose, mouth, jaw, skin tone, apparent age, and facial asymmetry. If multiple references were given, use them only to infer my 3D structure without replacing the identity from image 0.
 - The references may include some full-body shots even though this is a headshot baseline; that's fine - crop in mentally and use them for identity cues alongside the closer selfies. Do not refuse if a reference doesn't match the requested framing.
 - Keep every mole, beauty spot, freckle, birthmark, scar, and similar identifying mark exactly where it appears in the reference(s). Do not smooth, retouch, or erase them.
 Return only the edited portrait image - no text, no decorations.`;
+}
+
+function imageDimensionsForAvatar(
+  avatarType: AvatarBaselineType,
+  purpose: 'baseline' | 'render',
+): { width: number; height: number } {
+  if (avatarType === 'full_body') {
+    return purpose === 'baseline' ? { width: 384, height: 512 } : { width: 768, height: 1024 };
+  }
+  return purpose === 'baseline' ? { width: 512, height: 512 } : { width: 768, height: 768 };
 }
 
 export const generateAvatarBaseline = internalAction({
@@ -367,21 +380,23 @@ export const generateAvatarBaseline = internalAction({
     try {
       const prompt = buildBaselineInstruction(avatar.type);
       const sourceBlobs: ImageReference[] = [];
-      for (const storageId of avatar.sourcePhotoStorageIds) {
+      for (const storageId of avatar.sourcePhotoStorageIds.slice(0, MAX_SOURCE_PHOTOS)) {
         const blob = await ctx.storage.get(storageId);
         if (blob === null) {
           throw errors.baselineSourceMissing();
         }
         sourceBlobs.push({ blob, filename: `source-${sourceBlobs.length}.jpg` });
       }
+      const dimensions = imageDimensionsForAvatar(avatar.type, 'baseline');
 
       const generated = await generateImageWithCloudflareWorker({
         operation: 'baseline',
         prompt: `${IMAGE_SYSTEM_INSTRUCTION}\n\n${prompt}`,
         references: sourceBlobs,
-        steps: 25,
-        width: 1024,
-        height: avatar.type === 'full_body' ? 1536 : 1024,
+        steps: 20,
+        guidance: 2.2,
+        width: dimensions.width,
+        height: dimensions.height,
       });
 
       const outputBlob = new Blob([generated.bytes], { type: generated.mimeType });
@@ -419,10 +434,10 @@ interface RenderInputJson {
 }
 
 const RENDER_INSTRUCTION = (prompt: string) =>
-  `Edit the attached photo of me to apply the requested look. Preserve my face, pose, lighting, body, and background. Keep every mole, beauty spot, freckle, birthmark, and scar exactly where it appears - do not retouch or smooth them. When the request asks to change, replace, restyle, add, or remove a feature, apply that change fully: completely remove the existing version of the affected feature and render the new one in its place, not a partial blend. The request may be written in any language; interpret it faithfully. Requested change: ${prompt}. Return only the edited image.`;
+  `Image 0 is the source portrait of me and must remain the identity anchor. Make a conservative photorealistic edit of image 0 to apply the requested look; do not generate a new person, a new face, or a beauty-retouched version of me. Preserve my face shape, facial proportions, eyes, nose, mouth, jaw, skin tone, apparent age, facial asymmetry, pose, lighting, body, crop, and background unless a requested local edit explicitly touches that area. Keep every mole, beauty spot, freckle, birthmark, and scar exactly where it appears - do not retouch or smooth them. When the request asks to change, replace, restyle, add, or remove a feature, apply that change fully: completely remove the existing version of the affected feature and render the new one in its place, not a partial blend. The request may be written in any language; interpret it faithfully. Requested change: ${prompt}. Return only the edited image.`;
 
 const TRY_ON_INSTRUCTION = (prompt: string) =>
-  `The first image is a photo of me; the second is a clothing or accessory reference. Edit the first photo so I am realistically wearing the item from the second - fitted naturally to my body, matched to my lighting and pose. If I am already wearing a similar garment or accessory in the first photo, replace it with the reference item rather than layering on top. Preserve my face, pose, lighting, and background. Keep every mole, beauty spot, freckle, birthmark, and scar exactly where it appears - do not retouch or smooth them. Additional guidance (may be in any language; interpret faithfully): ${prompt}. Return only the edited image.`;
+  `Image 0 is the source portrait of me and must remain the identity anchor. Image 1 is a clothing or accessory reference. Make a conservative photorealistic edit of image 0 so I am realistically wearing the item from image 1, fitted naturally to my body and matched to my lighting and pose. If I am already wearing a similar garment or accessory in image 0, replace it with the reference item rather than layering on top. Do not generate a new person, a new face, or a beauty-retouched version of me. Preserve my face shape, facial proportions, eyes, nose, mouth, jaw, skin tone, apparent age, facial asymmetry, pose, lighting, body, crop, and background unless the item naturally covers part of them. Keep every mole, beauty spot, freckle, birthmark, and scar exactly where it appears - do not retouch or smooth them. Additional guidance (may be in any language; interpret faithfully): ${prompt}. Return only the edited image.`;
 
 export const renderLook = internalAction({
   args: { jobId: v.id('renderJobs') },
@@ -466,18 +481,19 @@ export const renderLook = internalAction({
       }
       const prompt = input.prompt;
 
+      const avatar = await ctx.runQuery(internal.avatars.getAvatarStorageForUser, {
+        id: job.avatarId,
+        userId: job.userId,
+      });
+      if (avatar === null) {
+        throw errors.avatarNotFound();
+      }
+
       let inputBlob: Blob | null = null;
       if (inputStorageId !== null) {
         inputBlob = await ctx.storage.get(inputStorageId);
       }
       if (inputBlob === null) {
-        const avatar = await ctx.runQuery(internal.avatars.getAvatarStorageForUser, {
-          id: job.avatarId,
-          userId: job.userId,
-        });
-        if (avatar === null) {
-          throw errors.avatarNotFound();
-        }
         inputBlob = await ctx.storage.get(avatar.baseImageStorageId);
         if (inputBlob === null) {
           throw errors.avatarImageMissing();
@@ -506,13 +522,15 @@ export const renderLook = internalAction({
         renderPrompt = TRY_ON_INSTRUCTION(prompt);
       }
 
+      const dimensions = imageDimensionsForAvatar(avatar.type, 'render');
       const generated = await generateImageWithCloudflareWorker({
         operation: 'render',
         prompt: `${IMAGE_SYSTEM_INSTRUCTION}\n\n${renderPrompt}`,
         references,
-        steps: 25,
-        width: 1024,
-        height: 1024,
+        steps: 20,
+        guidance: input.referenceUploadedItemId === undefined ? 1.6 : 1.8,
+        width: dimensions.width,
+        height: dimensions.height,
       });
 
       const outputBlob = new Blob([generated.bytes], { type: generated.mimeType });

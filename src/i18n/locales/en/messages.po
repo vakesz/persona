@@ -97,8 +97,6 @@ msgstr "AI reads your portrait and suggests looks."
 msgid "All ({0})"
 msgstr "All ({0})"
 
-#: src/routes/studio.$avatarId.tsx
-
 #: src/routes/auth.tsx
 msgid "Already have an account? "
 msgstr "Already have an account? "
@@ -124,10 +122,12 @@ msgid "Ask the stylist"
 msgstr "Ask the stylist"
 
 #: src/components/avatars/avatar-uploader.tsx
-
-#: src/components/avatars/avatar-uploader.tsx
 msgid "At most {MAX_SOURCE_PHOTOS} photos."
 msgstr "At most {MAX_SOURCE_PHOTOS} photos."
+
+#: src/components/avatars/avatar-uploader.tsx
+#~ msgid "Avatar created."
+#~ msgstr "Avatar created."
 
 #: src/components/avatars/avatar-uploader.tsx
 msgid "Avatar created. Generating your studio portrait…"
@@ -171,9 +171,6 @@ msgstr "aviator sunglasses"
 #: src/routes/avatars.new.tsx
 msgid "Back"
 msgstr "Back"
-
-#: src/components/avatars/baseline-status-gate.tsx
-#: src/routes/avatars.new.tsx
 
 #: src/components/studio/sidebar/presets.ts
 msgid "baseball cap"
@@ -268,8 +265,6 @@ msgid "chin-length bob"
 msgstr "chin-length bob"
 
 #: src/routes/saved.tsx
-
-#: src/routes/saved.tsx
 msgid "Choose an avatar"
 msgstr "Choose an avatar"
 
@@ -290,8 +285,8 @@ msgid "Close"
 msgstr "Close"
 
 #: src/components/studio/sidebar/presets.ts
-msgid "Clothes"
-msgstr "Clothes"
+#~ msgid "Clothes"
+#~ msgstr "Clothes"
 
 #: src/components/studio/sidebar/controls.tsx
 msgid "Color"
@@ -308,10 +303,6 @@ msgstr "Compressing…"
 #: src/routes/auth.tsx
 msgid "Could not create that account. Try a different email."
 msgstr "Could not create that account. Try a different email."
-
-#: src/routes/saved.tsx
-
-#: src/routes/studio.$avatarId.tsx
 
 #: src/routes/studio.$avatarId.tsx
 msgid "Could not prepare studio tools."
@@ -341,14 +332,10 @@ msgstr "Create account"
 msgid "Create an avatar"
 msgstr "Create an avatar"
 
-#: src/components/avatars/avatar-uploader.tsx
-
 #. placeholder {0}: avatars.length
 #: src/routes/avatars.index.tsx
 msgid "Create up to {MAX_AVATARS_PER_USER} private avatars ({0} so far)."
 msgstr "Create up to {MAX_AVATARS_PER_USER} private avatars ({0} so far)."
-
-#: src/routes/avatars.index.tsx
 
 #: src/routes/auth.tsx
 msgid "Create your account"
@@ -428,6 +415,7 @@ msgstr "Discard"
 msgid "Don't have an account? "
 msgstr "Don't have an account? "
 
+#: src/components/studio/uploaded-item-uploader.tsx
 #: src/routes/studio.$avatarId.tsx
 msgid "Dress"
 msgstr "Dress"
@@ -448,8 +436,6 @@ msgstr "Earrings, necklaces, layered chains."
 #: src/routes/settings.tsx
 msgid "Email"
 msgstr "Email"
-
-#: src/components/studio/studio-sidebar.tsx
 
 #: src/components/studio/sidebar/presets.ts
 msgid "Extras"
@@ -497,8 +483,16 @@ msgid "Finish"
 msgstr "Finish"
 
 #: src/components/avatars/avatar-uploader.tsx
-msgid "First photo becomes the front reference. Extra angles (¾ left / right, full body) help the AI preserve your identity. Each photo is compressed and EXIF-stripped in your browser before upload."
-msgstr "First photo becomes the front reference. Extra angles (¾ left / right, full body) help the AI preserve your identity. Each photo is compressed and EXIF-stripped in your browser before upload."
+#~ msgid "First photo becomes the front reference. Extra angles (¾ left / right, full body) help the AI preserve your identity. Each photo is compressed and EXIF-stripped in your browser before upload."
+#~ msgstr "First photo becomes the front reference. Extra angles (¾ left / right, full body) help the AI preserve your identity. Each photo is compressed and EXIF-stripped in your browser before upload."
+
+#: src/components/avatars/avatar-uploader.tsx
+#~ msgid "First photo becomes the studio baseline. Extra angles (¾ left / right, full body) can still help the AI stylist understand your features. Each photo is compressed and EXIF-stripped in your browser before upload."
+#~ msgstr "First photo becomes the studio baseline. Extra angles (¾ left / right, full body) can still help the AI stylist understand your features. Each photo is compressed and EXIF-stripped in your browser before upload."
+
+#: src/components/avatars/avatar-uploader.tsx
+msgid "First photo is the identity anchor. Extra angles (¾ left / right, full body) help the AI preserve your features. Each photo is compressed and EXIF-stripped in your browser before upload."
+msgstr "First photo is the identity anchor. Extra angles (¾ left / right, full body) help the AI preserve your features. Each photo is compressed and EXIF-stripped in your browser before upload."
 
 #: src/components/studio/sidebar/presets.ts
 msgid "french crop"
@@ -529,18 +523,6 @@ msgstr "fuller, plumper lips"
 msgid "fully shaved"
 msgstr "fully shaved"
 
-#: src/i18n/server-errors.ts
-
-#: src/components/avatars/baseline-status-gate.tsx
-
-#: src/i18n/server-errors.ts
-
-#: src/components/studio/sidebar/specialty-panels.tsx
-
-#: src/i18n/server-errors.ts
-
-#: src/i18n/server-errors.ts
-
 #: src/components/studio/sidebar/index.tsx
 msgid "Geometry change — runs the AI render."
 msgstr "Geometry change — runs the AI render."
@@ -562,8 +544,6 @@ msgstr "Glasses or sunglasses."
 msgid "Gloss"
 msgstr "Gloss"
 
-#: src/routes/index.tsx
-
 #: src/components/studio/sidebar/presets.ts
 msgid "goatee"
 msgstr "goatee"
@@ -580,6 +560,7 @@ msgstr "gold hoop earrings"
 msgid "Hair"
 msgstr "Hair"
 
+#: src/components/studio/uploaded-item-uploader.tsx
 #: src/routes/studio.$avatarId.tsx
 msgid "Hair reference"
 msgstr "Hair reference"
@@ -695,8 +676,8 @@ msgid "low ponytail"
 msgstr "low ponytail"
 
 #: src/components/studio/sidebar/presets.ts
-msgid "Makeup"
-msgstr "Makeup"
+#~ msgid "Makeup"
+#~ msgstr "Makeup"
 
 #: src/components/studio/sidebar/presets.ts
 msgid "man bun"
@@ -705,8 +686,6 @@ msgstr "man bun"
 #: src/routes/settings.tsx
 msgid "Manage"
 msgstr "Manage"
-
-#: src/routes/settings.tsx
 
 #: src/routes/settings.tsx
 msgid "Manage your account, language, and avatars."
@@ -743,9 +722,10 @@ msgid "Mustache"
 msgstr "Mustache"
 
 #: src/components/studio/sidebar/presets.ts
-msgid "Nails"
-msgstr "Nails"
+#~ msgid "Nails"
+#~ msgstr "Nails"
 
+#: src/components/studio/uploaded-item-uploader.tsx
 #: src/routes/studio.$avatarId.tsx
 msgid "Nails reference"
 msgstr "Nails reference"
@@ -763,8 +743,6 @@ msgstr "Name is required."
 #: src/routes/avatars.index.tsx
 msgid "New"
 msgstr "New"
-
-#: src/routes/avatars.index.tsx
 
 #: src/routes/avatars.index.tsx
 msgid "No avatars yet"
@@ -789,8 +767,6 @@ msgstr "Off"
 #: src/components/studio/sidebar/controls.tsx
 msgid "On"
 msgstr "On"
-
-#: src/components/avatars/avatar-uploader.tsx
 
 #: src/components/avatars/avatar-uploader.tsx
 msgid "Only the first {MAX_SOURCE_PHOTOS} photos are used."
@@ -847,8 +823,6 @@ msgstr "Persona"
 #: src/components/avatars/avatar-uploader.tsx
 msgid "Photo type"
 msgstr "Photo type"
-
-#: src/components/avatars/avatar-uploader.tsx
 
 #. placeholder {0}: photos.length
 #: src/components/avatars/avatar-uploader.tsx
@@ -1102,6 +1076,7 @@ msgstr "Shaved"
 msgid "shaved with stubble"
 msgstr "shaved with stubble"
 
+#: src/components/studio/uploaded-item-uploader.tsx
 #: src/routes/studio.$avatarId.tsx
 msgid "Shoes"
 msgstr "Shoes"
@@ -1253,8 +1228,6 @@ msgid "Stylist returned an empty response."
 msgstr "Stylist returned an empty response."
 
 #: src/i18n/server-errors.ts
-
-#: src/i18n/server-errors.ts
 msgid "Stylist returned malformed JSON."
 msgstr "Stylist returned malformed JSON."
 
@@ -1342,6 +1315,7 @@ msgstr "Toggle {0}"
 msgid "Too many pending uploads (limit: {0}). Try again in a moment."
 msgstr "Too many pending uploads (limit: {0}). Try again in a moment."
 
+#: src/components/studio/uploaded-item-uploader.tsx
 #: src/routes/studio.$avatarId.tsx
 msgid "Top"
 msgstr "Top"
@@ -1353,6 +1327,10 @@ msgstr "top knot"
 #: src/components/studio/sidebar/specialty-panels.tsx
 msgid "Try on clothing"
 msgstr "Try on clothing"
+
+#: src/components/studio/uploaded-item-uploader.tsx
+msgid "Type"
+msgstr "Type"
 
 #: src/components/settings/delete-account-dialog.tsx
 msgid "Type \"{CONFIRMATION_PHRASE}\" to confirm."
@@ -1415,6 +1393,10 @@ msgstr "Uploading…"
 msgid "Uploads"
 msgstr "Uploads"
 
+#: src/components/avatars/avatar-card.tsx
+#~ msgid "Use original photo for {name}"
+#~ msgstr "Use original photo for {name}"
+
 #: src/components/studio/sidebar/index.tsx
 #: src/components/studio/sidebar/presets.ts
 msgid "Vibe"
@@ -1462,8 +1444,6 @@ msgstr "You already have {0} renders in flight. Wait for one to finish, then try
 msgid "You already have {MAX_AVATARS_PER_USER} avatars. Delete one to add another."
 msgstr "You already have {MAX_AVATARS_PER_USER} avatars. Delete one to add another."
 
-#: src/routes/avatars.new.tsx
-
 #. placeholder {0}: payload.max
 #: src/i18n/server-errors.ts
 msgid "You can only have {0} avatars."
@@ -1476,8 +1456,6 @@ msgstr "You're not signed in."
 #: src/routes/avatars.index.tsx
 msgid "You've reached the {MAX_AVATARS_PER_USER}-avatar limit. Delete one to add another."
 msgstr "You've reached the {MAX_AVATARS_PER_USER}-avatar limit. Delete one to add another."
-
-#: src/routes/avatars.index.tsx
 
 #: src/routes/avatars.index.tsx
 msgid "Your avatars"

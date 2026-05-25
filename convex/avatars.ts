@@ -69,9 +69,8 @@ export const listAvatars = query({
         // Pre-Phase-8 rows have no `baselineStatus`; treat them as ready —
         // their `baseImageStorageId` already points at a finished image.
         const status = avatar.baselineStatus ?? 'done';
-        // Prefer the generated baseline once it's ready. Fall back
-        // to the raw upload thumbnail only while the baseline is still
-        // being generated (queued / processing / failed).
+        // Prefer the generated baseline once it's ready. Fall back to the raw
+        // upload thumbnail only while baseline generation is still pending.
         const previewStorageId =
           status === 'done' && avatar.baseImageStorageId !== undefined
             ? avatar.baseImageStorageId
@@ -299,6 +298,8 @@ export const retryAvatarBaseline = mutation({
     await ctx.db.patch(id, {
       baselineStatus: 'queued',
       baselineErrorMessage: undefined,
+      landmarksJson: undefined,
+      masksJson: undefined,
       updatedAt: Date.now(),
     });
     await ctx.scheduler.runAfter(0, internal.ai.generateAvatarBaseline, { avatarId: id });
@@ -341,9 +342,11 @@ export const markBaselineDone = internalMutation({
     }
     // Defensive: never free the new blob (e.g. if a retry path somehow set
     // both to the same id), and skip the patch when the new id matches.
+    const sourceIds = new Set(avatar.sourcePhotoStorageIds ?? []);
     if (
       avatar.baseImageStorageId !== undefined &&
-      avatar.baseImageStorageId !== baseImageStorageId
+      avatar.baseImageStorageId !== baseImageStorageId &&
+      !sourceIds.has(avatar.baseImageStorageId)
     ) {
       await bestEffortDeleteStorage(ctx, avatar.baseImageStorageId);
     }
@@ -422,14 +425,16 @@ export async function cascadeDeleteAvatar(
     await ctx.db.delete(job._id);
   }
 
-  for (const storageId of avatar.sourcePhotoStorageIds ?? []) {
+  const avatarStorageIds = [
+    ...(avatar.sourcePhotoStorageIds ?? []),
+    ...(avatar.baseImageStorageId !== undefined ? [avatar.baseImageStorageId] : []),
+    ...(avatar.thumbnailStorageId !== undefined ? [avatar.thumbnailStorageId] : []),
+  ];
+  const deletedAvatarStorageIds = new Set<string>();
+  for (const storageId of avatarStorageIds) {
+    if (deletedAvatarStorageIds.has(storageId)) continue;
+    deletedAvatarStorageIds.add(storageId);
     await bestEffortDeleteStorage(ctx, storageId);
-  }
-  if (avatar.baseImageStorageId !== undefined) {
-    await bestEffortDeleteStorage(ctx, avatar.baseImageStorageId);
-  }
-  if (avatar.thumbnailStorageId !== undefined) {
-    await bestEffortDeleteStorage(ctx, avatar.thumbnailStorageId);
   }
   await ctx.db.delete(avatarId);
 }
