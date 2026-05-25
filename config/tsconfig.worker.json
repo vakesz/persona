@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.worker.tsbuildinfo",
+    "tsBuildInfoFile": "../node_modules/.tmp/tsconfig.worker.tsbuildinfo",
     "target": "ES2023",
     "lib": ["ES2023", "DOM", "WebWorker"],
     "module": "ESNext",
@@ -26,5 +26,5 @@
     "useUnknownInCatchVariables": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["workers/**/*.ts", "worker-configuration.d.ts"]
+  "include": ["../workers/**/*.ts", "../worker-configuration.d.ts"]
 }

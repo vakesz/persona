@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
-  "entry": ["src/routes/**/*.{ts,tsx}", "convex/**/*.ts", "lingui.config.ts"],
+  "entry": ["src/routes/**/*.{ts,tsx}", "convex/**/*.ts", "config/lingui.config.ts"],
   "project": ["src/**/*.{ts,tsx}", "convex/**/*.ts"],
   "ignore": ["src/components/ui/**"],
   "ignoreDependencies": ["tw-animate-css", "tailwindcss", "@lingui/swc-plugin"]

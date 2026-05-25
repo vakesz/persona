@@ -15,7 +15,7 @@ export default tseslint.config(
       'src/i18n/locales/**/messages.ts',
       'worker-configuration.d.ts',
       'eslint.config.js',
-      'lingui.config.ts',
+      'config/lingui.config.ts',
     ],
   },
   js.configs.recommended,

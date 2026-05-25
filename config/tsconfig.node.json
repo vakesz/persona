@@ -1,16 +1,13 @@
 {
   "compilerOptions": {
-    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
-    "target": "ES2022",
-    "useDefineForClassFields": true,
-    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "tsBuildInfoFile": "../node_modules/.tmp/tsconfig.node.tsbuildinfo",
+    "target": "ES2023",
+    "lib": ["ES2023"],
     "module": "ESNext",
     "moduleResolution": "bundler",
     "moduleDetection": "force",
-    "jsx": "react-jsx",
-    "types": [],
+    "types": ["node"],
 
-    "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
     "erasableSyntaxOnly": true,
@@ -22,18 +19,12 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true,
-    "noUncheckedSideEffectImports": true,
     "noImplicitOverride": true,
     "noImplicitReturns": true,
     "exactOptionalPropertyTypes": true,
     "noPropertyAccessFromIndexSignature": true,
     "useUnknownInCatchVariables": true,
-    "forceConsistentCasingInFileNames": true,
-
-    "paths": {
-      "@/*": ["./src/*"],
-      "@convex/*": ["./convex/*"]
-    }
+    "forceConsistentCasingInFileNames": true
   },
-  "include": ["src"]
+  "include": ["../vite.config.ts"]
 }

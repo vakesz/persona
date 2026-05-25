@@ -1,134 +1,183 @@
-# Persona — 2.5D AI Stylist
+# Persona
 
-Upload a photo, see yourself instantly, and try AI-suggested hairstyles, nails,
-makeup, and outfits on your own image.
+Persona is an AI-powered beauty studio where users can upload photos, generate a
+consistent baseline portrait, and create edited looks (makeup, hairstyle, and
+try-on variants) on top of that baseline.
 
-See [`PLAN.md`](./PLAN.md) for the full MVP plan, engineering bar, and phased
-build order.
+## What this app does
 
-## Stack
+- Upload and manage up to 3 avatars per user.
+- Generate a baseline portrait from uploaded source photos.
+- Paint live makeup tints in a studio canvas (React-Konva).
+- Submit render jobs that combine studio edits with AI image generation.
+- Save favorite render outputs as reusable looks.
+- Switch between English and Hungarian UI with Lingui i18n.
 
-- **Vite** + **React 19** + **TypeScript** (strict, `exactOptionalPropertyTypes`)
-- **TanStack Router** — file-based routing
-- **Convex** — database, file storage, realtime queries, server functions, scheduled actions
-- **Convex Auth** — email/password authentication
-- **Tailwind CSS v4** + **shadcn/ui**
-- **React-Konva** — 2.5D studio canvas (zoom/pan/pinch, layered overlays, transformer)
-- **Cloudflare Workers AI Llama 3.2 11B Vision** — stylist recommendations (vision + text)
-- **Cloudflare Workers AI FLUX.2** — baseline generation + image edit / virtual try-on
+## Tech stack
 
-## Prerequisites
+- Vite + React 19 + TypeScript (strict)
+- TanStack Router (file-based routes)
+- Convex (database, storage, queries/mutations/actions, schedulers)
+- Convex Auth (email/password)
+- Tailwind CSS v4 + shadcn/ui
+- React-Konva (interactive studio canvas)
+- MediaPipe Tasks Vision (landmarks + face segmentation)
+- Cloudflare Workers AI
+  - Llama 3.2 Vision (stylist recommendations)
+  - FLUX.2 (baseline generation + render edits)
+
+## Requirements
 
 - Node.js 22+
 - pnpm 11+
+- A Convex account/deployment
+- A Cloudflare account with Workers AI enabled
 
-## Setup
+## Quick start
+
+1. Install dependencies.
 
 ```bash
 pnpm install
+```
 
-# Provision the Convex deployment (interactive — opens a browser to log in).
-# Writes VITE_CONVEX_URL and CONVEX_DEPLOYMENT into .env.local.
+2. Start Convex once to provision your deployment and populate local env values.
+
+```bash
 npx convex dev
+```
 
-# Generate JWT keys + SITE_URL for Convex Auth (run once, after convex dev).
+3. Configure Convex Auth (one-time setup).
+
+```bash
 npx @convex-dev/auth
+```
 
-# Deploy the Worker with a Workers AI binding.
+4. Deploy the image worker.
+
+```bash
 pnpm cf:image:deploy
+```
 
-# Set a random shared secret on the Worker.
+5. Set a shared secret in both Cloudflare Worker and Convex.
+
+```bash
 openssl rand -base64 32
 pnpm wrangler secret put IMAGE_API_SECRET --config workers/image-api/wrangler.jsonc
-
-# Point Convex at the deployed Worker and set the same secret there.
-npx convex env set CONVEX_CF_IMAGE_WORKER_URL https://persona-image-api.<your-subdomain>.workers.dev
 npx convex env set CONVEX_CF_IMAGE_WORKER_SECRET <same-secret>
 ```
 
-Then run the app and Convex backend together (two terminals):
+6. Point Convex to your deployed worker URL.
 
 ```bash
-pnpm dev        # Vite dev server
-pnpm convex     # Convex backend in watch mode
-```
-
-## AI model configuration
-
-All AI calls run through the included Cloudflare Worker. Override either model
-without code changes using Convex env vars:
-
-| Purpose                                 | Default model                            | Env var                   |
-| --------------------------------------- | ---------------------------------------- | ------------------------- |
-| Stylist recommendations (vision + text) | `@cf/meta/llama-3.2-11b-vision-instruct` | `CONVEX_CF_STYLIST_MODEL` |
-| Baseline + image rendering              | `@cf/black-forest-labs/flux-2-dev`       | `CONVEX_CF_IMAGE_MODEL`   |
-
-### Cloudflare Workers AI setup
-
-Baseline portraits, stylist analysis, and render jobs run through the Cloudflare Worker.
-The Worker calls Workers AI with multipart image references
-(`input_image_0`, `input_image_1`, up to 4) and returns the generated base64
-image to Convex, which still owns the app database and persisted image blobs.
-
-```bash
-# Deploy the Worker with a Workers AI binding.
-pnpm cf:image:deploy
-
-# Set a random shared secret on the Worker.
-openssl rand -base64 32
-pnpm wrangler secret put IMAGE_API_SECRET --config workers/image-api/wrangler.jsonc
-
-# Point Convex at the deployed Worker and enable the same secret there.
 npx convex env set CONVEX_CF_IMAGE_WORKER_URL https://persona-image-api.<your-subdomain>.workers.dev
-npx convex env set CONVEX_CF_IMAGE_WORKER_SECRET <same-secret>
-
-# Optional: use a faster/cheaper FLUX.2 model.
-npx convex env set CONVEX_CF_IMAGE_MODEL @cf/black-forest-labs/flux-2-klein-9b
-
-# Optional: change the stylist vision model.
-npx convex env set CONVEX_CF_STYLIST_MODEL @cf/meta/llama-3.2-11b-vision-instruct
 ```
+
+7. Run development servers (separate terminals).
+
+```bash
+pnpm convex
+pnpm dev
+```
+
+## Environment variables
+
+Set these in Convex with `npx convex env set NAME value`:
+
+- `CONVEX_CF_IMAGE_WORKER_URL` (required)
+- `CONVEX_CF_IMAGE_WORKER_SECRET` (required)
+- `CONVEX_CF_STYLIST_MODEL` (optional)
+  - default: `@cf/meta/llama-3.2-11b-vision-instruct`
+- `CONVEX_CF_IMAGE_MODEL` (optional)
+  - default: `@cf/black-forest-labs/flux-2-dev`
 
 ## Scripts
 
-| Script                 | Description                                   |
-| ---------------------- | --------------------------------------------- |
-| `pnpm dev`             | Vite dev server                               |
-| `pnpm convex`          | Convex backend in watch mode                  |
-| `pnpm build`           | Type-check + production build                 |
-| `pnpm typecheck`       | `tsc -b` across app, node, and convex configs |
-| `pnpm lint`            | ESLint (strict, type-checked)                 |
-| `pnpm format`          | Prettier write                                |
-| `pnpm knip`            | Detect unused files, exports, dependencies    |
-| `pnpm check`           | typecheck + lint + format check + knip        |
-| `pnpm cf:image:dev`    | Run the Cloudflare image Worker locally       |
-| `pnpm cf:image:deploy` | Deploy the Cloudflare image Worker            |
+| Command | Description |
+| --- | --- |
+| `pnpm dev` | Start Vite dev server |
+| `pnpm convex` | Start Convex in watch mode |
+| `pnpm build` | Compile i18n catalogs, type-check, and build |
+| `pnpm preview` | Preview production build |
+| `pnpm typecheck` | Run TypeScript project build (`tsc -b`) |
+| `pnpm lint` | Run ESLint |
+| `pnpm lint:fix` | Run ESLint with auto-fixes |
+| `pnpm format` | Format files with Prettier |
+| `pnpm format:check` | Check formatting |
+| `pnpm knip` | Detect unused files/exports/dependencies |
+| `pnpm i18n:extract` | Extract translatable messages |
+| `pnpm i18n:compile` | Compile PO catalogs to TypeScript |
+| `pnpm check` | Quality gate: i18n compile + typecheck + lint + format check + knip |
+| `pnpm cf:image:dev` | Run Cloudflare image worker locally |
+| `pnpm cf:image:deploy` | Deploy Cloudflare image worker |
+| `pnpm cf:image:types` | Regenerate worker type bindings |
 
-`pnpm check` is the gate — it must pass green before every commit.
+`pnpm check` is the pre-commit gate and should pass before every commit.
 
-## Project structure
+## Architecture overview
+
+### Client (`src/`)
+
+- TanStack Router routes live in `src/routes`.
+- Studio state and composition logic live in `src/lib/studio`.
+- Face landmark and segmentation caching lives in `src/lib/mediapipe`.
+- UI primitives are in `src/components/ui`.
+
+### Backend (`convex/`)
+
+- `schema.ts` defines data tables and indexes.
+- `avatars.ts` manages avatar lifecycle and baseline generation scheduling.
+- `renderJobs.ts` manages async render jobs.
+- `savedLooks.ts` stores promoted render results.
+- `uploadedItems.ts` stores user reference images for try-on.
+- `ai.ts` calls the Cloudflare image worker.
+- `crons.ts` cleans up stale render jobs and storage blobs.
+
+### Image generation worker (`workers/image-api`)
+
+- Validates shared-secret requests from Convex.
+- Calls Workers AI models.
+- Returns generated image data to Convex for persistence.
+
+## Rendering flow
+
+1. User creates an avatar from source photos.
+2. Convex schedules baseline generation.
+3. Baseline image becomes the canonical input for studio work.
+4. In studio, user edits tints and/or geometry intent.
+5. Convex schedules a render job (single-image edit or two-image try-on).
+6. Worker calls FLUX.2, Convex stores result, user can save the look.
+
+## i18n workflow
+
+1. Add or update text using Lingui macros.
+2. Extract messages:
+
+```bash
+pnpm i18n:extract
+```
+
+3. Translate `src/i18n/locales/hu/messages.po`.
+4. Compile catalogs:
+
+```bash
+pnpm i18n:compile
+```
+
+## Notes for contributors
+
+- There is currently no automated test suite.
+- Validate behavior by running `pnpm dev` and `pnpm convex` and testing key
+  flows in the browser.
+- Do not edit generated files manually:
+  - `convex/_generated/**`
+  - `src/routeTree.gen.ts`
+
+## Project structure (high level)
 
 ```text
-src/
-  routes/                  TanStack Router file routes
-  components/
-    avatars/               Avatar list + uploader
-    studio/                Konva canvas, palette, layer controls
-    stylist/               Recommendation card, render result
-    ui/                    shadcn/ui primitives
-  lib/
-    studio/                Layer model, sample overlays, useImage
-    image-compression.ts   Browser-side compress + EXIF strip
-convex/
-  schema.ts                Data model
-  auth.ts, http.ts         Convex Auth wiring
-  avatars.ts               listAvatars, getAvatar, createAvatar, …
-  recentItems.ts           Tried-item history per avatar
-  renderJobs.ts            Job lifecycle (queued → processing → done/failed)
-  savedLooks.ts            Promoted renders the user kept
-  ai.ts                    Cloudflare stylist + image provider adapter
-  storage.ts               Auth-gated upload URL
-workers/
-  image-api/               Cloudflare Workers AI FLUX.2 adapter
-PLAN.md                    Full MVP plan + engineering principles
+src/                   React app (routes, UI, studio)
+convex/                Backend functions and schema
+workers/image-api/     Cloudflare Worker for AI calls
+config/                Shared project configuration
 ```
