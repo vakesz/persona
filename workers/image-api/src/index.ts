@@ -1,6 +1,7 @@
 const DEFAULT_IMAGE_MODEL = '@cf/black-forest-labs/flux-2-dev';
 const DEFAULT_STYLIST_MODEL = '@cf/meta/llama-3.2-11b-vision-instruct';
 const MAX_REFERENCE_IMAGES = 4;
+const TRANSIENT_PROVIDER_RETRIES = 2;
 
 const STYLIST_RESPONSE_SCHEMA = {
   type: 'object',
@@ -36,8 +37,15 @@ interface StylistResponse {
 }
 
 interface ErrorPayload {
-  code: 'bad_request' | 'unauthorized' | 'method_not_allowed' | 'provider_error' | 'internal_error';
+  code:
+    | 'bad_request'
+    | 'unauthorized'
+    | 'method_not_allowed'
+    | 'provider_error'
+    | 'provider_quota'
+    | 'internal_error';
   error: string;
+  detail?: string;
 }
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -48,12 +56,41 @@ function jsonError(body: ErrorPayload, status: number): Response {
   return jsonResponse(body, status);
 }
 
-function providerStatus(error: unknown): 502 | 503 {
-  const message = error instanceof Error ? error.message.toLowerCase() : '';
+function providerMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return 'Unknown provider error';
+  }
+}
+
+function sanitizedProviderDetail(error: unknown): string {
+  return providerMessage(error).replace(/\s+/g, ' ').slice(0, 300);
+}
+
+function isProviderQuotaError(error: unknown): boolean {
+  const message = providerMessage(error).toLowerCase();
+  return (
+    message.includes('4006:') ||
+    message.includes('daily free allocation') ||
+    message.includes('used up your') ||
+    message.includes('upgrade to cloudflare') ||
+    message.includes('workers paid plan') ||
+    message.includes('quota') ||
+    message.includes('billing')
+  );
+}
+
+function providerStatus(error: unknown): 429 | 502 | 503 {
+  if (isProviderQuotaError(error)) return 429;
+  const message = providerMessage(error).toLowerCase();
   if (
     message.includes('unavailable') ||
     message.includes('overload') ||
-    message.includes('timeout')
+    message.includes('timeout') ||
+    message.includes('timed out')
   ) {
     return 503;
   }
@@ -62,10 +99,62 @@ function providerStatus(error: unknown): 502 | 503 {
 
 function providerError(error: unknown, scope: 'image' | 'stylist'): Response {
   console.error(`workers-ai-${scope}-error`, error);
+  const isQuota = isProviderQuotaError(error);
   return jsonError(
-    { code: 'provider_error', error: `Workers AI ${scope} request failed` },
+    {
+      code: isQuota ? 'provider_quota' : 'provider_error',
+      error: isQuota
+        ? `Workers AI ${scope} quota reached`
+        : `Workers AI ${scope} request failed`,
+      detail: sanitizedProviderDetail(error),
+    },
     providerStatus(error),
   );
+}
+
+function isTransientProviderError(error: unknown): boolean {
+  if (isProviderQuotaError(error)) return false;
+  const message = providerMessage(error).toLowerCase();
+  return (
+    message.includes('unavailable') ||
+    message.includes('overload') ||
+    message.includes('timeout') ||
+    message.includes('timed out') ||
+    message.includes('internal error') ||
+    message.includes('gateway') ||
+    message.includes('502') ||
+    message.includes('503') ||
+    message.includes('504')
+  );
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function runWorkersAiWithRetry<T>(
+  env: WorkerEnv,
+  model: string,
+  input: Parameters<WorkerEnv['AI']['run']>[1],
+): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= TRANSIENT_PROVIDER_RETRIES; attempt += 1) {
+    try {
+      return (await env.AI.run(model, input)) as T;
+    } catch (error) {
+      lastError = error;
+      if (attempt === TRANSIENT_PROVIDER_RETRIES || !isTransientProviderError(error)) {
+        throw error;
+      }
+      console.warn('workers-ai-retry', {
+        model,
+        attempt: attempt + 1,
+        detail: sanitizedProviderDetail(error),
+      });
+      await sleep(350 * 2 ** attempt);
+    }
+  }
+  throw lastError;
 }
 
 async function isAuthorized(request: Request, secret: string): Promise<boolean> {
@@ -225,7 +314,7 @@ async function handleImageRequest(env: WorkerEnv, incoming: FormData): Promise<R
 
   let result: FluxImageResponse;
   try {
-    result = await env.AI.run(model, {
+    result = await runWorkersAiWithRetry<FluxImageResponse>(env, model, {
       multipart: {
         body: serialized.body,
         contentType,
@@ -261,7 +350,7 @@ async function handleStylistRequest(env: WorkerEnv, incoming: FormData): Promise
 
   let result: unknown;
   try {
-    result = await env.AI.run(model, {
+    result = await runWorkersAiWithRetry(env, model, {
       messages: [
         {
           role: 'system',

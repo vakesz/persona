@@ -4,6 +4,9 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-05-25",
   "compatibility_flags": ["nodejs_compat_v2"],
+  "placement": {
+    "mode": "smart",
+  },
   "ai": {
     "binding": "AI",
   },
