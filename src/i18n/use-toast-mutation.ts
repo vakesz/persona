@@ -35,12 +35,12 @@ export function useToastMutation<M extends FunctionReference<'mutation'>>(
   options: UseToastMutationOptions = {},
 ): UseToastMutationResult<M> {
   const mutate = useMutation(mutation);
-  const [pending, setPending] = useState(false);
+  const [inFlightCount, setInFlightCount] = useState(0);
   const { successMessage } = options;
 
   const run = useCallback(
     async (args: M['_args']): Promise<FunctionReturnType<M> | undefined> => {
-      setPending(true);
+      setInFlightCount((count) => count + 1);
       try {
         const result = await mutate(args);
         if (successMessage !== undefined) {
@@ -52,11 +52,11 @@ export function useToastMutation<M extends FunctionReference<'mutation'>>(
         toast.error(translateServerError(error));
         return undefined;
       } finally {
-        setPending(false);
+        setInFlightCount((count) => Math.max(0, count - 1));
       }
     },
     [mutate, successMessage],
   );
 
-  return { run, pending };
+  return { run, pending: inFlightCount > 0 };
 }

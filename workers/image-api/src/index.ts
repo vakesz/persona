@@ -22,14 +22,9 @@ const STYLIST_RESPONSE_SCHEMA = {
   required: ['recommendations'],
 } as const;
 
-interface AiBinding {
-  run(model: string, input: unknown): Promise<unknown>;
-}
-
-interface Env {
-  AI: AiBinding;
+type WorkerEnv = Env & {
   IMAGE_API_SECRET: string;
-}
+};
 
 interface FluxImageResponse {
   image?: unknown;
@@ -40,8 +35,37 @@ interface StylistResponse {
   response?: unknown;
 }
 
+interface ErrorPayload {
+  code: 'bad_request' | 'unauthorized' | 'method_not_allowed' | 'provider_error' | 'internal_error';
+  error: string;
+}
+
 function jsonResponse(body: unknown, status = 200): Response {
   return Response.json(body, { status });
+}
+
+function jsonError(body: ErrorPayload, status: number): Response {
+  return jsonResponse(body, status);
+}
+
+function providerStatus(error: unknown): 502 | 503 {
+  const message = error instanceof Error ? error.message.toLowerCase() : '';
+  if (
+    message.includes('unavailable') ||
+    message.includes('overload') ||
+    message.includes('timeout')
+  ) {
+    return 503;
+  }
+  return 502;
+}
+
+function providerError(error: unknown, scope: 'image' | 'stylist'): Response {
+  console.error(`workers-ai-${scope}-error`, error);
+  return jsonError(
+    { code: 'provider_error', error: `Workers AI ${scope} request failed` },
+    providerStatus(error),
+  );
 }
 
 async function isAuthorized(request: Request, secret: string): Promise<boolean> {
@@ -132,10 +156,10 @@ function parseStylistPayload(result: unknown): unknown {
   return null;
 }
 
-async function handleImageRequest(env: Env, incoming: FormData): Promise<Response> {
+async function handleImageRequest(env: WorkerEnv, incoming: FormData): Promise<Response> {
   const prompt = textField(incoming, 'prompt', '');
   if (prompt === '') {
-    return jsonResponse({ error: 'Missing prompt' }, 400);
+    return jsonError({ code: 'bad_request', error: 'Missing prompt' }, 400);
   }
 
   const model = textField(incoming, 'model', DEFAULT_IMAGE_MODEL);
@@ -158,94 +182,118 @@ async function handleImageRequest(env: Env, incoming: FormData): Promise<Respons
   const serialized = new Response(form);
   const contentType = serialized.headers.get('content-type');
   if (contentType === null) {
-    return jsonResponse({ error: 'Could not serialize request' }, 500);
+    return jsonError({ code: 'internal_error', error: 'Could not serialize request' }, 500);
   }
 
-  const result = (await env.AI.run(model, {
-    multipart: {
-      body: serialized.body,
-      contentType,
-    },
-  })) as FluxImageResponse;
+  let result: FluxImageResponse;
+  try {
+    result = await env.AI.run(model, {
+      multipart: {
+        body: serialized.body,
+        contentType,
+      },
+    });
+  } catch (error) {
+    return providerError(error, 'image');
+  }
 
   if (typeof result.image !== 'string' || result.image === '') {
-    return jsonResponse({ error: 'Workers AI returned no image' }, 502);
+    return jsonError({ code: 'provider_error', error: 'Workers AI returned no image' }, 502);
   }
 
   return jsonResponse({ image: result.image, mimeType: 'image/png', model });
 }
 
-async function handleStylistRequest(env: Env, incoming: FormData): Promise<Response> {
+async function handleStylistRequest(env: WorkerEnv, incoming: FormData): Promise<Response> {
   const question = textField(incoming, 'question', '');
   if (question === '') {
-    return jsonResponse({ error: 'Missing question' }, 400);
+    return jsonError({ code: 'bad_request', error: 'Missing question' }, 400);
   }
   const systemPrompt = textField(incoming, 'system_prompt', '');
   if (systemPrompt === '') {
-    return jsonResponse({ error: 'Missing system prompt' }, 400);
+    return jsonError({ code: 'bad_request', error: 'Missing system prompt' }, 400);
   }
   const image = fileField(incoming, 'input_image_0');
   if (image === null) {
-    return jsonResponse({ error: 'Missing input image' }, 400);
+    return jsonError({ code: 'bad_request', error: 'Missing input image' }, 400);
   }
 
   const model = textField(incoming, 'model', DEFAULT_STYLIST_MODEL);
   const imageUrl = await fileToDataUrl(image);
 
-  const result = await env.AI.run(model, {
-    messages: [
-      {
-        role: 'system',
-        content: systemPrompt,
-      },
-      {
-        role: 'user',
-        content: [
-          {
-            type: 'text',
-            text: question,
-          },
-          {
-            type: 'image_url',
-            image_url: {
-              url: imageUrl,
+  let result: unknown;
+  try {
+    result = await env.AI.run(model, {
+      messages: [
+        {
+          role: 'system',
+          content: systemPrompt,
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: question,
             },
-          },
-        ],
+            {
+              type: 'image_url',
+              image_url: {
+                url: imageUrl,
+              },
+            },
+          ],
+        },
+      ],
+      response_format: {
+        type: 'json_schema',
+        json_schema: STYLIST_RESPONSE_SCHEMA,
       },
-    ],
-    response_format: {
-      type: 'json_schema',
-      json_schema: STYLIST_RESPONSE_SCHEMA,
-    },
-    max_tokens: 900,
-    temperature: 0.35,
-  });
+      max_tokens: 900,
+      temperature: 0.35,
+    });
+  } catch (error) {
+    return providerError(error, 'stylist');
+  }
 
   const payload = parseStylistPayload(result);
   if (typeof payload !== 'object' || payload === null) {
-    return jsonResponse({ error: 'Workers AI returned invalid stylist payload' }, 502);
+    return jsonError(
+      { code: 'provider_error', error: 'Workers AI returned invalid stylist payload' },
+      502,
+    );
   }
 
   return jsonResponse({ ...(payload as Record<string, unknown>), model });
 }
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request: Request, env: WorkerEnv): Promise<Response> {
     if (request.method !== 'POST') {
-      return jsonResponse({ error: 'Method not allowed' }, 405);
+      return jsonError({ code: 'method_not_allowed', error: 'Method not allowed' }, 405);
     }
     if (!(await isAuthorized(request, env.IMAGE_API_SECRET))) {
-      return jsonResponse({ error: 'Unauthorized' }, 401);
+      return jsonError({ code: 'unauthorized', error: 'Unauthorized' }, 401);
     }
 
-    const incoming = await request.formData();
+    let incoming: FormData;
+    try {
+      incoming = await request.formData();
+    } catch {
+      return jsonError({ code: 'bad_request', error: 'Expected multipart/form-data body' }, 400);
+    }
+
     const pathname = new URL(request.url).pathname;
 
-    if (pathname === '/stylist') {
-      return await handleStylistRequest(env, incoming);
-    }
+    try {
+      if (pathname === '/stylist') {
+        return await handleStylistRequest(env, incoming);
+      }
 
-    return await handleImageRequest(env, incoming);
+      return await handleImageRequest(env, incoming);
+    } catch (error) {
+      console.error('worker-unhandled-error', error);
+      return jsonError({ code: 'internal_error', error: 'Internal server error' }, 500);
+    }
   },
 };

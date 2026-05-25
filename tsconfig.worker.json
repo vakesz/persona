@@ -26,5 +26,5 @@
     "useUnknownInCatchVariables": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["workers/**/*.ts"]
+  "include": ["workers/**/*.ts", "worker-configuration.d.ts"]
 }

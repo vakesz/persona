@@ -68,7 +68,19 @@ export const deleteUploadedItem = mutation({
     const userId = await requireAuth(ctx);
     const item = ownedOrNull(await ctx.db.get(id), userId);
     if (item === null) return null;
-    await ctx.storage.delete(item.imageStorageId);
+
+    // Storage blobs are best-effort cleanup: a missing or transiently
+    // unavailable object should not block removing the logical DB row.
+    try {
+      await ctx.storage.delete(item.imageStorageId);
+    } catch (error) {
+      console.warn('deleteUploadedItem: failed to delete storage blob', {
+        uploadedItemId: id,
+        imageStorageId: item.imageStorageId,
+        error,
+      });
+    }
+
     await ctx.db.delete(id);
     return null;
   },

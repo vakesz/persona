@@ -1,3 +1,5 @@
+import type { MessageDescriptor } from '@lingui/core';
+import { msg } from '@lingui/core/macro';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation } from 'convex/react';
 import { Loader2, Plus } from 'lucide-react';
@@ -9,6 +11,19 @@ import { processAvatarImage } from '@/lib/image-compression';
 import { uploadBlobToConvex } from '@/lib/storage/upload';
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
+import type { FunctionReturnType } from 'convex/server';
+
+type UploadedItemType = FunctionReturnType<
+  typeof api.uploadedItems.listUploadedItems
+>[number]['type'];
+
+const UPLOAD_TYPE_OPTIONS: { value: UploadedItemType; label: MessageDescriptor }[] = [
+  { value: 'dress', label: msg`Dress` },
+  { value: 'top', label: msg`Top` },
+  { value: 'shoes', label: msg`Shoes` },
+  { value: 'nails_reference', label: msg`Nails reference` },
+  { value: 'hair_reference', label: msg`Hair reference` },
+];
 
 export interface UploadedItemUploaderProps {
   onUploaded: (id: Id<'uploadedItems'>) => void;
@@ -24,7 +39,8 @@ export function UploadedItemUploader({ onUploaded }: UploadedItemUploaderProps) 
   const createUploadedItem = useMutation(api.uploadedItems.createUploadedItem);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
-  const { t } = useLingui();
+  const [selectedType, setSelectedType] = useState<UploadedItemType>('dress');
+  const { i18n, t } = useLingui();
 
   const handleClick = () => {
     fileInputRef.current?.click();
@@ -44,7 +60,7 @@ export function UploadedItemUploader({ onUploaded }: UploadedItemUploaderProps) 
       const uploadUrl = await generateUploadUrl();
       const storageId = await uploadBlobToConvex(uploadUrl, base, t`Upload failed.`);
       const id = await createUploadedItem({
-        type: 'dress',
+        type: selectedType,
         imageStorageId: storageId,
         label: stripExt(picked.name),
       });
@@ -67,19 +83,42 @@ export function UploadedItemUploader({ onUploaded }: UploadedItemUploaderProps) 
         className="hidden"
         onChange={handleFileChange}
       />
-      <button
-        type="button"
-        onClick={handleClick}
-        disabled={busy}
-        className="border-border hover:border-foreground/40 flex aspect-square w-full flex-col items-center justify-center gap-2 rounded-md border border-dashed p-2 text-center transition disabled:opacity-50"
-      >
-        <div className="bg-muted text-muted-foreground flex h-12 w-full items-center justify-center rounded">
-          {busy ? <Loader2 className="size-5 animate-spin" /> : <Plus className="size-5" />}
-        </div>
-        <span className="text-xs leading-tight">
-          <Trans>Upload</Trans>
-        </span>
-      </button>
+      <div className="border-border flex aspect-square w-full flex-col gap-1 rounded-md border border-dashed p-2">
+        <label
+          htmlFor="upload-item-type"
+          className="text-muted-foreground text-[11px] leading-none"
+        >
+          <Trans>Type</Trans>
+        </label>
+        <select
+          id="upload-item-type"
+          value={selectedType}
+          disabled={busy}
+          onChange={(event) => {
+            setSelectedType(event.currentTarget.value as UploadedItemType);
+          }}
+          className="border-input bg-background text-foreground rounded-md border px-2 py-1 text-xs"
+        >
+          {UPLOAD_TYPE_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {i18n._(option.label)}
+            </option>
+          ))}
+        </select>
+        <button
+          type="button"
+          onClick={handleClick}
+          disabled={busy}
+          className="border-border hover:border-foreground/40 flex flex-1 flex-col items-center justify-center gap-2 rounded-md border p-2 text-center transition disabled:opacity-50"
+        >
+          <div className="bg-muted text-muted-foreground flex h-10 w-full items-center justify-center rounded">
+            {busy ? <Loader2 className="size-5 animate-spin" /> : <Plus className="size-5" />}
+          </div>
+          <span className="text-xs leading-tight">
+            <Trans>Upload</Trans>
+          </span>
+        </button>
+      </div>
     </>
   );
 }

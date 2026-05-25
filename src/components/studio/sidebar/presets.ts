@@ -1,9 +1,11 @@
 import { type MessageDescriptor } from '@lingui/core';
 import { msg } from '@lingui/core/macro';
 
-import type { LipFinish, AvatarGender } from '@/lib/studio/studio-state';
+import type { TabId } from '@/lib/studio/capabilities';
+import type { LipFinish } from '@/lib/studio/studio-state';
 
-export type { AvatarGender } from '@/lib/studio/studio-state';
+export { TABS_BY_GENDER } from '@/lib/studio/capabilities';
+export type { AvatarGender, TabId } from '@/lib/studio/capabilities';
 
 type StylistStyleType = 'hair' | 'makeup' | 'nails' | 'clothes';
 
@@ -29,19 +31,6 @@ export interface HairGroup {
   presets: PresetEntry[];
 }
 
-export type TabId =
-  | 'lips'
-  | 'eyes'
-  | 'brows'
-  | 'cheeks'
-  | 'beard'
-  | 'mustache'
-  | 'hair'
-  | 'extras'
-  | 'vibe'
-  | 'uploads'
-  | 'ask';
-
 export const ALL_TABS: { id: TabId; label: MessageDescriptor }[] = [
   { id: 'lips', label: msg`Lips` },
   { id: 'eyes', label: msg`Eyes` },
@@ -55,24 +44,6 @@ export const ALL_TABS: { id: TabId; label: MessageDescriptor }[] = [
   { id: 'uploads', label: msg`Uploads` },
   { id: 'ask', label: msg`Ask AI` },
 ];
-
-export const TABS_BY_GENDER: Record<AvatarGender, TabId[]> = {
-  male: ['brows', 'beard', 'mustache', 'hair', 'extras', 'vibe', 'uploads', 'ask'],
-  female: ['lips', 'eyes', 'brows', 'cheeks', 'hair', 'extras', 'vibe', 'uploads', 'ask'],
-  unspecified: [
-    'lips',
-    'eyes',
-    'brows',
-    'cheeks',
-    'beard',
-    'mustache',
-    'hair',
-    'extras',
-    'vibe',
-    'uploads',
-    'ask',
-  ],
-};
 
 export function isColorTab(tab: TabId): boolean {
   return tab === 'lips' || tab === 'eyes' || tab === 'brows' || tab === 'cheeks';

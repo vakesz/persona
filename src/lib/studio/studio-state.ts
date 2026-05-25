@@ -1,6 +1,8 @@
 import type { Id } from '@convex/_generated/dataModel';
 
-export type AvatarGender = 'male' | 'female' | 'unspecified';
+import { ALLOWED_PLANS_BY_GENDER, type AvatarGender } from '@/lib/studio/capabilities';
+
+export type { AvatarGender } from '@/lib/studio/capabilities';
 
 /**
  * Single source of truth for everything the studio knows about the in-progress
@@ -204,48 +206,6 @@ export function composeRenderPrompt(state: StudioState, gender: AvatarGender): s
 
   return parts.join(' ');
 }
-
-type GeometryPlanKey =
-  | 'lipShape'
-  | 'browShape'
-  | 'beard'
-  | 'mustache'
-  | 'hairstyle'
-  | 'eyewear'
-  | 'headwear'
-  | 'jewelry'
-  | 'vibe';
-
-/**
- * Mirrors `TABS_BY_GENDER` in the sidebar presets — kept here so the prompt
- * builder doesn't depend on the UI module. A masculine persona omits
- * `lipShape`; a feminine persona omits beard/mustache. `unspecified` allows
- * every tool. Keep in sync with `src/components/studio/sidebar/presets.ts`.
- */
-const ALLOWED_PLANS_BY_GENDER: Record<AvatarGender, ReadonlySet<GeometryPlanKey>> = {
-  male: new Set([
-    'browShape',
-    'beard',
-    'mustache',
-    'hairstyle',
-    'eyewear',
-    'headwear',
-    'jewelry',
-    'vibe',
-  ]),
-  female: new Set(['lipShape', 'browShape', 'hairstyle', 'eyewear', 'headwear', 'jewelry', 'vibe']),
-  unspecified: new Set([
-    'lipShape',
-    'browShape',
-    'beard',
-    'mustache',
-    'hairstyle',
-    'eyewear',
-    'headwear',
-    'jewelry',
-    'vibe',
-  ]),
-};
 
 function describePlan(plan: GeometryPlan): string {
   if (plan.preset === null) return plan.custom.trim();

@@ -13,6 +13,7 @@ export default tseslint.config(
       'convex/_generated/**',
       'src/routeTree.gen.ts',
       'src/i18n/locales/**/messages.ts',
+      'worker-configuration.d.ts',
       'eslint.config.js',
       'lingui.config.ts',
     ],

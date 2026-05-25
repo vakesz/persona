@@ -21,7 +21,8 @@
     "cf:image:deploy": "wrangler deploy --config workers/image-api/wrangler.jsonc",
     "i18n:extract": "lingui extract",
     "i18n:compile": "lingui compile --typescript",
-    "check": "pnpm i18n:compile && pnpm typecheck && pnpm lint && pnpm format:check && pnpm knip"
+    "check": "pnpm i18n:compile && pnpm typecheck && pnpm lint && pnpm format:check && pnpm knip",
+    "cf:image:types": "wrangler types --config workers/image-api/wrangler.jsonc"
   },
   "dependencies": {
     "@auth/core": "^0.37.4",
