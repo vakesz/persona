@@ -27,6 +27,7 @@ export interface RenderResultProps {
   onClose: () => void;
 }
 
+/** Shows live render-job progress, before/after preview, and save-to-gallery action. */
 export function RenderResult({
   jobId,
   title,

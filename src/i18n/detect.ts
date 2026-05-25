@@ -22,6 +22,7 @@ function readStoredLocale(): Locale | null {
   }
 }
 
+/** Best-effort persists the selected locale in browser storage. */
 export function writeStoredLocale(locale: Locale): void {
   try {
     localStorage.setItem(STORAGE_KEY, locale);

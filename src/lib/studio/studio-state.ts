@@ -70,6 +70,7 @@ function tintApplied(tint: ColorTint): boolean {
   return tint.enabled && tint.intensity > 0;
 }
 
+/** Returns true when any visible color tint should be baked into the canvas snapshot. */
 export function hasAnyTint(state: StudioState): boolean {
   return (
     tintApplied(state.lip) ||
@@ -97,6 +98,7 @@ function hasAnyGeometry(state: StudioState): boolean {
   );
 }
 
+/** Returns true when the studio has any tint, geometry, vibe, or try-on change selected. */
 export function hasAnyChange(state: StudioState): boolean {
   return hasAnyTint(state) || hasAnyGeometry(state) || state.selectedUploadId !== null;
 }
@@ -213,12 +215,11 @@ function describePlan(plan: GeometryPlan): string {
   return custom.length === 0 ? plan.preset : `${plan.preset} (${custom})`;
 }
 
-// Title is composed of English preset values. Stored verbatim in
-// `inputJson.title` and shown back in render-result + saved-look cards. It
-// stays English regardless of locale — switching to Hungarian doesn't
-// re-translate previously-saved titles. Translating would require a
-// structured tag list and a preset-value → MessageDescriptor lookup; a
-// follow-up if/when product surfaces non-English saved-look titles.
+/**
+ * Builds the saved-look title from selected preset values.
+ *
+ * Titles are stored verbatim and are not re-translated on locale changes.
+ */
 export function composeRenderTitle(state: StudioState, gender: AvatarGender): string {
   const allowed = ALLOWED_PLANS_BY_GENDER[gender];
   const bits: string[] = [];

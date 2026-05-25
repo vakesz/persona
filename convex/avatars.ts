@@ -53,6 +53,7 @@ const getAvatarReturn = v.object({
   masksJson: v.optional(v.string()),
 });
 
+/** Lists the signed-in user's avatars with preview URLs and baseline status. */
 export const listAvatars = query({
   args: {},
   returns: v.array(listAvatarReturn),
@@ -93,6 +94,7 @@ export const listAvatars = query({
   },
 });
 
+/** Returns one owned avatar with its studio baseline URL and cached face data. */
 export const getAvatar = query({
   args: { id: v.id('avatars') },
   returns: v.union(getAvatarReturn, v.null()),
@@ -179,6 +181,7 @@ export const getAvatarForBaseline = internalQuery({
   },
 });
 
+/** Creates an avatar, cleans up rejected uploads, and queues baseline generation. */
 export const createAvatar = mutation({
   args: {
     name: v.string(),
@@ -226,6 +229,7 @@ export const createAvatar = mutation({
   },
 });
 
+/** Persists browser-computed face landmarks and masks as a first-writer-wins cache. */
 export const saveAvatarLandmarks = mutation({
   args: {
     id: v.id('avatars'),
@@ -251,6 +255,7 @@ export const saveAvatarLandmarks = mutation({
   },
 });
 
+/** Renames an owned avatar after trimming and validating the display name. */
 export const updateAvatar = mutation({
   args: { id: v.id('avatars'), name: v.string() },
   returns: v.null(),
@@ -266,6 +271,7 @@ export const updateAvatar = mutation({
   },
 });
 
+/** Deletes an owned avatar and cascades every row and storage blob it owns. */
 export const deleteAvatar = mutation({
   args: { id: v.id('avatars') },
   returns: v.null(),
@@ -330,6 +336,7 @@ export const claimBaselineGeneration = internalMutation({
   },
 });
 
+/** Stores a finished baseline image and frees any replaced generated baseline blob. */
 export const markBaselineDone = internalMutation({
   args: { id: v.id('avatars'), baseImageStorageId: v.id('_storage') },
   returns: v.null(),
@@ -360,6 +367,7 @@ export const markBaselineDone = internalMutation({
   },
 });
 
+/** Marks baseline generation as failed with a serialized, client-translatable error. */
 export const markBaselineFailed = internalMutation({
   args: { id: v.id('avatars'), errorMessage: v.string() },
   returns: v.null(),

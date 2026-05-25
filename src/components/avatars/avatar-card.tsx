@@ -30,6 +30,7 @@ export interface AvatarCardProps {
   onRetryBaseline: (id: Id<'avatars'>) => void;
 }
 
+/** Displays one avatar with baseline status, retry, rename, delete, and studio entry actions. */
 export function AvatarCard({
   id,
   name,

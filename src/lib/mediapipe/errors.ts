@@ -6,6 +6,7 @@
  */
 export type FacePreparationErrorCode = 'no_face' | 'segmentation_failed' | 'unknown';
 
+/** Error type for browser-only MediaPipe preparation failures. */
 export class FacePreparationError extends Error {
   readonly code: FacePreparationErrorCode;
 
@@ -16,6 +17,7 @@ export class FacePreparationError extends Error {
   }
 }
 
+/** Runtime guard for errors thrown while preparing studio face data. */
 export function isFacePreparationError(value: unknown): value is FacePreparationError {
   return value instanceof FacePreparationError;
 }

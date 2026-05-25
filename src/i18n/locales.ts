@@ -15,6 +15,7 @@ export const LOCALE_BCP47: Record<Locale, string> = {
   hu: 'hu-HU',
 };
 
+/** Runtime guard for persisted, URL, and browser-provided locale values. */
 export function isLocale(value: unknown): value is Locale {
   return typeof value === 'string' && (LOCALES as readonly string[]).includes(value);
 }

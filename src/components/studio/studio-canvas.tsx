@@ -49,6 +49,7 @@ interface PinchState {
   distance: number;
 }
 
+/** Renders the interactive baseline image with live Konva tint overlays. */
 export function StudioCanvas({
   baseImage,
   altText,

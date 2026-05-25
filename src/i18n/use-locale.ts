@@ -8,6 +8,7 @@ export interface UseLocale {
   setLocale: (next: Locale) => void;
 }
 
+/** Reads the active locale controller from the app-level i18n provider. */
 export function useLocale(): UseLocale {
   const ctx = useContext(LocaleContext);
   if (ctx === null) {

@@ -13,6 +13,7 @@ const savedLookReturn = v.object({
   renderUrl: v.union(v.string(), v.null()),
 });
 
+/** Lists the signed-in user's saved looks, optionally narrowed to one avatar. */
 export const listSavedLooks = query({
   args: { avatarId: v.optional(v.id('avatars')) },
   returns: v.array(savedLookReturn),
@@ -88,6 +89,7 @@ export const saveLookFromJob = mutation({
   },
 });
 
+/** Deletes an owned saved look and frees its render blob when no sibling look references it. */
 export const deleteSavedLook = mutation({
   args: { id: v.id('savedLooks') },
   returns: v.null(),

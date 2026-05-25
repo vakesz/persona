@@ -29,6 +29,7 @@ const renderJobPublicReturn = v.object({
   resultUrl: v.union(v.string(), v.null()),
 });
 
+/** Queues an owned avatar render and optionally attaches one claimed canvas snapshot. */
 export const createRenderJob = mutation({
   args: {
     avatarId: v.id('avatars'),
@@ -111,6 +112,7 @@ export const createRenderJob = mutation({
   },
 });
 
+/** Returns one owned render job with its translated status fields and result URL. */
 export const getRenderJob = query({
   args: { id: v.id('renderJobs') },
   returns: v.union(renderJobPublicReturn, v.null()),
@@ -167,6 +169,7 @@ export const claimRenderJob = internalMutation({
   },
 });
 
+/** Stores a completed render result, or frees it if the job was deleted mid-flight. */
 export const markRenderJobDone = internalMutation({
   args: { id: v.id('renderJobs'), resultStorageId: v.id('_storage') },
   returns: v.null(),
@@ -188,6 +191,7 @@ export const markRenderJobDone = internalMutation({
   },
 });
 
+/** Marks a render job as failed with a serialized, client-translatable error. */
 export const markRenderJobFailed = internalMutation({
   args: { id: v.id('renderJobs'), errorMessage: v.string() },
   returns: v.null(),

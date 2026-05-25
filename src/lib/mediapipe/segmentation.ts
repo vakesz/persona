@@ -46,6 +46,7 @@ async function getSegmenter(): Promise<ImageSegmenter> {
 // rationale as the face landmark detect queue.
 let segmentQueue: Promise<unknown> = Promise.resolve();
 
+/** Runs selfie segmentation and returns a compact RLE mask for Convex caching. */
 export async function runImageSegmenter(
   image: HTMLImageElement | ImageBitmap | HTMLCanvasElement,
 ): Promise<SegmentationResult> {

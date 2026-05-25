@@ -76,12 +76,14 @@ const CAPABILITIES_BY_GENDER = {
   }
 >;
 
+/** Visible studio tabs for each avatar persona. */
 export const TABS_BY_GENDER: Record<AvatarGender, TabId[]> = {
   male: [...CAPABILITIES_BY_GENDER.male.tabs],
   female: [...CAPABILITIES_BY_GENDER.female.tabs],
   unspecified: [...CAPABILITIES_BY_GENDER.unspecified.tabs],
 };
 
+/** Geometry prompt fields that may affect renders for each avatar persona. */
 export const ALLOWED_PLANS_BY_GENDER: Record<AvatarGender, ReadonlySet<GeometryPlanKey>> = {
   male: new Set(CAPABILITIES_BY_GENDER.male.plans),
   female: new Set(CAPABILITIES_BY_GENDER.female.plans),

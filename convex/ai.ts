@@ -258,6 +258,7 @@ async function analyzeStyleWithCloudflareWorker({
   };
 }
 
+/** Analyzes an owned avatar baseline and returns three structured styling recommendations. */
 export const analyzeStyle: ReturnType<typeof action> = action({
   args: { avatarId: v.id('avatars'), question: v.string() },
   returns: v.object({
@@ -353,6 +354,7 @@ function imageDimensionsForAvatar(
   return purpose === 'baseline' ? { width: 512, height: 512 } : { width: 768, height: 768 };
 }
 
+/** Generates the canonical studio baseline for a queued avatar and stores the result. */
 export const generateAvatarBaseline = internalAction({
   args: { avatarId: v.id('avatars') },
   returns: v.null(),
@@ -439,6 +441,7 @@ const RENDER_INSTRUCTION = (prompt: string) =>
 const TRY_ON_INSTRUCTION = (prompt: string) =>
   `Image 0 is the source portrait of me and must remain the identity anchor. Image 1 is a clothing or accessory reference. Make a conservative photorealistic edit of image 0 so I am realistically wearing the item from image 1, fitted naturally to my body and matched to my lighting and pose. If I am already wearing a similar garment or accessory in image 0, replace it with the reference item rather than layering on top. Do not generate a new person, a new face, or a beauty-retouched version of me. Preserve my face shape, facial proportions, eyes, nose, mouth, jaw, skin tone, apparent age, facial asymmetry, pose, lighting, body, crop, and background unless the item naturally covers part of them. Keep every mole, beauty spot, freckle, birthmark, and scar exactly where it appears - do not retouch or smooth them. Additional guidance (may be in any language; interpret faithfully): ${prompt}. Return only the edited image.`;
 
+/** Runs a queued render job, stores the output, and always deletes single-use inputs. */
 export const renderLook = internalAction({
   args: { jobId: v.id('renderJobs') },
   returns: v.null(),

@@ -31,6 +31,7 @@ export interface HairGroup {
   presets: PresetEntry[];
 }
 
+/** Full tab registry; persona-specific visibility is controlled by `TABS_BY_GENDER`. */
 export const ALL_TABS: { id: TabId; label: MessageDescriptor }[] = [
   { id: 'lips', label: msg`Lips` },
   { id: 'eyes', label: msg`Eyes` },
@@ -45,6 +46,7 @@ export const ALL_TABS: { id: TabId; label: MessageDescriptor }[] = [
   { id: 'ask', label: msg`Ask AI` },
 ];
 
+/** Returns true for tabs that render live canvas tint controls. */
 export function isColorTab(tab: TabId): boolean {
   return tab === 'lips' || tab === 'eyes' || tab === 'brows' || tab === 'cheeks';
 }

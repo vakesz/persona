@@ -20,6 +20,7 @@ const uploadedItemReturn = v.object({
   imageUrl: v.union(v.string(), v.null()),
 });
 
+/** Lists the signed-in user's uploaded try-on reference items with signed image URLs. */
 export const listUploadedItems = query({
   args: {},
   returns: v.array(uploadedItemReturn),
@@ -43,6 +44,7 @@ export const listUploadedItems = query({
   },
 });
 
+/** Registers an uploaded reference image so future renders can use it for try-on. */
 export const createUploadedItem = mutation({
   args: {
     type: uploadedItemType,
@@ -61,6 +63,7 @@ export const createUploadedItem = mutation({
   },
 });
 
+/** Deletes an owned uploaded item and best-effort frees its storage blob. */
 export const deleteUploadedItem = mutation({
   args: { id: v.id('uploadedItems') },
   returns: v.null(),

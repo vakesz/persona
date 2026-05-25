@@ -103,9 +103,7 @@ function providerError(error: unknown, scope: 'image' | 'stylist'): Response {
   return jsonError(
     {
       code: isQuota ? 'provider_quota' : 'provider_error',
-      error: isQuota
-        ? `Workers AI ${scope} quota reached`
-        : `Workers AI ${scope} request failed`,
+      error: isQuota ? `Workers AI ${scope} quota reached` : `Workers AI ${scope} request failed`,
       detail: sanitizedProviderDetail(error),
     },
     providerStatus(error),

@@ -6,6 +6,7 @@ import { requireAuth } from './lib/auth';
 
 const localeArg = v.union(v.literal('en'), v.literal('hu'));
 
+/** Returns the signed-in user's saved locale preference, or null when unset. */
 export const getMyLocale = query({
   args: {},
   returns: v.union(localeArg, v.null()),
@@ -23,6 +24,7 @@ export const getMyLocale = query({
   },
 });
 
+/** Upserts the signed-in user's locale preference and collapses duplicate rows. */
 export const setMyLocale = mutation({
   args: { locale: localeArg },
   returns: v.null(),

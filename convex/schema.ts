@@ -2,13 +2,7 @@ import { authTables } from '@convex-dev/auth/server';
 import { defineSchema, defineTable } from 'convex/server';
 import { v } from 'convex/values';
 
-/**
- * Convex data model for the 2.5D AI Stylist app.
- *
- * `authTables` provides the `users` table (and auth bookkeeping tables) managed
- * by Convex Auth. App tables below reference `users` by id and are always
- * scoped to their owner — every query/mutation must enforce owner-only access.
- */
+/** Shared async job lifecycle used by avatar baselines and render jobs. */
 export const renderStatus = v.union(
   v.literal('queued'),
   v.literal('processing'),
@@ -16,6 +10,12 @@ export const renderStatus = v.union(
   v.literal('failed'),
 );
 
+/**
+ * Convex data model for the 2.5D AI Stylist app.
+ *
+ * `authTables` owns users and auth bookkeeping; app tables are user-scoped and
+ * every query/mutation must still enforce ownership.
+ */
 export default defineSchema({
   ...authTables,
 
