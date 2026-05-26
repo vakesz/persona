@@ -1,7 +1,7 @@
 const DEFAULT_IMAGE_MODEL = '@cf/black-forest-labs/flux-2-dev';
 const DEFAULT_STYLIST_MODEL = '@cf/meta/llama-3.2-11b-vision-instruct';
 const MAX_REFERENCE_IMAGES = 4;
-const TRANSIENT_PROVIDER_RETRIES = 2;
+const STYLIST_TRANSIENT_PROVIDER_RETRIES = 2;
 
 const STYLIST_RESPONSE_SCHEMA = {
   type: 'object',
@@ -43,9 +43,11 @@ interface ErrorPayload {
     | 'method_not_allowed'
     | 'provider_error'
     | 'provider_quota'
+    | 'provider_unavailable'
     | 'internal_error';
   error: string;
   detail?: string;
+  providerStatus?: number;
 }
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -83,30 +85,57 @@ function isProviderQuotaError(error: unknown): boolean {
   );
 }
 
-function providerStatus(error: unknown): 429 | 502 | 503 {
-  if (isProviderQuotaError(error)) return 429;
+function isProviderUnavailableError(error: unknown): boolean {
   const message = providerMessage(error).toLowerCase();
-  if (
+  return (
     message.includes('unavailable') ||
     message.includes('overload') ||
     message.includes('timeout') ||
-    message.includes('timed out')
-  ) {
-    return 503;
-  }
+    message.includes('timed out') ||
+    message.includes('no more data centers')
+  );
+}
+
+function providerHttpStatus(error: unknown): 429 | 502 | 503 {
+  if (isProviderQuotaError(error)) return 429;
+  if (isProviderUnavailableError(error)) return 503;
   return 502;
+}
+
+function providerCode(error: unknown): ErrorPayload['code'] {
+  if (isProviderQuotaError(error)) return 'provider_quota';
+  if (isProviderUnavailableError(error)) return 'provider_unavailable';
+  return 'provider_error';
+}
+
+function providerErrorLabel(code: ErrorPayload['code'], scope: 'image' | 'stylist'): string {
+  if (code === 'provider_quota') return `Workers AI ${scope} quota reached`;
+  if (code === 'provider_unavailable') return `Workers AI ${scope} temporarily unavailable`;
+  return `Workers AI ${scope} request failed`;
+}
+
+function providerStatusCode(error: unknown): number | undefined {
+  const message = providerMessage(error).toLowerCase();
+  const match = /\b(4\d\d|5\d\d)\b/.exec(message);
+  if (match === null) {
+    return undefined;
+  }
+  return Number(match[1]);
 }
 
 function providerError(error: unknown, scope: 'image' | 'stylist'): Response {
   console.error(`workers-ai-${scope}-error`, error);
-  const isQuota = isProviderQuotaError(error);
+  const code = providerCode(error);
+  const status = providerHttpStatus(error);
+  const rawProviderStatus = providerStatusCode(error);
   return jsonError(
     {
-      code: isQuota ? 'provider_quota' : 'provider_error',
-      error: isQuota ? `Workers AI ${scope} quota reached` : `Workers AI ${scope} request failed`,
+      code,
+      error: providerErrorLabel(code, scope),
       detail: sanitizedProviderDetail(error),
+      ...(rawProviderStatus !== undefined && { providerStatus: rawProviderStatus }),
     },
-    providerStatus(error),
+    status,
   );
 }
 
@@ -134,14 +163,15 @@ async function runWorkersAiWithRetry<T>(
   env: WorkerEnv,
   model: string,
   input: Parameters<WorkerEnv['AI']['run']>[1],
+  maxRetries: number,
 ): Promise<T> {
   let lastError: unknown;
-  for (let attempt = 0; attempt <= TRANSIENT_PROVIDER_RETRIES; attempt += 1) {
+  for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
     try {
       return (await env.AI.run(model, input)) as T;
     } catch (error) {
       lastError = error;
-      if (attempt === TRANSIENT_PROVIDER_RETRIES || !isTransientProviderError(error)) {
+      if (attempt === maxRetries || !isTransientProviderError(error)) {
         throw error;
       }
       console.warn('workers-ai-retry', {
@@ -312,12 +342,17 @@ async function handleImageRequest(env: WorkerEnv, incoming: FormData): Promise<R
 
   let result: FluxImageResponse;
   try {
-    result = await runWorkersAiWithRetry<FluxImageResponse>(env, model, {
-      multipart: {
-        body: serialized.body,
-        contentType,
+    result = await runWorkersAiWithRetry<FluxImageResponse>(
+      env,
+      model,
+      {
+        multipart: {
+          body: serialized.body,
+          contentType,
+        },
       },
-    });
+      0,
+    );
   } catch (error) {
     return providerError(error, 'image');
   }
@@ -348,35 +383,40 @@ async function handleStylistRequest(env: WorkerEnv, incoming: FormData): Promise
 
   let result: unknown;
   try {
-    result = await runWorkersAiWithRetry(env, model, {
-      messages: [
-        {
-          role: 'system',
-          content: systemPrompt,
-        },
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: question,
-            },
-            {
-              type: 'image_url',
-              image_url: {
-                url: imageUrl,
+    result = await runWorkersAiWithRetry(
+      env,
+      model,
+      {
+        messages: [
+          {
+            role: 'system',
+            content: systemPrompt,
+          },
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: question,
               },
-            },
-          ],
+              {
+                type: 'image_url',
+                image_url: {
+                  url: imageUrl,
+                },
+              },
+            ],
+          },
+        ],
+        response_format: {
+          type: 'json_schema',
+          json_schema: STYLIST_RESPONSE_SCHEMA,
         },
-      ],
-      response_format: {
-        type: 'json_schema',
-        json_schema: STYLIST_RESPONSE_SCHEMA,
+        max_tokens: 900,
+        temperature: 0.35,
       },
-      max_tokens: 900,
-      temperature: 0.35,
-    });
+      STYLIST_TRANSIENT_PROVIDER_RETRIES,
+    );
   } catch (error) {
     return providerError(error, 'stylist');
   }

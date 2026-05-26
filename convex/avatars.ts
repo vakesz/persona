@@ -16,6 +16,7 @@ import {
   MAX_AVATAR_NAME_LENGTH,
   MAX_AVATARS_PER_USER,
   MAX_SOURCE_PHOTOS,
+  QUEUED_GENERATION_EXPIRY_MS,
   STUCK_PROCESSING_THRESHOLD_MS,
 } from './lib/limits';
 import { parseInputStorageId } from './lib/renderInput';
@@ -52,6 +53,10 @@ const getAvatarReturn = v.object({
   landmarksJson: v.optional(v.string()),
   masksJson: v.optional(v.string()),
 });
+
+function newAttemptId(): string {
+  return crypto.randomUUID();
+}
 
 /** Lists the signed-in user's avatars with preview URLs and baseline status. */
 export const listAvatars = query({
@@ -165,6 +170,8 @@ export const getAvatarForBaseline = internalQuery({
       type: avatarType,
       sourcePhotoStorageIds: v.array(v.id('_storage')),
       baselineStatus,
+      baselineAttemptId: v.optional(v.string()),
+      updatedAt: v.number(),
     }),
     v.null(),
   ),
@@ -177,6 +184,10 @@ export const getAvatarForBaseline = internalQuery({
       type: avatar.type,
       sourcePhotoStorageIds: avatar.sourcePhotoStorageIds ?? [],
       baselineStatus: avatar.baselineStatus ?? 'done',
+      ...(avatar.baselineAttemptId !== undefined && {
+        baselineAttemptId: avatar.baselineAttemptId,
+      }),
+      updatedAt: avatar.updatedAt,
     };
   },
 });
@@ -214,6 +225,7 @@ export const createAvatar = mutation({
       await cleanupOnReject(ctx, args.sourcePhotoStorageIds, args.thumbnailStorageId);
       throw errors.avatarLimitReached(MAX_AVATARS_PER_USER);
     }
+    const baselineAttemptId = newAttemptId();
     const avatarId = await ctx.db.insert('avatars', {
       userId,
       name,
@@ -222,9 +234,13 @@ export const createAvatar = mutation({
       sourcePhotoStorageIds: args.sourcePhotoStorageIds,
       thumbnailStorageId: args.thumbnailStorageId,
       baselineStatus: 'queued',
+      baselineAttemptId,
       updatedAt: Date.now(),
     });
-    await ctx.scheduler.runAfter(0, internal.ai.generateAvatarBaseline, { avatarId });
+    await ctx.scheduler.runAfter(0, internal.ai.generateAvatarBaseline, {
+      avatarId,
+      attemptId: baselineAttemptId,
+    });
     return avatarId;
   },
 });
@@ -301,33 +317,39 @@ export const retryAvatarBaseline = mutation({
     if ((avatar.sourcePhotoStorageIds ?? []).length === 0) {
       throw errors.baselineNoSources();
     }
+    const baselineAttemptId = newAttemptId();
     await ctx.db.patch(id, {
       baselineStatus: 'queued',
+      baselineAttemptId,
       baselineErrorMessage: undefined,
       landmarksJson: undefined,
       masksJson: undefined,
       updatedAt: Date.now(),
     });
-    await ctx.scheduler.runAfter(0, internal.ai.generateAvatarBaseline, { avatarId: id });
+    await ctx.scheduler.runAfter(0, internal.ai.generateAvatarBaseline, {
+      avatarId: id,
+      attemptId: baselineAttemptId,
+    });
     return null;
   },
 });
 
 /**
- * Atomic `queued|failed → processing` transition. The render action calls this
+ * Atomic `queued → processing` transition. The render action calls this
  * once instead of a separate read + `markBaselineProcessing` pair, so two
  * concurrent invocations (e.g. a fast double-tap on Retry that escaped client
  * de-duping) can't both pass the gate and double-bill the provider. Returns true
  * iff this caller actually claimed the work.
  */
 export const claimBaselineGeneration = internalMutation({
-  args: { id: v.id('avatars') },
+  args: { id: v.id('avatars'), attemptId: v.string() },
   returns: v.boolean(),
-  handler: async (ctx, { id }) => {
+  handler: async (ctx, { id, attemptId }) => {
     const avatar = await ctx.db.get(id);
     if (avatar === null) return false;
     const status = avatar.baselineStatus ?? 'done';
-    if (status !== 'queued' && status !== 'failed') return false;
+    if (status !== 'queued') return false;
+    if (avatar.baselineAttemptId !== attemptId) return false;
     await ctx.db.patch(id, {
       baselineStatus: 'processing',
       updatedAt: Date.now(),
@@ -361,6 +383,7 @@ export const markBaselineDone = internalMutation({
       baseImageStorageId,
       baselineStatus: 'done',
       baselineErrorMessage: undefined,
+      baselineAttemptId: undefined,
       updatedAt: Date.now(),
     });
     return null;
@@ -377,6 +400,7 @@ export const markBaselineFailed = internalMutation({
     await ctx.db.patch(id, {
       baselineStatus: 'failed',
       baselineErrorMessage: errorMessage,
+      baselineAttemptId: undefined,
       updatedAt: Date.now(),
     });
     return null;
@@ -448,25 +472,42 @@ export async function cascadeDeleteAvatar(
 }
 
 /**
- * Rescue sweep for avatar baselines stuck in `processing` — usually because
- * `generateAvatarBaseline` was killed before its `catch` could mark the row
- * failed. Flips them to `failed` with a `render_stuck` payload so the user
- * can retry from the avatar card.
+ * Rescue sweep for avatar baselines stuck in `queued` or `processing`. Stale
+ * queued rows expire after the short queued window instead of regenerating
+ * automatically; only create/retry mutations may schedule fresh AI work.
  */
 export const rescueStaleProcessingBaselines = internalMutation({
   args: {},
   returns: v.null(),
   handler: async (ctx) => {
-    const cutoff = Date.now() - STUCK_PROCESSING_THRESHOLD_MS;
-    // No index on `(baselineStatus, updatedAt)`; the count of stuck rows is
-    // expected to be near zero in steady state, so a small scan is fine.
-    const all = await ctx.db.query('avatars').collect();
-    for (const avatar of all) {
-      if (avatar.baselineStatus !== 'processing') continue;
-      if (avatar.updatedAt >= cutoff) continue;
+    const queuedCutoff = Date.now() - QUEUED_GENERATION_EXPIRY_MS;
+    const staleQueued = await ctx.db
+      .query('avatars')
+      .withIndex('by_baselineStatus_updatedAt', (q) =>
+        q.eq('baselineStatus', 'queued').lt('updatedAt', queuedCutoff),
+      )
+      .collect();
+    for (const avatar of staleQueued) {
+      await ctx.db.patch(avatar._id, {
+        baselineStatus: 'failed',
+        baselineErrorMessage: serializeError(errors.generationExpired()),
+        baselineAttemptId: undefined,
+        updatedAt: Date.now(),
+      });
+    }
+
+    const processingCutoff = Date.now() - STUCK_PROCESSING_THRESHOLD_MS;
+    const staleProcessing = await ctx.db
+      .query('avatars')
+      .withIndex('by_baselineStatus_updatedAt', (q) =>
+        q.eq('baselineStatus', 'processing').lt('updatedAt', processingCutoff),
+      )
+      .collect();
+    for (const avatar of staleProcessing) {
       await ctx.db.patch(avatar._id, {
         baselineStatus: 'failed',
         baselineErrorMessage: serializeError(errors.renderStuck()),
+        baselineAttemptId: undefined,
         updatedAt: Date.now(),
       });
     }

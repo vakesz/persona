@@ -7,8 +7,8 @@ export default {
   catalogs: [
     {
       path: '<rootDir>/../src/i18n/locales/{locale}/messages',
-      include: ['../src'],
-      exclude: ['**/node_modules/**', '**/*.test.*', '../src/routeTree.gen.ts'],
+      include: ['src'],
+      exclude: ['**/node_modules/**', '**/*.test.*', 'src/routeTree.gen.ts', 'src/i18n/locales/**'],
     },
   ],
   format: formatter({ lineNumbers: false }),

@@ -39,6 +39,7 @@ export type ServerErrorPayload =
   | { code: 'image_provider_key_missing'; provider: string }
   | { code: 'image_provider_auth'; provider: string; operation: string; status: number }
   | { code: 'image_provider_quota'; provider: string; operation: string }
+  | { code: 'image_provider_unavailable'; provider: string; operation: string; detail: string }
   | {
       code: 'image_provider_failed';
       provider: string;
@@ -51,6 +52,7 @@ export type ServerErrorPayload =
   | { code: 'prompt_too_long'; max: number }
   | { code: 'render_input_already_claimed' }
   | { code: 'render_input_limit_exceeded'; max: number }
+  | { code: 'generation_expired' }
   | { code: 'render_stuck' }
   | { code: 'unknown_error'; detail: string };
 
@@ -105,6 +107,13 @@ export const errors = {
     }),
   imageProviderQuota: (provider: string, operation: string) =>
     new ConvexError<ServerErrorPayload>({ code: 'image_provider_quota', provider, operation }),
+  imageProviderUnavailable: (provider: string, operation: string, detail: string) =>
+    new ConvexError<ServerErrorPayload>({
+      code: 'image_provider_unavailable',
+      provider,
+      operation,
+      detail,
+    }),
   imageProviderFailed: (provider: string, operation: string, status: number, detail: string) =>
     new ConvexError<ServerErrorPayload>({
       code: 'image_provider_failed',
@@ -122,6 +131,7 @@ export const errors = {
     new ConvexError<ServerErrorPayload>({ code: 'render_input_already_claimed' }),
   renderInputLimitExceeded: (max: number) =>
     new ConvexError<ServerErrorPayload>({ code: 'render_input_limit_exceeded', max }),
+  generationExpired: () => new ConvexError<ServerErrorPayload>({ code: 'generation_expired' }),
   renderStuck: () => new ConvexError<ServerErrorPayload>({ code: 'render_stuck' }),
 };
 
@@ -134,7 +144,7 @@ export const errors = {
  * preserved by the Convex runtime — without this fallback, those would
  * collapse to `unknown_error` and lose the structured payload.
  */
-function extractPayload(error: unknown): ServerErrorPayload {
+export function errorPayloadFromUnknown(error: unknown): ServerErrorPayload {
   if (error instanceof ConvexError) {
     const data: unknown = error.data;
     if (typeof data === 'object' && data !== null && 'code' in data) {
@@ -155,5 +165,5 @@ function extractPayload(error: unknown): ServerErrorPayload {
 
 /** Encodes a thrown value as a JSON string for storage in DB error fields. */
 export function serializeError(error: unknown): string {
-  return JSON.stringify(extractPayload(error));
+  return JSON.stringify(errorPayloadFromUnknown(error));
 }

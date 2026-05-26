@@ -42,8 +42,12 @@ export default defineSchema({
     // are treated as `'done'` on read. New rows always set this field.
     baselineStatus: v.optional(renderStatus),
     baselineErrorMessage: v.optional(v.string()),
+    baselineAttemptId: v.optional(v.string()),
     updatedAt: v.number(),
-  }).index('by_user', ['userId']),
+  })
+    .index('by_user', ['userId'])
+    // Lets the processing rescue cron avoid scanning all avatars.
+    .index('by_baselineStatus_updatedAt', ['baselineStatus', 'updatedAt']),
 
   savedLooks: defineTable({
     userId: v.id('users'),
@@ -65,6 +69,7 @@ export default defineSchema({
     status: renderStatus,
     provider: v.string(),
     inputJson: v.string(),
+    attemptId: v.optional(v.string()),
     resultStorageId: v.optional(v.id('_storage')),
     errorMessage: v.optional(v.string()),
     updatedAt: v.number(),

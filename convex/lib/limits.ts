@@ -45,9 +45,17 @@ export const MAX_STYLIST_QUESTION_LENGTH = 1000;
 export const MAX_AVATAR_NAME_LENGTH = 80;
 
 /**
+ * Threshold (ms) after which queued work expires before any AI request is
+ * allowed. Convex scheduled functions normally start quickly; if one has not
+ * started after this window, require an explicit user retry instead of
+ * spending provider quota unattended.
+ */
+export const QUEUED_GENERATION_EXPIRY_MS = 5 * 60 * 1000;
+
+/**
  * Threshold (ms) after which a row stuck in `processing` is rescued by the
  * cron sweep — flips it back to `failed` with a structured error so the UI
- * stops showing a spinner forever. Generous vs. a typical AI render
- * (15-30 s) but well under the 14-day TTL sweep.
+ * stops showing a spinner forever. Generous vs. a typical AI render, but well
+ * under the 14-day TTL sweep.
  */
 export const STUCK_PROCESSING_THRESHOLD_MS = 15 * 60 * 1000;

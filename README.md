@@ -93,24 +93,24 @@ Set these in Convex with `npx convex env set NAME value`:
 
 ## Scripts
 
-| Command | Description |
-| --- | --- |
-| `pnpm dev` | Start Vite dev server |
-| `pnpm convex` | Start Convex in watch mode |
-| `pnpm build` | Compile i18n catalogs, type-check, and build |
-| `pnpm preview` | Preview production build |
-| `pnpm typecheck` | Run TypeScript project build (`tsc -b`) |
-| `pnpm lint` | Run ESLint |
-| `pnpm lint:fix` | Run ESLint with auto-fixes |
-| `pnpm format` | Format files with Prettier |
-| `pnpm format:check` | Check formatting |
-| `pnpm knip` | Detect unused files/exports/dependencies |
-| `pnpm i18n:extract` | Extract translatable messages |
-| `pnpm i18n:compile` | Compile PO catalogs to TypeScript |
-| `pnpm check` | Quality gate: i18n compile + typecheck + lint + format check + knip |
-| `pnpm cf:image:dev` | Run Cloudflare image worker locally |
-| `pnpm cf:image:deploy` | Deploy Cloudflare image worker |
-| `pnpm cf:image:types` | Regenerate worker type bindings |
+| Command                | Description                                                         |
+| ---------------------- | ------------------------------------------------------------------- |
+| `pnpm dev`             | Start Vite dev server                                               |
+| `pnpm convex`          | Start Convex in watch mode                                          |
+| `pnpm build`           | Compile i18n catalogs, type-check, and build                        |
+| `pnpm preview`         | Preview production build                                            |
+| `pnpm typecheck`       | Run TypeScript project build (`tsc -b`)                             |
+| `pnpm lint`            | Run ESLint                                                          |
+| `pnpm lint:fix`        | Run ESLint with auto-fixes                                          |
+| `pnpm format`          | Format files with Prettier                                          |
+| `pnpm format:check`    | Check formatting                                                    |
+| `pnpm knip`            | Detect unused files/exports/dependencies                            |
+| `pnpm i18n:extract`    | Extract translatable messages                                       |
+| `pnpm i18n:compile`    | Compile PO catalogs to TypeScript                                   |
+| `pnpm check`           | Quality gate: i18n compile + typecheck + lint + format check + knip |
+| `pnpm cf:image:dev`    | Run Cloudflare image worker locally                                 |
+| `pnpm cf:image:deploy` | Deploy Cloudflare image worker                                      |
+| `pnpm cf:image:types`  | Regenerate worker type bindings                                     |
 
 `pnpm check` is the pre-commit gate and should pass before every commit.
 

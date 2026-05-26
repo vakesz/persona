@@ -12,7 +12,7 @@ export default defineConfig({
     react({
       plugins: [['@lingui/swc-plugin', {}]],
     }),
-    lingui(),
+    lingui({ configPath: 'config/lingui.config.ts' }),
     tailwindcss(),
   ],
   resolve: {

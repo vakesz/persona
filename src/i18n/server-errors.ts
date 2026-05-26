@@ -124,6 +124,8 @@ function messageFor(payload: ServerErrorPayload): AnyMessage {
       return msg`${payload.provider} quota reached for ${payload.operation}. Try again later, or upgrade billing.`;
     case 'image_provider_auth':
       return msg`${payload.provider} rejected the request for ${payload.operation} (HTTP ${payload.status}). Check your provider credentials.`;
+    case 'image_provider_unavailable':
+      return msg`${payload.provider} is temporarily unavailable for ${payload.operation}: ${payload.detail}`;
     case 'image_provider_failed':
       return msg`${payload.provider} failed for ${payload.operation} (HTTP ${payload.status}): ${payload.detail}`;
     case 'render_concurrency_exceeded':
@@ -136,6 +138,8 @@ function messageFor(payload: ServerErrorPayload): AnyMessage {
       return msg`That render input was already claimed.`;
     case 'render_input_limit_exceeded':
       return msg`Too many pending uploads (limit: ${payload.max}). Try again in a moment.`;
+    case 'generation_expired':
+      return msg`This generation request expired before it started. Please retry.`;
     case 'render_stuck':
       return msg`The render appears stuck. We've marked it as failed — please retry.`;
     case 'unknown_error':

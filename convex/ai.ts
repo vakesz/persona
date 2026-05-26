@@ -4,8 +4,13 @@ import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { action, internalAction } from './_generated/server';
 import { requireAuth } from './lib/auth';
-import { errors, serializeError } from './lib/errors';
-import { MAX_SOURCE_PHOTOS, MAX_STYLIST_QUESTION_LENGTH } from './lib/limits';
+import { errorPayloadFromUnknown, errors, serializeError } from './lib/errors';
+import type { ServerErrorPayload } from './lib/errors';
+import {
+  MAX_SOURCE_PHOTOS,
+  MAX_STYLIST_QUESTION_LENGTH,
+  QUEUED_GENERATION_EXPIRY_MS,
+} from './lib/limits';
 import { parseInputStorageId } from './lib/renderInput';
 
 // @types/node v25 no longer exposes `process` on globalThis; Convex actions run
@@ -103,8 +108,25 @@ interface CloudflareStylistResponse {
   recommendations?: unknown;
 }
 
+interface CloudflareWorkerErrorResponse {
+  code?: unknown;
+  error?: unknown;
+  detail?: unknown;
+  providerStatus?: unknown;
+}
+
 function normalizeWorkerBaseUrl(url: string): string {
   return url.endsWith('/') ? url.slice(0, -1) : url;
+}
+
+function sanitizedErrorDetail(error: unknown): string {
+  if (error instanceof Error) return error.message.replace(/\s+/g, ' ').slice(0, 200);
+  if (typeof error === 'string') return error.replace(/\s+/g, ' ').slice(0, 200);
+  try {
+    return JSON.stringify(error).replace(/\s+/g, ' ').slice(0, 200);
+  } catch {
+    return 'Unknown provider error';
+  }
 }
 
 function getCloudflareWorkerConfig(): WorkerConfig {
@@ -131,19 +153,75 @@ async function cloudflareProviderError(
     | typeof errors.imageProviderFailed
   >
 > {
-  if (response.status === 429) {
+  const errorText = await response.text().catch(() => '');
+  let errorPayload: CloudflareWorkerErrorResponse | null = null;
+  try {
+    const parsed: unknown = JSON.parse(errorText);
+    if (typeof parsed === 'object' && parsed !== null) {
+      errorPayload = parsed;
+    }
+  } catch {
+    errorPayload = null;
+  }
+
+  if (errorPayload?.code === 'provider_quota') {
     return errors.imageProviderQuota(CF_PROVIDER_NAME, operation);
+  }
+  if (errorPayload?.code === 'provider_unavailable') {
+    const detail =
+      typeof errorPayload.detail === 'string'
+        ? errorPayload.detail
+        : typeof errorPayload.error === 'string'
+          ? errorPayload.error
+          : 'Provider temporarily unavailable';
+    return errors.imageProviderUnavailable(CF_PROVIDER_NAME, operation, detail.slice(0, 200));
   }
   if (response.status === 401 || response.status === 403) {
     return errors.imageProviderAuth(CF_PROVIDER_NAME, operation, response.status);
   }
-  const errorText = await response.text().catch(() => '');
+  const detail =
+    typeof errorPayload?.detail === 'string'
+      ? errorPayload.detail
+      : typeof errorPayload?.error === 'string'
+        ? errorPayload.error
+        : errorText;
   return errors.imageProviderFailed(
     CF_PROVIDER_NAME,
     operation,
     response.status,
-    errorText.slice(0, 200),
+    detail.slice(0, 200),
   );
+}
+
+function isExpectedProviderFailure(payload: ServerErrorPayload): boolean {
+  return (
+    payload.code === 'image_provider_auth' ||
+    payload.code === 'image_provider_quota' ||
+    payload.code === 'image_provider_unavailable' ||
+    payload.code === 'image_provider_failed'
+  );
+}
+
+function logActionFailure(
+  event: 'baseline-generation-failed' | 'render-job-failed',
+  meta: Record<string, string>,
+  error: unknown,
+): void {
+  const payload = errorPayloadFromUnknown(error);
+  const logMeta = {
+    ...meta,
+    code: payload.code,
+    ...(payload.code === 'image_provider_auth' && { status: payload.status }),
+    ...(payload.code === 'image_provider_failed' && { status: payload.status }),
+    ...(payload.code === 'image_provider_failed' && { detail: payload.detail }),
+    ...(payload.code === 'image_provider_unavailable' && { detail: payload.detail }),
+    ...(payload.code === 'unknown_error' && { detail: payload.detail }),
+  };
+  if (isExpectedProviderFailure(payload)) {
+    console.warn(event, logMeta);
+    return;
+  }
+  console.error(event, logMeta);
 }
 
 function base64ToArrayBuffer(base64: string): ArrayBuffer {
@@ -192,10 +270,42 @@ async function generateImageWithCloudflareWorker({
     form.append(`input_image_${index}`, reference.blob, reference.filename);
   }
 
-  const response = await fetch(baseUrl, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${secret}` },
-    body: form,
+  const requestMeta = {
+    operation,
+    model: imageModel,
+    referenceCount: references.length,
+    steps,
+    guidance,
+    width,
+    height,
+  };
+  console.info('cloudflare-image-request', requestMeta);
+
+  const startedAt = Date.now();
+  let response: Response;
+  try {
+    response = await fetch(baseUrl, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${secret}` },
+      body: form,
+    });
+  } catch (error) {
+    const detail = sanitizedErrorDetail(error);
+    console.warn('cloudflare-image-response', {
+      ...requestMeta,
+      ok: false,
+      code: 'image_provider_unavailable',
+      durationMs: Date.now() - startedAt,
+      detail,
+    });
+    throw errors.imageProviderUnavailable(CF_PROVIDER_NAME, operation, detail);
+  }
+
+  console.info('cloudflare-image-response', {
+    ...requestMeta,
+    ok: response.ok,
+    status: response.status,
+    durationMs: Date.now() - startedAt,
   });
 
   if (!response.ok) {
@@ -238,10 +348,38 @@ async function analyzeStyleWithCloudflareWorker({
     `portrait.${mimeExtension(mimeType)}`,
   );
 
-  const response = await fetch(`${baseUrl}/stylist`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${secret}` },
-    body: form,
+  const requestMeta = {
+    operation: 'stylist' as const,
+    model: stylistModel,
+    referenceCount: 1,
+  };
+  console.info('cloudflare-image-request', requestMeta);
+
+  const startedAt = Date.now();
+  let response: Response;
+  try {
+    response = await fetch(`${baseUrl}/stylist`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${secret}` },
+      body: form,
+    });
+  } catch (error) {
+    const detail = sanitizedErrorDetail(error);
+    console.warn('cloudflare-image-response', {
+      ...requestMeta,
+      ok: false,
+      code: 'image_provider_unavailable',
+      durationMs: Date.now() - startedAt,
+      detail,
+    });
+    throw errors.imageProviderUnavailable(CF_PROVIDER_NAME, 'stylist', detail);
+  }
+
+  console.info('cloudflare-image-response', {
+    ...requestMeta,
+    ok: response.ok,
+    status: response.status,
+    durationMs: Date.now() - startedAt,
   });
 
   if (!response.ok) {
@@ -354,11 +492,15 @@ function imageDimensionsForAvatar(
   return purpose === 'baseline' ? { width: 512, height: 512 } : { width: 768, height: 768 };
 }
 
+function isStaleQueuedJob(updatedAt: number): boolean {
+  return updatedAt < Date.now() - QUEUED_GENERATION_EXPIRY_MS;
+}
+
 /** Generates the canonical studio baseline for a queued avatar and stores the result. */
 export const generateAvatarBaseline = internalAction({
-  args: { avatarId: v.id('avatars') },
+  args: { avatarId: v.id('avatars'), attemptId: v.optional(v.string()) },
   returns: v.null(),
-  handler: async (ctx, { avatarId }) => {
+  handler: async (ctx, { avatarId, attemptId }) => {
     try {
       getCloudflareWorkerConfig();
     } catch (error) {
@@ -371,11 +513,28 @@ export const generateAvatarBaseline = internalAction({
 
     const avatar = await ctx.runQuery(internal.avatars.getAvatarForBaseline, { id: avatarId });
     if (avatar === null) return null;
+    if (avatar.baselineStatus !== 'queued') return null;
+    if (attemptId === undefined) {
+      await ctx.runMutation(internal.avatars.markBaselineFailed, {
+        id: avatarId,
+        errorMessage: serializeError(errors.generationExpired()),
+      });
+      return null;
+    }
+    if (avatar.baselineAttemptId !== attemptId) return null;
+    if (isStaleQueuedJob(avatar.updatedAt)) {
+      await ctx.runMutation(internal.avatars.markBaselineFailed, {
+        id: avatarId,
+        errorMessage: serializeError(errors.generationExpired()),
+      });
+      return null;
+    }
 
-    // Atomic queued|failed -> processing transition. If another invocation
+    // Atomic queued -> processing transition. If another invocation
     // raced ahead, we bail without duplicate work.
     const claimed = await ctx.runMutation(internal.avatars.claimBaselineGeneration, {
       id: avatarId,
+      attemptId,
     });
     if (!claimed) return null;
 
@@ -417,7 +576,11 @@ export const generateAvatarBaseline = internalAction({
         throw patchError;
       }
     } catch (error) {
-      console.error('Baseline generation failed:', error);
+      logActionFailure(
+        'baseline-generation-failed',
+        { avatarId: String(avatarId), operation: 'baseline' },
+        error,
+      );
       await ctx.runMutation(internal.avatars.markBaselineFailed, {
         id: avatarId,
         errorMessage: serializeError(error),
@@ -443,9 +606,9 @@ const TRY_ON_INSTRUCTION = (prompt: string) =>
 
 /** Runs a queued render job, stores the output, and always deletes single-use inputs. */
 export const renderLook = internalAction({
-  args: { jobId: v.id('renderJobs') },
+  args: { jobId: v.id('renderJobs'), attemptId: v.optional(v.string()) },
   returns: v.null(),
-  handler: async (ctx, { jobId }) => {
+  handler: async (ctx, { jobId, attemptId }) => {
     try {
       getCloudflareWorkerConfig();
     } catch (error) {
@@ -460,6 +623,36 @@ export const renderLook = internalAction({
     if (job === null) return null;
 
     const inputStorageId = parseInputStorageId(job.inputJson);
+    if (job.status !== 'queued') return null;
+    if (attemptId === undefined) {
+      await ctx.runMutation(internal.renderJobs.markRenderJobFailed, {
+        id: jobId,
+        errorMessage: serializeError(errors.generationExpired()),
+      });
+      if (inputStorageId !== null) {
+        try {
+          await ctx.storage.delete(inputStorageId);
+        } catch (cleanupError) {
+          console.warn('Expired render input cleanup failed:', cleanupError);
+        }
+      }
+      return null;
+    }
+    if (job.attemptId !== attemptId) return null;
+    if (isStaleQueuedJob(job.updatedAt)) {
+      await ctx.runMutation(internal.renderJobs.markRenderJobFailed, {
+        id: jobId,
+        errorMessage: serializeError(errors.generationExpired()),
+      });
+      if (inputStorageId !== null) {
+        try {
+          await ctx.storage.delete(inputStorageId);
+        } catch (cleanupError) {
+          console.warn('Stale render input cleanup failed:', cleanupError);
+        }
+      }
+      return null;
+    }
 
     let input: RenderInputJson | null = null;
     let parseFailure: unknown = null;
@@ -470,7 +663,10 @@ export const renderLook = internalAction({
       console.error('Render job inputJson is corrupt:', error);
     }
 
-    const claimed = await ctx.runMutation(internal.renderJobs.claimRenderJob, { id: jobId });
+    const claimed = await ctx.runMutation(internal.renderJobs.claimRenderJob, {
+      id: jobId,
+      attemptId,
+    });
     if (!claimed) {
       return null;
     }
@@ -545,7 +741,11 @@ export const renderLook = internalAction({
       });
       resultStorageId = null;
     } catch (error) {
-      console.error('Render job failed:', error);
+      logActionFailure(
+        'render-job-failed',
+        { jobId: String(jobId), avatarId: String(job.avatarId), operation: 'render' },
+        error,
+      );
       if (resultStorageId !== null) {
         try {
           await ctx.storage.delete(resultStorageId);

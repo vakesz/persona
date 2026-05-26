@@ -8,6 +8,7 @@ import { errors, serializeError } from './lib/errors';
 import {
   MAX_CONCURRENT_RENDERS_PER_USER,
   MAX_RENDER_PROMPT_LENGTH,
+  QUEUED_GENERATION_EXPIRY_MS,
   STUCK_PROCESSING_THRESHOLD_MS,
 } from './lib/limits';
 import { parseInputStorageId } from './lib/renderInput';
@@ -19,6 +20,9 @@ const renderJobInternalReturn = v.object({
   userId: v.id('users'),
   avatarId: v.id('avatars'),
   inputJson: v.string(),
+  status: renderStatus,
+  attemptId: v.optional(v.string()),
+  updatedAt: v.number(),
 });
 
 const renderJobPublicReturn = v.object({
@@ -28,6 +32,10 @@ const renderJobPublicReturn = v.object({
   errorMessage: v.optional(v.string()),
   resultUrl: v.union(v.string(), v.null()),
 });
+
+function newAttemptId(): string {
+  return crypto.randomUUID();
+}
 
 /** Queues an owned avatar render and optionally attaches one claimed canvas snapshot. */
 export const createRenderJob = mutation({
@@ -93,11 +101,13 @@ export const createRenderJob = mutation({
       await consumePendingRenderInput(ctx, userId, inputStorageId);
     }
 
+    const attemptId = newAttemptId();
     const jobId = await ctx.db.insert('renderJobs', {
       userId,
       avatarId,
       status: 'queued',
       provider: 'image-render',
+      attemptId,
       inputJson: JSON.stringify({
         prompt: trimmedPrompt,
         ...(title !== undefined && { title }),
@@ -107,7 +117,7 @@ export const createRenderJob = mutation({
       updatedAt: Date.now(),
     });
 
-    await ctx.scheduler.runAfter(0, internal.ai.renderLook, { jobId });
+    await ctx.scheduler.runAfter(0, internal.ai.renderLook, { jobId, attemptId });
     return jobId;
   },
 });
@@ -148,6 +158,9 @@ export const getRenderJobInternal = internalQuery({
       userId: job.userId,
       avatarId: job.avatarId,
       inputJson: job.inputJson,
+      status: job.status,
+      ...(job.attemptId !== undefined && { attemptId: job.attemptId }),
+      updatedAt: job.updatedAt,
     };
   },
 });
@@ -158,12 +171,13 @@ export const getRenderJobInternal = internalQuery({
  * has already been claimed (status moved past `queued`) or deleted.
  */
 export const claimRenderJob = internalMutation({
-  args: { id: v.id('renderJobs') },
+  args: { id: v.id('renderJobs'), attemptId: v.string() },
   returns: v.boolean(),
-  handler: async (ctx, { id }) => {
+  handler: async (ctx, { id, attemptId }) => {
     const job = await ctx.db.get(id);
     if (job === null) return false;
     if (job.status !== 'queued') return false;
+    if (job.attemptId !== attemptId) return false;
     await ctx.db.patch(id, { status: 'processing', updatedAt: Date.now() });
     return true;
   },
@@ -297,32 +311,50 @@ export const sweepStalePendingInputs = internalMutation({
 });
 
 /**
- * Rescue sweep for jobs stuck in `processing` — usually because the action
- * was killed (hard timeout, deploy mid-flight) before its `catch` could
- * mark the row failed. Flips them to `failed` with a `render_stuck` payload
- * the client can translate; the user can then retry from the UI.
+ * Rescue sweep for jobs stuck in `queued` or `processing`. Stale queued rows
+ * expire after the short queued window instead of regenerating automatically;
+ * only `createRenderJob` may schedule fresh AI work.
  *
- * Runs every 5 minutes against jobs whose `updatedAt` hasn't budged in
- * `STUCK_PROCESSING_THRESHOLD_MS`.
+ * Runs every 5 minutes against jobs whose `updatedAt` hasn't budged.
  */
 export const rescueStaleProcessingJobs = internalMutation({
   args: {},
   returns: v.null(),
   handler: async (ctx) => {
-    const cutoff = Date.now() - STUCK_PROCESSING_THRESHOLD_MS;
-    const candidates = await ctx.db
+    const queuedCutoff = Date.now() - QUEUED_GENERATION_EXPIRY_MS;
+    const staleQueued = await ctx.db
       .query('renderJobs')
-      .withIndex('by_updatedAt', (q) => q.lt('updatedAt', cutoff))
+      .withIndex('by_updatedAt', (q) => q.lt('updatedAt', queuedCutoff))
       .collect();
-    for (const job of candidates) {
+    for (const job of staleQueued) {
+      if (job.status !== 'queued') continue;
+      await ctx.db.patch(job._id, {
+        status: 'failed',
+        errorMessage: serializeError(errors.generationExpired()),
+        updatedAt: Date.now(),
+      });
+      const inputStorageId = parseInputStorageId(job.inputJson);
+      if (inputStorageId !== null) {
+        try {
+          await ctx.storage.delete(inputStorageId);
+        } catch (error) {
+          console.warn(`Rescue input-blob delete skipped (${inputStorageId}):`, error);
+        }
+      }
+    }
+
+    const processingCutoff = Date.now() - STUCK_PROCESSING_THRESHOLD_MS;
+    const staleProcessing = await ctx.db
+      .query('renderJobs')
+      .withIndex('by_updatedAt', (q) => q.lt('updatedAt', processingCutoff))
+      .collect();
+    for (const job of staleProcessing) {
       if (job.status !== 'processing') continue;
       await ctx.db.patch(job._id, {
         status: 'failed',
         errorMessage: serializeError(errors.renderStuck()),
         updatedAt: Date.now(),
       });
-      // Free the input snapshot if one was attached — same rationale as the
-      // 14-day sweep above.
       const inputStorageId = parseInputStorageId(job.inputJson);
       if (inputStorageId !== null) {
         try {
