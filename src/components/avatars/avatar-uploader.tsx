@@ -48,7 +48,7 @@ export function AvatarUploader({ onCreated }: AvatarUploaderProps) {
 
   const [photos, setPhotos] = useState<PickedPhoto[]>([]);
   const [name, setName] = useState('');
-  const [type, setType] = useState<AvatarType>('selfie');
+  const [type, setType] = useState<AvatarType | null>(null);
   const [gender, setGender] = useState<AvatarGender>('unspecified');
   const [status, setStatus] = useState<Status>('idle');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -68,6 +68,7 @@ export function AvatarUploader({ onCreated }: AvatarUploaderProps) {
   }, []);
 
   const busy = status !== 'idle';
+  const needsTypeSelection = type === null;
 
   const addPickedFiles = (incoming: File[]) => {
     if (incoming.length === 0) return;
@@ -108,6 +109,10 @@ export function AvatarUploader({ onCreated }: AvatarUploaderProps) {
 
   const handleSubmit = (event: SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (type === null) {
+      toast.error(t`Choose selfie or full body first.`);
+      return;
+    }
     if (photos.length === 0) {
       toast.error(t`Pick at least one photo.`);
       return;
@@ -122,6 +127,9 @@ export function AvatarUploader({ onCreated }: AvatarUploaderProps) {
 
   async function uploadAndCreate() {
     try {
+      if (type === null) {
+        throw new Error('Avatar type not selected.');
+      }
       setStatus('compressing');
       const first = photos[0];
       if (first === undefined) throw new Error('No photo selected.');
@@ -160,6 +168,27 @@ export function AvatarUploader({ onCreated }: AvatarUploaderProps) {
     <Card className="max-w-2xl">
       <CardContent>
         <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
+          <fieldset className="flex flex-col gap-2" disabled={busy}>
+            <legend className="mb-1 text-sm font-medium">
+              <Trans>Avatar framing</Trans>
+            </legend>
+            <p className="text-muted-foreground -mt-1 mb-1 text-xs">
+              <Trans>
+                Choose this before uploading. Selfie keeps a neutral head-and-shoulders baseline;
+                full body keeps a neutral head-to-toe baseline while preserving your proportions and
+                identifying details.
+              </Trans>
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <TypeOption value="selfie" selected={type === 'selfie'} onSelect={setType}>
+                <Trans>Selfie</Trans>
+              </TypeOption>
+              <TypeOption value="full_body" selected={type === 'full_body'} onSelect={setType}>
+                <Trans>Full body</Trans>
+              </TypeOption>
+            </div>
+          </fieldset>
+
           <div className="flex flex-col gap-2">
             <Label htmlFor="photo">
               <Trans>
@@ -173,7 +202,7 @@ export function AvatarUploader({ onCreated }: AvatarUploaderProps) {
               accept="image/*"
               multiple
               className="hidden"
-              disabled={busy}
+              disabled={busy || needsTypeSelection}
               onChange={handleFileChange}
             />
             <div className="grid grid-cols-3 gap-3 sm:grid-cols-5">
@@ -192,7 +221,7 @@ export function AvatarUploader({ onCreated }: AvatarUploaderProps) {
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  disabled={busy}
+                  disabled={busy || needsTypeSelection}
                   className="border-input hover:border-foreground/40 flex aspect-[4/5] flex-col items-center justify-center gap-2 rounded-md border border-dashed transition disabled:opacity-50"
                 >
                   <Plus className="text-muted-foreground size-5" />
@@ -203,11 +232,15 @@ export function AvatarUploader({ onCreated }: AvatarUploaderProps) {
               )}
             </div>
             <p className="text-muted-foreground text-xs">
-              <Trans>
-                First photo is the identity anchor. Extra angles (¾ left / right, full body) help
-                the AI preserve your features. Each photo is compressed and EXIF-stripped in your
-                browser before upload.
-              </Trans>
+              {needsTypeSelection ? (
+                <Trans>Select avatar framing first to unlock photo upload.</Trans>
+              ) : (
+                <Trans>
+                  First photo is the identity anchor. Extra angles (¾ left / right, selfie, or full
+                  body) help the AI preserve your features. Each photo is compressed to the FLUX.2
+                  multi-reference limit and EXIF-stripped in your browser before upload.
+                </Trans>
+              )}
             </p>
           </div>
 
@@ -228,20 +261,6 @@ export function AvatarUploader({ onCreated }: AvatarUploaderProps) {
               maxLength={MAX_AVATAR_NAME_LENGTH}
             />
           </div>
-
-          <fieldset className="flex flex-col gap-2" disabled={busy}>
-            <legend className="mb-2 text-sm font-medium">
-              <Trans>Photo type</Trans>
-            </legend>
-            <div className="grid grid-cols-2 gap-2">
-              <TypeOption value="selfie" selected={type === 'selfie'} onSelect={setType}>
-                <Trans>Selfie</Trans>
-              </TypeOption>
-              <TypeOption value="full_body" selected={type === 'full_body'} onSelect={setType}>
-                <Trans>Full body</Trans>
-              </TypeOption>
-            </div>
-          </fieldset>
 
           <fieldset className="flex flex-col gap-2" disabled={busy}>
             <legend className="mb-1 text-sm font-medium">
@@ -269,7 +288,7 @@ export function AvatarUploader({ onCreated }: AvatarUploaderProps) {
             </div>
           </fieldset>
 
-          <Button type="submit" disabled={busy || photos.length === 0}>
+          <Button type="submit" disabled={busy || needsTypeSelection || photos.length === 0}>
             {busy ? <Loader2 className="animate-spin" /> : null}
             <StatusLabel status={status} />
           </Button>

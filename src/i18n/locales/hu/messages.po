@@ -152,6 +152,10 @@ msgstr "Az avatárnak nincs forrásfotója az újrapróbálkozáshoz."
 msgid "Avatar image is missing from storage."
 msgstr "Az avatár képe hiányzik a tárolóból."
 
+#: ../src/components/avatars/avatar-uploader.tsx
+msgid "Avatar framing"
+msgstr "Avatár keretezése"
+
 #: ../src/routes/avatars.new.tsx
 msgid "Avatar limit reached"
 msgstr "Elérted az avatárkorlátot"
@@ -274,6 +278,14 @@ msgstr "álligérő bob"
 #: ../src/routes/saved.tsx
 msgid "Choose an avatar"
 msgstr "Válassz avatárt"
+
+#: ../src/components/avatars/avatar-uploader.tsx
+msgid "Choose selfie or full body first."
+msgstr "Először válassz szelfit vagy egész alakot."
+
+#: ../src/components/avatars/avatar-uploader.tsx
+msgid "Choose this before uploading. Selfie keeps a neutral head-and-shoulders baseline; full body keeps a neutral head-to-toe baseline while preserving your proportions and identifying details."
+msgstr "Ezt válaszd ki feltöltés előtt. A szelfi semleges fej-váll alapportrét készít; az egész alak semleges tetőtől talpig alapportrét készít, miközben megőrzi az arányaidat és az azonosító részleteidet."
 
 #: ../src/components/studio/sidebar/presets.ts
 msgid "classic chignon"
@@ -498,8 +510,8 @@ msgstr "Befejezés"
 #~ msgstr "Az első fotó lesz a stúdió alapképe. A további szögek (¾ bal / jobb, egész alak) továbbra is segíthetnek az MI stylistnak megérteni az arcvonásaidat. Minden fotót a böngésződ tömörít és EXIF-mentesít feltöltés előtt."
 
 #: ../src/components/avatars/avatar-uploader.tsx
-msgid "First photo is the identity anchor. Extra angles (¾ left / right, full body) help the AI preserve your features. Each photo is compressed and EXIF-stripped in your browser before upload."
-msgstr "Az első fotó az identitás alapja. A további szögek (¾ bal / jobb, egész alak) segítenek az MI-nek megőrizni az arcvonásaidat. Minden fotót a böngésződ tömörít és EXIF-mentesít feltöltés előtt."
+msgid "First photo is the identity anchor. Extra angles (¾ left / right, selfie, or full body) help the AI preserve your features. Each photo is compressed to the FLUX.2 multi-reference limit and EXIF-stripped in your browser before upload."
+msgstr "Az első fotó az identitás alapja. A további szögek (¾ bal / jobb, szelfi vagy egész alak) segítenek az MI-nek megőrizni az arcvonásaidat. Minden fotót a böngésződ a FLUX.2 több-referenciás limitjéhez tömörít és EXIF-mentesít feltöltés előtt."
 
 #: ../src/components/studio/sidebar/presets.ts
 msgid "french crop"
@@ -827,10 +839,6 @@ msgstr "ceruzabajusz"
 msgid "Persona"
 msgstr "Személyiség"
 
-#: ../src/components/avatars/avatar-uploader.tsx
-msgid "Photo type"
-msgstr "Fotó típusa"
-
 #. placeholder {0}: photos.length
 #: ../src/components/avatars/avatar-uploader.tsx
 msgid "Photos ({0} of {MAX_SOURCE_PHOTOS})"
@@ -1053,6 +1061,10 @@ msgstr "Lásd magad bármilyen stílusban azonnal"
 msgid "Selected photo {position}"
 msgstr "Kiválasztott fotó: {position}"
 
+#: ../src/components/avatars/avatar-uploader.tsx
+msgid "Select avatar framing first to unlock photo upload."
+msgstr "A fotófeltöltés feloldásához először válassz avatárkeretezést."
+
 #: ../src/components/avatars/avatar-card.tsx
 #: ../src/components/avatars/avatar-uploader.tsx
 msgid "Selfie"
@@ -1209,6 +1221,11 @@ msgstr "Stúdió eszköz"
 #: ../src/i18n/server-errors.ts
 msgid "Stylist response is missing recommendations."
 msgstr "A stylist válaszából hiányoznak az ajánlások."
+
+#. placeholder {0}: payload.expected
+#: ../src/i18n/server-errors.ts
+msgid "Stylist must return exactly {0} recommendations."
+msgstr "A stylistnak pontosan {0} ajánlást kell visszaadnia."
 
 #: ../src/i18n/server-errors.ts
 msgid "Stylist returned a malformed recommendation."

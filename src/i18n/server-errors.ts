@@ -92,6 +92,8 @@ function messageFor(payload: ServerErrorPayload): AnyMessage {
       return msg`Stylist returned malformed JSON.`;
     case 'stylist_missing_recommendations':
       return msg`Stylist response is missing recommendations.`;
+    case 'stylist_recommendation_count':
+      return msg`Stylist must return exactly ${payload.expected} recommendations.`;
     case 'stylist_malformed_recommendation':
       return msg`Stylist returned a malformed recommendation.`;
     case 'stylist_recommendation_missing_field':

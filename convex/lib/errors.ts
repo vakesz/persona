@@ -24,6 +24,7 @@ export type ServerErrorPayload =
   | { code: 'stylist_empty_response' }
   | { code: 'stylist_malformed_json' }
   | { code: 'stylist_missing_recommendations' }
+  | { code: 'stylist_recommendation_count'; expected: number }
   | { code: 'stylist_malformed_recommendation' }
   | {
       code: 'stylist_recommendation_missing_field';
@@ -80,6 +81,8 @@ export const errors = {
     new ConvexError<ServerErrorPayload>({ code: 'stylist_malformed_json' }),
   stylistMissingRecommendations: () =>
     new ConvexError<ServerErrorPayload>({ code: 'stylist_missing_recommendations' }),
+  stylistRecommendationCount: (expected: number) =>
+    new ConvexError<ServerErrorPayload>({ code: 'stylist_recommendation_count', expected }),
   stylistMalformedRecommendation: () =>
     new ConvexError<ServerErrorPayload>({ code: 'stylist_malformed_recommendation' }),
   stylistRecommendationMissingField: (field: 'title' | 'description' | 'renderPrompt') =>

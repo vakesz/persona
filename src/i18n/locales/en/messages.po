@@ -152,6 +152,10 @@ msgstr "Avatar has no source photos to retry from."
 msgid "Avatar image is missing from storage."
 msgstr "Avatar image is missing from storage."
 
+#: ../src/components/avatars/avatar-uploader.tsx
+msgid "Avatar framing"
+msgstr "Avatar framing"
+
 #: ../src/routes/avatars.new.tsx
 msgid "Avatar limit reached"
 msgstr "Avatar limit reached"
@@ -274,6 +278,14 @@ msgstr "chin-length bob"
 #: ../src/routes/saved.tsx
 msgid "Choose an avatar"
 msgstr "Choose an avatar"
+
+#: ../src/components/avatars/avatar-uploader.tsx
+msgid "Choose selfie or full body first."
+msgstr "Choose selfie or full body first."
+
+#: ../src/components/avatars/avatar-uploader.tsx
+msgid "Choose this before uploading. Selfie keeps a neutral head-and-shoulders baseline; full body keeps a neutral head-to-toe baseline while preserving your proportions and identifying details."
+msgstr "Choose this before uploading. Selfie keeps a neutral head-and-shoulders baseline; full body keeps a neutral head-to-toe baseline while preserving your proportions and identifying details."
 
 #: ../src/components/studio/sidebar/presets.ts
 msgid "classic chignon"
@@ -498,8 +510,8 @@ msgstr "Finish"
 #~ msgstr "First photo becomes the studio baseline. Extra angles (¾ left / right, full body) can still help the AI stylist understand your features. Each photo is compressed and EXIF-stripped in your browser before upload."
 
 #: ../src/components/avatars/avatar-uploader.tsx
-msgid "First photo is the identity anchor. Extra angles (¾ left / right, full body) help the AI preserve your features. Each photo is compressed and EXIF-stripped in your browser before upload."
-msgstr "First photo is the identity anchor. Extra angles (¾ left / right, full body) help the AI preserve your features. Each photo is compressed and EXIF-stripped in your browser before upload."
+msgid "First photo is the identity anchor. Extra angles (¾ left / right, selfie, or full body) help the AI preserve your features. Each photo is compressed to the FLUX.2 multi-reference limit and EXIF-stripped in your browser before upload."
+msgstr "First photo is the identity anchor. Extra angles (¾ left / right, selfie, or full body) help the AI preserve your features. Each photo is compressed to the FLUX.2 multi-reference limit and EXIF-stripped in your browser before upload."
 
 #: ../src/components/studio/sidebar/presets.ts
 msgid "french crop"
@@ -827,10 +839,6 @@ msgstr "pencil mustache"
 msgid "Persona"
 msgstr "Persona"
 
-#: ../src/components/avatars/avatar-uploader.tsx
-msgid "Photo type"
-msgstr "Photo type"
-
 #. placeholder {0}: photos.length
 #: ../src/components/avatars/avatar-uploader.tsx
 msgid "Photos ({0} of {MAX_SOURCE_PHOTOS})"
@@ -1053,6 +1061,10 @@ msgstr "See yourself in any look, instantly"
 msgid "Selected photo {position}"
 msgstr "Selected photo {position}"
 
+#: ../src/components/avatars/avatar-uploader.tsx
+msgid "Select avatar framing first to unlock photo upload."
+msgstr "Select avatar framing first to unlock photo upload."
+
 #: ../src/components/avatars/avatar-card.tsx
 #: ../src/components/avatars/avatar-uploader.tsx
 msgid "Selfie"
@@ -1209,6 +1221,11 @@ msgstr "Studio tool"
 #: ../src/i18n/server-errors.ts
 msgid "Stylist response is missing recommendations."
 msgstr "Stylist response is missing recommendations."
+
+#. placeholder {0}: payload.expected
+#: ../src/i18n/server-errors.ts
+msgid "Stylist must return exactly {0} recommendations."
+msgstr "Stylist must return exactly {0} recommendations."
 
 #: ../src/i18n/server-errors.ts
 msgid "Stylist returned a malformed recommendation."

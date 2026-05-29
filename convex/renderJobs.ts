@@ -15,6 +15,13 @@ import { parseInputStorageId } from './lib/renderInput';
 import { renderStatus } from './schema';
 import { consumePendingRenderInput } from './storage';
 
+const renderStyleType = v.union(
+  v.literal('hair'),
+  v.literal('makeup'),
+  v.literal('nails'),
+  v.literal('clothes'),
+);
+
 const renderJobInternalReturn = v.object({
   _id: v.id('renderJobs'),
   userId: v.id('users'),
@@ -43,6 +50,7 @@ export const createRenderJob = mutation({
     avatarId: v.id('avatars'),
     prompt: v.string(),
     title: v.optional(v.string()),
+    styleType: v.optional(renderStyleType),
     referenceUploadedItemId: v.optional(v.id('uploadedItems')),
     /**
      * When set, the render uses this storage blob as the input image instead
@@ -57,7 +65,10 @@ export const createRenderJob = mutation({
     inputStorageId: v.optional(v.id('_storage')),
   },
   returns: v.id('renderJobs'),
-  handler: async (ctx, { avatarId, prompt, title, referenceUploadedItemId, inputStorageId }) => {
+  handler: async (
+    ctx,
+    { avatarId, prompt, title, styleType, referenceUploadedItemId, inputStorageId },
+  ) => {
     const userId = await requireAuth(ctx);
     const avatar = ensureOwned(await ctx.db.get(avatarId), userId, errors.avatarNotFound);
     // Defense-in-depth: the studio UI gates on `baselineStatus === 'done'`,
@@ -111,6 +122,7 @@ export const createRenderJob = mutation({
       inputJson: JSON.stringify({
         prompt: trimmedPrompt,
         ...(title !== undefined && { title }),
+        ...(styleType !== undefined && { styleType }),
         ...(referenceUploadedItemId !== undefined && { referenceUploadedItemId }),
         ...(inputStorageId !== undefined && { inputStorageId }),
       }),

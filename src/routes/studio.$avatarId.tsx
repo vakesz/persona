@@ -171,6 +171,7 @@ function Studio({ avatarId }: StudioProps) {
       avatarId,
       prompt: recommendation.renderPrompt,
       title: recommendation.title,
+      styleType: recommendation.styleType,
     })
       .then((jobId) => {
         setActiveRender({ jobId, title: recommendation.title });

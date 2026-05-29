@@ -1,6 +1,7 @@
 const DEFAULT_IMAGE_MODEL = '@cf/black-forest-labs/flux-2-dev';
 const DEFAULT_STYLIST_MODEL = '@cf/meta/llama-3.2-11b-vision-instruct';
 const MAX_REFERENCE_IMAGES = 4;
+const STYLIST_RECOMMENDATION_COUNT = 3;
 const STYLIST_TRANSIENT_PROVIDER_RETRIES = 2;
 
 const STYLIST_RESPONSE_SCHEMA = {
@@ -8,6 +9,8 @@ const STYLIST_RESPONSE_SCHEMA = {
   properties: {
     recommendations: {
       type: 'array',
+      minItems: STYLIST_RECOMMENDATION_COUNT,
+      maxItems: STYLIST_RECOMMENDATION_COUNT,
       items: {
         type: 'object',
         properties: {
@@ -17,10 +20,12 @@ const STYLIST_RESPONSE_SCHEMA = {
           renderPrompt: { type: 'string' },
         },
         required: ['title', 'description', 'styleType', 'renderPrompt'],
+        additionalProperties: false,
       },
     },
   },
   required: ['recommendations'],
+  additionalProperties: false,
 } as const;
 
 type WorkerEnv = Env & {
@@ -301,6 +306,32 @@ function parseStylistPayload(result: unknown): unknown {
   return null;
 }
 
+function isStylistStyleType(value: unknown): boolean {
+  return value === 'hair' || value === 'makeup' || value === 'nails' || value === 'clothes';
+}
+
+function isStrictStylistPayload(value: unknown): value is { recommendations: unknown[] } {
+  if (typeof value !== 'object' || value === null) return false;
+  const payload = value as { recommendations?: unknown };
+  if (!Array.isArray(payload.recommendations)) return false;
+  if (payload.recommendations.length !== STYLIST_RECOMMENDATION_COUNT) return false;
+
+  for (const item of payload.recommendations) {
+    if (typeof item !== 'object' || item === null) return false;
+    const recommendation = item as Record<string, unknown>;
+    const keys = Object.keys(recommendation);
+    if (keys.length !== 4) return false;
+    if (typeof recommendation['title'] !== 'string' || recommendation['title'] === '') {
+      return false;
+    }
+    if (typeof recommendation['description'] !== 'string') return false;
+    if (typeof recommendation['renderPrompt'] !== 'string') return false;
+    if (!isStylistStyleType(recommendation['styleType'])) return false;
+  }
+
+  return true;
+}
+
 async function handleImageRequest(env: WorkerEnv, incoming: FormData): Promise<Response> {
   const prompt = textField(incoming, 'prompt', '');
   if (prompt === '') {
@@ -324,13 +355,15 @@ async function handleImageRequest(env: WorkerEnv, incoming: FormData): Promise<R
     'guidance',
     boundedFloatField({ form: incoming, name: 'guidance', fallback: 2, min: 1, max: 10 }),
   );
+  // Hosted FLUX.2 multi-reference requests are kept at or below 512px output
+  // in this app so dimensions stay inside the model flow we validate against.
   form.append(
     'width',
-    boundedNumberField({ form: incoming, name: 'width', fallback: 1024, min: 256, max: 1920 }),
+    boundedNumberField({ form: incoming, name: 'width', fallback: 512, min: 256, max: 512 }),
   );
   form.append(
     'height',
-    boundedNumberField({ form: incoming, name: 'height', fallback: 1024, min: 256, max: 1920 }),
+    boundedNumberField({ form: incoming, name: 'height', fallback: 512, min: 256, max: 512 }),
   );
   appendReferenceImages(incoming, form);
 
@@ -422,14 +455,14 @@ async function handleStylistRequest(env: WorkerEnv, incoming: FormData): Promise
   }
 
   const payload = parseStylistPayload(result);
-  if (typeof payload !== 'object' || payload === null) {
+  if (!isStrictStylistPayload(payload)) {
     return jsonError(
       { code: 'provider_error', error: 'Workers AI returned invalid stylist payload' },
       502,
     );
   }
 
-  return jsonResponse({ ...(payload as Record<string, unknown>), model });
+  return jsonResponse({ ...payload, model });
 }
 
 export default {
