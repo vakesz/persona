@@ -30,6 +30,8 @@ const styleType = v.union(
   v.literal('clothes'),
 );
 
+type AvatarGender = 'male' | 'female' | 'unspecified';
+
 const STYLIST_SYSTEM_PROMPT = `You are a confident, warm stylist helping someone preview looks that would suit them. Read their photo and question, then propose three concrete looks they should try.
 
 You only recommend styles. You do not generate images, redesign the person, or suggest changing their identity. Never suggest altering facial structure, apparent age, ethnicity, skin tone, body shape, weight, height, or other intrinsic traits. Only suggest stylistic layers that can be applied onto the same person: hair styling or color, makeup, nails, clothes, and accessories.
@@ -57,6 +59,20 @@ The recommendations array must contain exactly 3 items. For each:
 Each recommendation must stay scoped to its own styleType. Do not bundle extra changes outside that area. If the recommendation is about hairstyle, keep the user's current hair color unless the user explicitly asked for a new color. If the recommendation is about makeup, do not also change hairstyle, brows, clothes, or accessories unless the user explicitly asked for that combination. If it is about clothes, do not alter hair, makeup, body shape, or facial features. If it is about nails, do not alter hands, jewelry, clothes, or other styling beyond the nail look itself.
 
 If the question targets a specific style type, make all 3 recommendations that type. Otherwise spread across types based on what would genuinely benefit the user most.`;
+
+function personaLabel(gender: AvatarGender): string | null {
+  if (gender === 'male') return 'masculine';
+  if (gender === 'female') return 'feminine';
+  return null;
+}
+
+function buildStylistSystemPrompt(gender: AvatarGender): string {
+  const persona = personaLabel(gender);
+  if (persona === null) return STYLIST_SYSTEM_PROMPT;
+  return `${STYLIST_SYSTEM_PROMPT}
+
+The avatar uses a ${persona} persona. Keep recommendations compatible with that overall presentation unless the user's question explicitly asks to shift it. For hairstyle recommendations in particular, avoid feminizing a masculine persona or masculinizing a feminine persona unless the user clearly requests that.`;
+}
 
 type StylistStyleType = 'hair' | 'makeup' | 'nails' | 'clothes';
 
@@ -344,10 +360,12 @@ async function analyzeStyleWithCloudflareWorker({
   image,
   mimeType,
   question,
+  systemPrompt,
 }: {
   image: Uint8Array;
   mimeType: string;
   question: string;
+  systemPrompt: string;
 }): Promise<{ recommendations: StylistRecommendation[] }> {
   const { baseUrl, secret, stylistModel } = getCloudflareWorkerConfig();
   const form = new FormData();
@@ -357,7 +375,7 @@ async function analyzeStyleWithCloudflareWorker({
   ) as ArrayBuffer;
 
   form.append('model', stylistModel);
-  form.append('system_prompt', STYLIST_SYSTEM_PROMPT);
+  form.append('system_prompt', systemPrompt);
   form.append('question', question);
   form.append(
     'input_image_0',
@@ -458,6 +476,7 @@ export const analyzeStyle: ReturnType<typeof action> = action({
       image: imageBytes,
       mimeType,
       question: userTurn,
+      systemPrompt: buildStylistSystemPrompt(avatar.gender),
     });
   },
 });
@@ -472,11 +491,24 @@ User descriptions may be written in any language (English, Hungarian, etc.), som
 
 type AvatarBaselineType = 'selfie' | 'full_body';
 
-function buildBaselineInstruction(avatarType: AvatarBaselineType): string {
+function buildPersonaInstruction(gender: AvatarGender): string {
+  switch (gender) {
+    case 'male':
+      return 'The avatar uses a masculine persona. Preserve a clearly masculine overall presentation unless a later request explicitly asks to change that. Do not feminize the face, grooming, hairstyle silhouette, or styling choices.';
+    case 'female':
+      return 'The avatar uses a feminine persona. Preserve a clearly feminine overall presentation unless a later request explicitly asks to change that. Do not masculinize the face, grooming, hairstyle silhouette, or styling choices.';
+    case 'unspecified':
+      return 'The avatar persona is unspecified. Preserve the person exactly as shown without pushing the result toward a more masculine or feminine presentation.';
+  }
+}
+
+function buildBaselineInstruction(avatarType: AvatarBaselineType, gender: AvatarGender): string {
+  const personaInstruction = buildPersonaInstruction(gender);
   if (avatarType === 'full_body') {
     return `Use the attached reference photo(s) of me to produce a single clean studio full-body shot of me. Image 0 is the primary identity anchor; use any later images only as supporting references for angles, proportions, and details. This is the canonical baseline that the rest of the app edits on top of, so it must look unambiguously like me. Requirements:
 - Full body in frame: head to feet, standing front-facing, arms relaxed at the sides.
 - Keep the selected full-body framing. Do not crop into a selfie or half-body composition.
+- ${personaInstruction}
 - Relaxed, neutral expression with mouth closed.
 - Even, diffuse studio lighting; no harsh shadows.
 - Plain neutral light-grey backdrop covering the full height.
@@ -493,6 +525,7 @@ Return only the edited portrait image - no text, no decorations.`;
   return `Use the attached reference photo(s) of me to produce a single clean studio headshot of me. Image 0 is the primary identity anchor; use any later images only as supporting references for angles and details. This is the canonical baseline that the rest of the app edits on top of, so it must look unambiguously like me. Requirements:
 - Front-facing, head and upper shoulders in frame.
 - Keep the selected selfie framing. Do not widen into a torso or full-body composition.
+- ${personaInstruction}
 - Relaxed, neutral expression with mouth closed.
 - Even, diffuse studio lighting; no harsh shadows.
 - Plain neutral light-grey background.
@@ -563,7 +596,7 @@ export const generateAvatarBaseline = internalAction({
     if (!claimed) return null;
 
     try {
-      const prompt = buildBaselineInstruction(avatar.type);
+      const prompt = buildBaselineInstruction(avatar.type, avatar.gender);
       const sourceBlobs: ImageReference[] = [];
       for (const storageId of avatar.sourcePhotoStorageIds.slice(0, MAX_SOURCE_PHOTOS)) {
         const blob = await ctx.storage.get(storageId);
@@ -626,7 +659,7 @@ interface RenderInputJson {
 function renderEditScope(styleType: StylistStyleType | undefined): string {
   switch (styleType) {
     case 'hair':
-      return 'The requested edit is a hairstyle. Replace the entire visible hairstyle with the requested cut, length, silhouette, volume, part, curl pattern, and fringe if specified; do not keep the original hairstyle as a partial blend. Preserve my existing hair color exactly unless the request explicitly asks for a different color. Do not alter eyebrows, beard, makeup, skin, clothing, jewelry, or accessories unless the request explicitly names them.';
+      return 'The requested edit is a hairstyle. Replace the entire visible hairstyle with the requested cut, length, silhouette, volume, part, curl pattern, and fringe if specified; do not keep the original hairstyle as a partial blend. Preserve my existing hair color exactly unless the request explicitly asks for a different color. Preserve the same overall masculine, feminine, or neutral presentation already established by image 0 unless the request explicitly asks to change it. Do not alter eyebrows, beard, makeup, skin, clothing, jewelry, or accessories unless the request explicitly names them.';
     case 'makeup':
       return 'The requested edit is makeup. Modify only the named makeup areas, colors, finishes, and intensity. Makeup may cover or tint local areas such as eyelids, lashes, lips, cheeks, brows, or nails, but must not reshape my face or erase identifying marks. Do not alter facial structure, eye shape, eyebrow shape, hairstyle, beard, clothing, jewelry, or accessories unless the request explicitly names them.';
     case 'nails':
@@ -638,13 +671,26 @@ function renderEditScope(styleType: StylistStyleType | undefined): string {
   }
 }
 
-const RENDER_INSTRUCTION = (prompt: string, styleType?: StylistStyleType) =>
+function renderPersonaScope(gender: AvatarGender): string {
+  switch (gender) {
+    case 'male':
+      return 'Persona preservation: image 0 uses a masculine persona. Keep the result clearly masculine overall unless the request explicitly asks otherwise. Do not feminize the face, jaw, brows, hairstyle silhouette, grooming, or overall presentation.';
+    case 'female':
+      return 'Persona preservation: image 0 uses a feminine persona. Keep the result clearly feminine overall unless the request explicitly asks otherwise. Do not masculinize the face, jaw, brows, hairstyle silhouette, grooming, or overall presentation.';
+    case 'unspecified':
+      return 'Persona preservation: keep the person exactly as shown in image 0 without pushing the result toward a more masculine or feminine presentation unless the request explicitly asks for that.';
+  }
+}
+
+const RENDER_INSTRUCTION = (prompt: string, gender: AvatarGender, styleType?: StylistStyleType) =>
   `Image 0 is the generated avatar baseline image of me and must remain the identity anchor.
 
 Apply the requested styling change fully, clearly, and photorealistically. Preserve all unrelated parts of image 0.
 
 Identity preservation:
 Preserve my face shape, facial proportions, eyes, nose, mouth, jaw, skin tone, apparent age, facial asymmetry, pose, lighting, body shape, visible proportions, crop, and background unless the requested local styling edit naturally affects that area. Do not slim, reshape, idealize, masculinize, feminize, de-age, airbrush, or beauty-retouch me.
+
+${renderPersonaScope(gender)}
 
 Hair and makeup exceptions:
 Preserve my natural hairline unless the requested hairstyle naturally covers it, such as bangs, fringe, headwear, or an updo. Makeup may cover or tint local areas such as eyelids, lashes, lips, cheeks, brows, or nails, but must not reshape my face or erase identifying marks.
@@ -662,13 +708,15 @@ ${prompt}
 
 Return only the edited image.`;
 
-const TRY_ON_INSTRUCTION = (prompt: string) =>
+const TRY_ON_INSTRUCTION = (prompt: string, gender: AvatarGender) =>
   `Image 0 is the generated avatar baseline image of me and must remain the identity anchor. Image 1 is a clothing or accessory reference.
 
 Apply only the clothing or accessory change from image 1 clearly and photorealistically. Preserve all unrelated parts of image 0.
 
 Identity preservation:
 Preserve my hairstyle, makeup, facial structure, face shape, facial proportions, eyes, nose, mouth, jaw, skin tone, apparent age, facial asymmetry, pose, lighting, body shape, visible proportions, crop, and background unless the item naturally covers part of them. Do not slim, reshape, idealize, de-age, airbrush, or beauty-retouch me.
+
+${renderPersonaScope(gender)}
 
 Garment fitting and crop:
 Fit the item naturally to my body and match my lighting and pose. If I am already wearing a similar garment or accessory in image 0, replace it with the reference item rather than layering on top. If the source image is a headshot or otherwise cropped tightly, adapt only the visible part of the clothing or accessory to the existing crop and do not widen the frame unless explicitly requested.
@@ -781,7 +829,7 @@ export const renderLook = internalAction({
       const references: ImageReference[] = [
         { blob: inputBlob, filename: `portrait.${mimeExtension(inputMime)}` },
       ];
-      let renderPrompt = RENDER_INSTRUCTION(prompt, input.styleType);
+      let renderPrompt = RENDER_INSTRUCTION(prompt, avatar.gender, input.styleType);
       if (input.referenceUploadedItemId !== undefined) {
         const referenceItem = await ctx.runQuery(
           internal.uploadedItems.getUploadedItemStorageForUser,
@@ -796,7 +844,7 @@ export const renderLook = internalAction({
         }
         const refMime = refBlob.type === '' ? 'image/jpeg' : refBlob.type;
         references.push({ blob: refBlob, filename: `reference.${mimeExtension(refMime)}` });
-        renderPrompt = TRY_ON_INSTRUCTION(prompt);
+        renderPrompt = TRY_ON_INSTRUCTION(prompt, avatar.gender);
       }
 
       const dimensions = imageDimensionsForAvatar(avatar.type);

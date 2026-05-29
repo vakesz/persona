@@ -140,6 +140,7 @@ export const getAvatarStorageForUser = internalQuery({
       _id: v.id('avatars'),
       name: v.string(),
       type: avatarType,
+      gender: avatarGender,
       baseImageStorageId: v.id('_storage'),
     }),
     v.null(),
@@ -152,6 +153,7 @@ export const getAvatarStorageForUser = internalQuery({
       _id: avatar._id,
       name: avatar.name,
       type: avatar.type,
+      gender: avatar.gender ?? 'unspecified',
       baseImageStorageId: avatar.baseImageStorageId,
     };
   },
@@ -168,6 +170,7 @@ export const getAvatarForBaseline = internalQuery({
       _id: v.id('avatars'),
       userId: v.id('users'),
       type: avatarType,
+      gender: avatarGender,
       sourcePhotoStorageIds: v.array(v.id('_storage')),
       baselineStatus,
       baselineAttemptId: v.optional(v.string()),
@@ -182,6 +185,7 @@ export const getAvatarForBaseline = internalQuery({
       _id: avatar._id,
       userId: avatar.userId,
       type: avatar.type,
+      gender: avatar.gender ?? 'unspecified',
       sourcePhotoStorageIds: avatar.sourcePhotoStorageIds ?? [],
       baselineStatus: avatar.baselineStatus ?? 'done',
       ...(avatar.baselineAttemptId !== undefined && {
